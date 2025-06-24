@@ -28,12 +28,19 @@ function loadConfig() {
     const publicRuntimeConfig: Record<string, string | undefined> = {};
     const serverRuntimeConfig: Record<string, string | undefined> = {};
 
-    for (const [key, {variable, required, isPublic, defaultValue}] of Object.entries(appConfiguration)) {
-        const defined = variable in process.env || typeof process.env[variable] !== "undefined";
+    for (const [
+        key,
+        { variable, required, isPublic, defaultValue },
+    ] of Object.entries(appConfiguration)) {
+        const defined =
+            variable in process.env ||
+            typeof process.env[variable] !== "undefined";
 
         // Log an error if a required configuration setting isn't defined.
         if (required && !defined) {
-            console.log(`configuration error [${key}]: ${variable} is not defined`);
+            console.log(
+                `configuration error [${key}]: ${variable} is not defined`,
+            );
             configurationError = true;
             continue;
         }
@@ -47,21 +54,22 @@ function loadConfig() {
         } else {
             serverRuntimeConfig[key] = value;
         }
-    };
+    }
 
     return { configurationError, publicRuntimeConfig, serverRuntimeConfig };
 }
 
 // Load the configuration.
-const { configurationError, publicRuntimeConfig, serverRuntimeConfig } = loadConfig()
+const { configurationError, publicRuntimeConfig, serverRuntimeConfig } =
+    loadConfig();
 if (configurationError) {
-    console.log('a configuration error was detected: exiting');
+    console.log("a configuration error was detected: exiting");
     process.exit(1);
 }
 
 const nextConfig: NextConfig = {
-    publicRuntimeConfig: publicRuntimeConfig,
-    serverRuntimeConfig: serverRuntimeConfig,
+    publicRuntimeConfig,
+    serverRuntimeConfig,
 };
 
 export default nextConfig;
