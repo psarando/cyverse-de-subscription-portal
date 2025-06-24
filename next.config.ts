@@ -1,4 +1,4 @@
-/** @type {import('next').NextConfig} */
+import type { NextConfig } from "next";
 
 // appConfiguration defines the supported configuration settings for the application.
 const appConfiguration = {
@@ -6,11 +6,13 @@ const appConfiguration = {
         variable: "SP_AUTHORIZE_NET_LOGIN_ID",
         required: true,
         isPublic: false,
+        defaultValue: undefined,
     },
     authorizeNetTransactionKey: {
         variable: "SP_AUTHORIZE_NET_TRANSACTION_KEY",
         required: true,
         isPublic: false,
+        defaultValue: undefined,
     },
     terrainBaseUrl: {
         variable: "SP_TERRAIN_BASE_URL",
@@ -22,9 +24,10 @@ const appConfiguration = {
 
 // loadConfig loads the runtime configuration from the environment based on the definitions in `appConfiguration`.
 function loadConfig() {
-    var configurationError = false;
-    var publicRuntimeConfig = {};
-    var serverRuntimeConfig = {};
+    let configurationError = false;
+    const publicRuntimeConfig: Record<string, string | undefined> = {};
+    const serverRuntimeConfig: Record<string, string | undefined> = {};
+
     for (const [key, {variable, required, isPublic, defaultValue}] of Object.entries(appConfiguration)) {
         const defined = variable in process.env || typeof process.env[variable] !== "undefined";
 
@@ -45,6 +48,7 @@ function loadConfig() {
             serverRuntimeConfig[key] = value;
         }
     };
+
     return { configurationError, publicRuntimeConfig, serverRuntimeConfig };
 }
 
@@ -55,7 +59,7 @@ if (configurationError) {
     process.exit(1);
 }
 
-const nextConfig = {
+const nextConfig: NextConfig = {
     publicRuntimeConfig: publicRuntimeConfig,
     serverRuntimeConfig: serverRuntimeConfig,
 };
