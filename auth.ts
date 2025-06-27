@@ -10,6 +10,9 @@ import KeycloakProvider from "next-auth/providers/keycloak";
 // The `NextAuth` config, for use in `app/api/auth/[...nextauth]/route.ts`
 export const config = {
     debug: process.env.NODE_ENV !== "production",
+    theme: {
+        logo: "/cyverse_logo_0.png",
+    },
     providers: [
         KeycloakProvider({
             clientId: process.env.SP_KEYCLOAK_CLIENT_ID || "",
