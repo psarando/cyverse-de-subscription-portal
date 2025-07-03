@@ -14,6 +14,24 @@ const appConfiguration = {
         isPublic: false,
         defaultValue: undefined,
     },
+    keycloakIssuer: {
+        variable: "SP_KEYCLOAK_ISSUER",
+        required: true,
+        isPublic: false,
+        defaultValue: undefined,
+    },
+    keycloakClientId: {
+        variable: "SP_KEYCLOAK_CLIENT_ID",
+        required: true,
+        isPublic: false,
+        defaultValue: undefined,
+    },
+    keycloakClientSecret: {
+        variable: "SP_KEYCLOAK_CLIENT_SECRET",
+        required: true,
+        isPublic: false,
+        defaultValue: undefined,
+    },
     terrainBaseUrl: {
         variable: "SP_TERRAIN_BASE_URL",
         required: false,
