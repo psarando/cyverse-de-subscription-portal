@@ -3,9 +3,13 @@ import type {
     NextApiRequest,
     NextApiResponse,
 } from "next";
+import getConfig from "next/config";
+
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import KeycloakProvider from "next-auth/providers/keycloak";
+
+const { serverRuntimeConfig } = getConfig();
 
 // The `NextAuth` config, for use in `app/api/auth/[...nextauth]/route.ts`
 export const config = {
@@ -15,9 +19,9 @@ export const config = {
     },
     providers: [
         KeycloakProvider({
-            clientId: process.env.SP_KEYCLOAK_CLIENT_ID || "",
-            clientSecret: process.env.SP_KEYCLOAK_CLIENT_SECRET || "",
-            issuer: process.env.SP_KEYCLOAK_ISSUER,
+            clientId: serverRuntimeConfig.keycloakClientId || "",
+            clientSecret: serverRuntimeConfig.keycloakClientSecret || "",
+            issuer: serverRuntimeConfig.keycloakIssuer,
         }),
     ],
 } satisfies NextAuthOptions;
