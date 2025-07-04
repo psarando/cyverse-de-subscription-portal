@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession, SessionProvider, signIn, signOut } from "next-auth/react";
+import { useSession, signIn, signOut } from "next-auth/react";
 import Button from "@mui/material/Button";
 
 const LoginBtn = () => {
@@ -23,10 +23,4 @@ const LoginBtn = () => {
     );
 };
 
-export default function Component() {
-    return (
-        <SessionProvider>
-            <LoginBtn />
-        </SessionProvider>
-    );
-}
+export default LoginBtn;
