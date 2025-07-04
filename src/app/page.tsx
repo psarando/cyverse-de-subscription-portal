@@ -1,11 +1,25 @@
 import { auth } from "@/auth";
 import LoginBtn from "@/components/LoginBtn";
+import AccountAvatar from "@/components/AccountAvatar";
+
 import Image from "next/image";
+import { AppBar, Box, IconButton, Toolbar } from "@mui/material";
 
 export default async function Home() {
     const session = await auth();
     return (
-        <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
+        <Box sx={{ flexGrow: 1 }}>
+            <AppBar position="static">
+                <Toolbar>
+                    <Box sx={{ flexGrow: 1 }} />
+                    <IconButton
+                        size="large"
+                        aria-label="account of current user"
+                    >
+                        <AccountAvatar />
+                    </IconButton>
+                </Toolbar>
+            </AppBar>
             <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
                 <Image
                     src="/cyverse_logo_2.png"
@@ -19,6 +33,6 @@ export default async function Home() {
                     <LoginBtn />
                 </div>
             </main>
-        </div>
+        </Box>
     );
 }
