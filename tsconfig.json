@@ -20,7 +20,8 @@
         ],
         "paths": {
             "@/*": ["./src/*"],
-            "@/auth": ["./auth.ts"]
+            "@/auth": ["./auth.ts"],
+            "@/constants": ["./constants.js"]
         }
     },
     "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
