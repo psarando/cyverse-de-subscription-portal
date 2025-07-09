@@ -24,12 +24,12 @@ export default async function Home() {
                     </IconButton>
                 </Toolbar>
             </AppBar>
-            <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
+            <main>
                 <Image
                     src="/cyverse_logo_2.png"
                     alt="CyVerse logo"
-                    width={836}
-                    height={170}
+                    width={375}
+                    height={76}
                     priority
                 />
                 <Stack justifyContent="center" alignItems="center">
