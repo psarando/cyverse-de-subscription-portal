@@ -1,9 +1,9 @@
 import { auth } from "@/auth";
-import LoginBtn from "@/components/LoginBtn";
 import AccountAvatar from "@/components/AccountAvatar";
+import SignInCard from "@/components/SignInCard";
 
 import Image from "next/image";
-import { AppBar, Box, IconButton, Toolbar } from "@mui/material";
+import { AppBar, Box, IconButton, Stack, Toolbar } from "@mui/material";
 
 export default async function Home() {
     const session = await auth();
@@ -32,10 +32,13 @@ export default async function Home() {
                     height={170}
                     priority
                 />
-                <div className="flex gap-4 items-center flex-col">
-                    Welcome {session?.user?.name}!
-                    <LoginBtn />
-                </div>
+                <Stack justifyContent="center" alignItems="center">
+                    {session ? (
+                        <>Welcome {session?.user?.name}!</>
+                    ) : (
+                        <SignInCard />
+                    )}
+                </Stack>
             </main>
         </Box>
     );
