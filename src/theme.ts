@@ -8,6 +8,10 @@ const theme = createTheme({
     colorSchemes: {
         dark: true,
     },
+    cssVariables: {
+        // Appears to prevent SSR flicker from light to dark mode during hydration phase.
+        colorSchemeSelector: "media",
+    },
     palette: {
         // All intentions should be defined with references to colors from the new palette.
         primary: {
