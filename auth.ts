@@ -6,8 +6,31 @@ import type {
 import getConfig from "next/config";
 
 import type { NextAuthOptions } from "next-auth";
-import { getServerSession } from "next-auth";
+import { getServerSession, DefaultUser } from "next-auth";
 import KeycloakProvider from "next-auth/providers/keycloak";
+
+declare module "next-auth" {
+    // Extend the Session type to include accessToken and username
+    interface Session {
+        accessToken?: string | null;
+        user?: {
+            username?: string | null;
+        } & DefaultUser;
+    }
+
+    // Extend the Profile type to include username
+    interface Profile {
+        preferred_username?: string | null;
+    }
+}
+
+declare module "next-auth/jwt" {
+    // Extend the JWT type to include accessToken and username
+    interface JWT {
+        accessToken?: string | null;
+        username?: string | null;
+    }
+}
 
 const { serverRuntimeConfig } = getConfig();
 
@@ -24,6 +47,26 @@ export const config = {
             issuer: serverRuntimeConfig.keycloakIssuer,
         }),
     ],
+    callbacks: {
+        async jwt({ token, account, profile }) {
+            // Persist the OAuth access_token and the username in the token right after signin.
+            if (profile) {
+                token.accessToken = account?.access_token;
+                token.username = profile.preferred_username;
+            }
+
+            return token;
+        },
+        async session({ session, token }) {
+            // Send properties to the client, like the accessToken and username from the provider.
+            session.accessToken = token.accessToken;
+            if (session.user) {
+                session.user.username = token.username;
+            }
+
+            return session;
+        },
+    },
 } satisfies NextAuthOptions;
 
 // Use it in server contexts
