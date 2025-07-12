@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS line_items (
     unit_price money NOT NULL,
     PRIMARY KEY (id)
 );
+CREATE INDEX IF NOT EXISTS line_items_purchase_id
+    ON line_items (purchase_id);
 
 -- This table contains information about a response to a transaction request.
 CREATE TABLE IF NOT EXISTS transaction_responses (
@@ -78,6 +80,8 @@ CREATE TABLE IF NOT EXISTS transaction_responses (
     network_transaction_id text,
     PRIMARY KEY (id)
 );
+CREATE INDEX IF NOT EXISTS transaction_responses_purchase_id
+    ON transaction_responses (purchase_id);
 
 -- This table contains detail messages from transaction responses.
 CREATE TABLE IF NOT EXISTS transaction_response_messages (
@@ -87,6 +91,8 @@ CREATE TABLE IF NOT EXISTS transaction_response_messages (
     description text NOT NULL,
     PRIMARY KEY (id)
 );
+CREATE INDEX IF NOT EXISTS transaction_response_messages_transaction_response_id
+    ON transaction_response_messages (transaction_response_id);
 
 -- This table references the subscriptions associated with a purchase.
 CREATE TABLE IF NOT EXISTS purchased_subscriptions (
@@ -95,6 +101,10 @@ CREATE TABLE IF NOT EXISTS purchased_subscriptions (
     subscription_id uuid NOT NULL,
     PRIMARY KEY (id)
 );
+CREATE INDEX IF NOT EXISTS purchased_subscriptions_purchase_id
+    ON purchased_subscriptions (purchase_id);
+CREATE INDEX IF NOT EXISTS purchased_subscriptions_subscription_id
+    ON purchased_subscriptions (subscription_id);
 
 -- This table references the subscription add-ons associated with a purchase.
 CREATE TABLE IF NOT EXISTS purchased_subscription_addons (
@@ -103,5 +113,9 @@ CREATE TABLE IF NOT EXISTS purchased_subscription_addons (
     subscription_addon_id uuid NOT NULL,
     PRIMARY KEY (id)
 );
+CREATE INDEX IF NOT EXISTS purchased_subscription_addons_purchase_id
+    ON purchased_subscription_addons (purchase_id);
+CREATE INDEX IF NOT EXISTS purchased_subscription_addons_subscription_addon_id
+    ON purchased_subscription_addons (subscription_addon_id);
 
 COMMIT;
