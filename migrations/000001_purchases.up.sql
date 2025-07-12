@@ -88,4 +88,20 @@ CREATE TABLE IF NOT EXISTS transaction_response_messages (
     PRIMARY KEY (id)
 );
 
+-- This table references the subscriptions associated with a purchase.
+CREATE TABLE IF NOT EXISTS purchased_subscriptions (
+    id uuid NOT NULL DEFAULT uuid_generate_v1(),
+    purchase_id uuid NOT NULL REFERENCES purchases (id) ON DELETE CASCADE,
+    subscription_id uuid NOT NULL,
+    PRIMARY KEY (id)
+);
+
+-- This table references the subscription add-ons associated with a purchase.
+CREATE TABLE IF NOT EXISTS purchased_subscription_addons (
+    id uuid NOT NULL DEFAULT uuid_generate_v1(),
+    purchase_id uuid NOT NULL REFERENCES purchases (id) ON DELETE CASCADE,
+    subscription_addon_id uuid NOT NULL,
+    PRIMARY KEY (id)
+);
+
 COMMIT;
