@@ -7,11 +7,12 @@ SET search_path = public, pg_catalog;
 CREATE SEQUENCE IF NOT EXISTS purchase_order_numbers START 1;
 
 -- This table contains the payment information for a purchase. We only support credit card payment at this time, so
--- that's the only type of payment supported by this table. The CVV code is required for purchases but it's not stored
--- for security purposes.
+-- that's the only type of payment supported by this table. For security, only the last four digits of the credit card
+-- number are stored. This gives us enogugh information to process a refund without introducing a risk of leaking credit
+-- card information. The CVV code is required for purchases but it's not stored for security purposes.
 CREATE TABLE IF NOT EXISTS payments (
     id uuid NOT NULL DEFAULT uuid_generate_v1(),
-    credit_card_number text NOT NULL,
+    credit_card_number char(4) NOT NULL,
     expiration_date date NOT NULL,
     PRIMARY KEY (id)
 );
