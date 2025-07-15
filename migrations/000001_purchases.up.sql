@@ -43,6 +43,10 @@ CREATE TABLE IF NOT EXISTS purchases (
     customar_ip text NOT NULL,
     PRIMARY KEY (id)
 );
+CREATE INDEX IF NOT EXISTS purchases_payment_id
+    ON purchases (payment_id);
+CREATE INDEX IF NOT EXISTS purchases_billing_information_id
+    ON purchases (billing_information_id);
 
 -- This table contains line items for a purchase. The item_type column indicates whether the line item refers to a
 -- subscription plan or an add-on (in case we need to programatically look up data in the QMS database later.) The
