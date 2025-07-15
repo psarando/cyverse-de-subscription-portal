@@ -10,24 +10,27 @@ import { getServerSession, DefaultUser } from "next-auth";
 import KeycloakProvider from "next-auth/providers/keycloak";
 
 declare module "next-auth" {
-    // Extend the Session type to include accessToken and username
+    // Extend the Session type to include accessToken, accessTokenExp, and username.
     interface Session {
         accessToken?: string | null;
+        accessTokenExp?: number | null;
         user?: {
             username?: string | null;
         } & DefaultUser;
     }
 
-    // Extend the Profile type to include username
+    // Extend the Profile type to include username and exp.
     interface Profile {
+        exp?: number | null;
         preferred_username?: string | null;
     }
 }
 
 declare module "next-auth/jwt" {
-    // Extend the JWT type to include accessToken and username
+    // Extend the JWT type to include accessToken, username, and accessTokenExp.
     interface JWT {
         accessToken?: string | null;
+        accessTokenExp?: number | null;
         username?: string | null;
     }
 }
@@ -52,6 +55,7 @@ export const config = {
             // Persist the OAuth access_token and the username in the token right after signin.
             if (profile) {
                 token.accessToken = account?.access_token;
+                token.accessTokenExp = profile.exp;
                 token.username = profile.preferred_username;
             }
 
@@ -60,6 +64,7 @@ export const config = {
         async session({ session, token }) {
             // Send properties to the client, like the accessToken and username from the provider.
             session.accessToken = token.accessToken;
+            session.accessTokenExp = token.accessTokenExp;
             if (session.user) {
                 session.user.username = token.username;
             }
