@@ -2,6 +2,7 @@
 
 import constants from "@/constants";
 import { getResourceUsageSummary } from "@/app/api/serviceFacade";
+import { dateConstants, formatDate } from "@/utils/dateUtils";
 
 import GridLabelValue from "./GridLabelValue";
 
@@ -51,6 +52,8 @@ const SubscriptionSummary = () => {
 
     const subscription = resourceUsageSummary?.subscription;
     const currentPlanName = subscription?.plan?.name;
+    const startDate = subscription?.effective_start_date;
+    const endDate = subscription?.effective_end_date;
 
     return isFetching ? (
         <>
@@ -89,16 +92,18 @@ const SubscriptionSummary = () => {
             <Grid container>
                 <GridLabelValue label="Start Date">
                     <Typography>
-                        {new Date(
-                            subscription?.effective_start_date,
-                        ).toLocaleString()}
+                        {formatDate(
+                            startDate && new Date(startDate),
+                            dateConstants.DATE_FORMAT,
+                        )}
                     </Typography>
                 </GridLabelValue>
                 <GridLabelValue label="End Date">
                     <Typography>
-                        {new Date(
-                            subscription?.effective_end_date,
-                        ).toLocaleString()}
+                        {formatDate(
+                            endDate && new Date(endDate),
+                            dateConstants.DATE_FORMAT,
+                        )}
                     </Typography>
                 </GridLabelValue>
                 <GridLabelValue label="Quotas">
