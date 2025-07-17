@@ -26,6 +26,15 @@ const AccountAvatar = () => {
 
     const userFirstInitial = session?.user?.name?.charAt(0).toUpperCase();
 
+    React.useEffect(() => {
+        if (session?.accessTokenExp) {
+            // If the access token has expired, force a sign out for now.
+            if (new Date(session.accessTokenExp * 1000) < new Date()) {
+                signOut();
+            }
+        }
+    }, [session]);
+
     const handleUserAvatarClick = (event: React.MouseEvent<HTMLDivElement>) => {
         if (!session) {
             signIn("keycloak");
