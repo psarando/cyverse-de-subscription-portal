@@ -7,8 +7,22 @@ import { dateConstants, formatDate } from "@/utils/dateUtils";
 import GridLabelValue from "./GridLabelValue";
 
 import { UUID } from "crypto";
+import numeral from "numeral";
 import { Grid, Link, Paper, Skeleton, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
+
+const formatFileSize = (size: number) => {
+    if (!size) {
+        return "-";
+    }
+    if (size < 1024) {
+        return numeral(size).format("0 ib");
+    }
+
+    return numeral(size).format("0.0 ib");
+};
+
+const formatUsage = (usage: number) => numeral(usage).format("0.00000");
 
 type ResourceUsageSummaryType = {
     subscription: {
@@ -123,9 +137,15 @@ const QuotasDetails = ({ subscription }: SubscriptionDetailProps) => {
             {subscription &&
                 subscription.quotas.length > 0 &&
                 subscription.quotas.map((item) => {
+                    // Only format data storage resources to human readable format
+                    const resourceInBytes =
+                        item.resource_type.description.toLowerCase() ===
+                        "bytes";
                     return (
                         <Typography key={item.id}>
-                            {`${item.quota} ${item.resource_type.description} `}
+                            {resourceInBytes
+                                ? formatFileSize(item.quota)
+                                : `${item.quota} ${item.resource_type.description} `}
                         </Typography>
                     );
                 })}
@@ -139,9 +159,15 @@ const UsagesDetails = ({ subscription }: SubscriptionDetailProps) => {
             {subscription &&
                 subscription.usages.length > 0 &&
                 subscription.usages.map((item) => {
+                    // Format usage to readable format
+                    const resourceInBytes =
+                        item.resource_type.description.toLowerCase() ===
+                        "bytes";
                     return (
                         <Typography key={item.id}>
-                            {`${item.usage} ${item.resource_type.description}`}
+                            {resourceInBytes
+                                ? formatFileSize(item.usage)
+                                : `${formatUsage(item.usage)} ${item.resource_type.description}`}
                         </Typography>
                     );
                 })}
