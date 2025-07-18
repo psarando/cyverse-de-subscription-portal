@@ -2,14 +2,34 @@
 
 import constants from "@/constants";
 import { getResourceUsageSummary } from "@/app/api/serviceFacade";
+import DETableHead from "@/components/common/table/DETableHead";
+import EmptyTable from "@/components/common/table/EmptyTable";
+import { DERow } from "@/components/common/table/DERow";
 import { dateConstants, formatDate } from "@/utils/dateUtils";
 
 import GridLabelValue from "./GridLabelValue";
 
 import { UUID } from "crypto";
 import numeral from "numeral";
-import { Grid, Link, Paper, Skeleton, Typography } from "@mui/material";
+
+import {
+    Grid,
+    Link,
+    Paper,
+    Skeleton,
+    Table,
+    TableBody,
+    TableCell,
+    Typography,
+} from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
+
+const ADDONS_TABLE_COLUMNS = [
+    { name: "Add-on", numeric: false, enableSorting: false },
+    { name: "Amount", numeric: false, enableSorting: false },
+    { name: "Resource Type", numeric: false, enableSorting: false },
+    { name: "Paid", numeric: false, enableSorting: false },
+];
 
 const formatFileSize = (size: number) => {
     if (!size) {
@@ -45,6 +65,18 @@ type ResourceUsageSummaryType = {
             resource_type: {
                 name: string;
                 description: string;
+            };
+        }>;
+        addons: Array<{
+            id: UUID;
+            amount: number;
+            paid: boolean;
+            addon: {
+                name: string;
+                resource_type: {
+                    name: string;
+                    description: string;
+                };
             };
         }>;
     };
@@ -127,6 +159,7 @@ const SubscriptionSummary = () => {
                     <UsagesDetails subscription={subscription} />
                 </GridLabelValue>
             </Grid>
+            <AddonsDetails subscription={subscription} />
         </Paper>
     );
 };
@@ -178,5 +211,54 @@ const UsagesDetails = ({ subscription }: SubscriptionDetailProps) => {
         </>
     );
 };
+
+function AddonsDetails({ subscription }: SubscriptionDetailProps) {
+    const addons = subscription.addons;
+
+    return (
+        <Table>
+            <DETableHead columnData={ADDONS_TABLE_COLUMNS} />
+            <TableBody>
+                {addons && !addons.length && (
+                    <EmptyTable
+                        message="No add-ons"
+                        numColumns={ADDONS_TABLE_COLUMNS.length}
+                    />
+                )}
+                {addons &&
+                    addons.length > 0 &&
+                    addons.map((item) => {
+                        const resourceInBytes =
+                            item.addon.resource_type.description.toLowerCase() ===
+                            "bytes";
+                        return (
+                            <DERow key={item.id}>
+                                <TableCell>
+                                    <Typography>{item.addon.name}</Typography>
+                                </TableCell>
+                                <TableCell>
+                                    <Typography>
+                                        {resourceInBytes
+                                            ? formatFileSize(item.amount)
+                                            : `${item.amount}`}
+                                    </Typography>
+                                </TableCell>
+                                <TableCell>
+                                    <Typography>
+                                        {item.addon.resource_type.description}
+                                    </Typography>
+                                </TableCell>
+                                <TableCell>
+                                    <Typography>
+                                        {item.paid ? "True" : "False"}
+                                    </Typography>
+                                </TableCell>
+                            </DERow>
+                        );
+                    })}
+            </TableBody>
+        </Table>
+    );
+}
 
 export default SubscriptionSummary;
