@@ -3,7 +3,7 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 
 import constants from "@/constants";
-import ContactSupport from "./ContactSupport";
+import ContactSupport from "@/components/common/ContactSupport";
 
 import {
     Card,

@@ -2,12 +2,11 @@
 
 import constants from "@/constants";
 import { getResourceUsageSummary } from "@/app/api/serviceFacade";
+import GridLabelValue from "@/components/common/GridLabelValue";
 import DETableHead from "@/components/common/table/DETableHead";
 import EmptyTable from "@/components/common/table/EmptyTable";
 import { DERow } from "@/components/common/table/DERow";
 import { dateConstants, formatDate } from "@/utils/dateUtils";
-
-import GridLabelValue from "./GridLabelValue";
 
 import { UUID } from "crypto";
 import numeral from "numeral";
