@@ -14,7 +14,7 @@ export default function GridLabelValue({
     wordBreak = "break-word",
     ...props
 }: TypographyProps & {
-    label: string;
+    label: React.ReactNode;
     children: React.ReactNode;
     wordBreak?: Property.WordBreak;
 }) {

@@ -3,18 +3,22 @@
 import constants from "@/constants";
 import { getResourceUsageSummary } from "@/app/api/serviceFacade";
 import GridLabelValue from "@/components/common/GridLabelValue";
+import GridLoading from "@/components/common/GridLoading";
 import DETableHead from "@/components/common/table/DETableHead";
-import EmptyTable from "@/components/common/table/EmptyTable";
 import { DERow } from "@/components/common/table/DERow";
+import EmptyTable from "@/components/common/table/EmptyTable";
+import TableLoading from "@/components/common/table/TableLoading";
 import { dateConstants, formatDate } from "@/utils/dateUtils";
 
 import { UUID } from "crypto";
 import numeral from "numeral";
 
 import {
+    Card,
+    CardContent,
+    CardHeader,
     Grid,
     Link,
-    Paper,
     Skeleton,
     Table,
     TableBody,
@@ -100,66 +104,83 @@ const SubscriptionSummary = () => {
     const startDate = subscription?.effective_start_date;
     const endDate = subscription?.effective_end_date;
 
-    return isFetching ? (
-        <>
-            <Skeleton variant="text" sx={{ width: 1 / 2, height: 1 }} />
-            <Skeleton variant="text" sx={{ width: 1 / 2, height: 1 }} />
-            <Skeleton variant="text" sx={{ width: 1 / 2, height: 1 }} />
-            <Skeleton variant="text" sx={{ width: 1 / 2, height: 1 }} />
-            <Skeleton variant="text" sx={{ width: 1 / 2, height: 1 }} />
-        </>
-    ) : resourceUsageError ? (
+    return resourceUsageError ? (
         <Typography>Error Loading Subscription Summary</Typography>
     ) : (
-        <Paper
-            sx={{
-                p: 2,
-                width: {
-                    xs: "100%",
-                    sm: "75%",
-                    md: "50%",
-                    lg: "30%",
-                    xl: "25%",
-                },
-            }}
-        >
-            <Typography>
-                Your current subscription tier is{" "}
-                <Link
-                    href={constants.SUBSCRIBE_URL}
-                    target="_blank"
-                    rel="noopener"
-                    underline="hover"
-                >
-                    {currentPlanName}
-                </Link>
-            </Typography>
-            <Grid container>
-                <GridLabelValue label="Start Date">
-                    <Typography>
-                        {formatDate(
-                            startDate && new Date(startDate),
-                            dateConstants.DATE_FORMAT,
-                        )}
-                    </Typography>
-                </GridLabelValue>
-                <GridLabelValue label="End Date">
-                    <Typography>
-                        {formatDate(
-                            endDate && new Date(endDate),
-                            dateConstants.DATE_FORMAT,
-                        )}
-                    </Typography>
-                </GridLabelValue>
-                <GridLabelValue label="Quotas">
-                    <QuotasDetails subscription={subscription} />
-                </GridLabelValue>
-                <GridLabelValue label="Usages">
-                    <UsagesDetails subscription={subscription} />
-                </GridLabelValue>
-            </Grid>
-            <AddonsDetails subscription={subscription} />
-        </Paper>
+        <Grid container spacing={2} justifyContent="center">
+            <Card
+                sx={{
+                    p: 2,
+                    width: {
+                        xs: "100%",
+                        sm: "75%",
+                        md: "50%",
+                        lg: "30%",
+                    },
+                }}
+            >
+                <CardHeader
+                    title={
+                        isFetching ? (
+                            <Skeleton variant="text" />
+                        ) : (
+                            <Typography>
+                                Your current subscription tier is{" "}
+                                <Link
+                                    href={constants.SUBSCRIBE_URL}
+                                    target="_blank"
+                                    rel="noopener"
+                                    underline="hover"
+                                >
+                                    {currentPlanName}
+                                </Link>
+                            </Typography>
+                        )
+                    }
+                />
+                <CardContent>
+                    {isFetching ? (
+                        <GridLoading rows={4} />
+                    ) : (
+                        <Grid container>
+                            <GridLabelValue label="Start Date">
+                                <Typography>
+                                    {formatDate(
+                                        startDate && new Date(startDate),
+                                        dateConstants.DATE_FORMAT,
+                                    )}
+                                </Typography>
+                            </GridLabelValue>
+                            <GridLabelValue label="End Date">
+                                <Typography>
+                                    {formatDate(
+                                        endDate && new Date(endDate),
+                                        dateConstants.DATE_FORMAT,
+                                    )}
+                                </Typography>
+                            </GridLabelValue>
+                            <GridLabelValue label="Quotas">
+                                <QuotasDetails subscription={subscription} />
+                            </GridLabelValue>
+                            <GridLabelValue label="Usages">
+                                <UsagesDetails subscription={subscription} />
+                            </GridLabelValue>
+                        </Grid>
+                    )}
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader
+                    title={<Typography>Subscription Add-ons</Typography>}
+                />
+                <CardContent>
+                    <AddonsDetails
+                        subscription={subscription}
+                        loading={isFetching}
+                    />
+                </CardContent>
+            </Card>
+        </Grid>
     );
 };
 
@@ -211,51 +232,66 @@ const UsagesDetails = ({ subscription }: SubscriptionDetailProps) => {
     );
 };
 
-function AddonsDetails({ subscription }: SubscriptionDetailProps) {
-    const addons = subscription.addons;
+function AddonsDetails({
+    subscription,
+    loading,
+}: SubscriptionDetailProps & { loading: boolean }) {
+    const addons = subscription?.addons;
 
     return (
         <Table>
             <DETableHead columnData={ADDONS_TABLE_COLUMNS} />
-            <TableBody>
-                {addons && !addons.length && (
-                    <EmptyTable
-                        message="No add-ons"
-                        numColumns={ADDONS_TABLE_COLUMNS.length}
-                    />
-                )}
-                {addons &&
-                    addons.length > 0 &&
-                    addons.map((item) => {
-                        const resourceInBytes =
-                            item.addon.resource_type.description.toLowerCase() ===
-                            "bytes";
-                        return (
-                            <DERow key={item.id}>
-                                <TableCell>
-                                    <Typography>{item.addon.name}</Typography>
-                                </TableCell>
-                                <TableCell>
-                                    <Typography>
-                                        {resourceInBytes
-                                            ? formatFileSize(item.amount)
-                                            : `${item.amount}`}
-                                    </Typography>
-                                </TableCell>
-                                <TableCell>
-                                    <Typography>
-                                        {item.addon.resource_type.description}
-                                    </Typography>
-                                </TableCell>
-                                <TableCell>
-                                    <Typography>
-                                        {item.paid ? "True" : "False"}
-                                    </Typography>
-                                </TableCell>
-                            </DERow>
-                        );
-                    })}
-            </TableBody>
+            {loading ? (
+                <TableLoading
+                    numRows={3}
+                    numColumns={ADDONS_TABLE_COLUMNS.length}
+                />
+            ) : (
+                <TableBody>
+                    {addons && !addons.length && (
+                        <EmptyTable
+                            message="No add-ons"
+                            numColumns={ADDONS_TABLE_COLUMNS.length}
+                        />
+                    )}
+                    {addons &&
+                        addons.length > 0 &&
+                        addons.map((item) => {
+                            const resourceInBytes =
+                                item.addon.resource_type.description.toLowerCase() ===
+                                "bytes";
+                            return (
+                                <DERow key={item.id}>
+                                    <TableCell>
+                                        <Typography>
+                                            {item.addon.name}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Typography>
+                                            {resourceInBytes
+                                                ? formatFileSize(item.amount)
+                                                : `${item.amount}`}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Typography>
+                                            {
+                                                item.addon.resource_type
+                                                    .description
+                                            }
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Typography>
+                                            {item.paid ? "True" : "False"}
+                                        </Typography>
+                                    </TableCell>
+                                </DERow>
+                            );
+                        })}
+                </TableBody>
+            )}
         </Table>
     );
 }
