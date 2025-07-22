@@ -4,6 +4,7 @@ import constants from "@/constants";
 import { getResourceUsageSummary } from "@/app/api/serviceFacade";
 import GridLabelValue from "@/components/common/GridLabelValue";
 import GridLoading from "@/components/common/GridLoading";
+import ErrorHandler from "@/components/common/error/ErrorHandler";
 import DETableHead from "@/components/common/table/DETableHead";
 import { DERow } from "@/components/common/table/DERow";
 import EmptyTable from "@/components/common/table/EmptyTable";
@@ -14,6 +15,7 @@ import { UUID } from "crypto";
 import numeral from "numeral";
 
 import {
+    Box,
     Card,
     CardContent,
     CardHeader,
@@ -105,7 +107,9 @@ const SubscriptionSummary = () => {
     const endDate = subscription?.effective_end_date;
 
     return resourceUsageError ? (
-        <Typography>Error Loading Subscription Summary</Typography>
+        <Box maxWidth="sm">
+            <ErrorHandler errorObject={resourceUsageError} />
+        </Box>
     ) : (
         <Grid container spacing={2} justifyContent="center">
             <Card

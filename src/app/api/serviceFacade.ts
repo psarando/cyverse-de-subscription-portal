@@ -1,24 +1,43 @@
 export class HttpError extends Error {
     status: number;
-    constructor(status: number, message: string) {
+    method: string;
+    url: string;
+    response: string;
+
+    constructor(
+        method: string,
+        url: string,
+        status: number,
+        message: string,
+        response: string,
+    ) {
         super(message);
+        this.method = method;
+        this.url = url;
         this.status = status;
+        this.response = response;
     }
 }
 
 export async function getResourceUsageSummary() {
-    const response = await fetch("/api/resource-usage/summary", {
-        method: "GET",
+    const method = "GET";
+    const url = "/api/resource-usage/summary";
+
+    const response = await fetch(url, {
+        method,
         headers: {
             "Content-Type": "application/json",
         },
     });
 
     if (!response.ok) {
-        const errorMessage = await response.text();
+        const responseText = await response.text();
         throw new HttpError(
+            method,
+            url,
             response.status,
-            errorMessage || `HTTP error status: ${response.status}`,
+            response.statusText,
+            responseText,
         );
     }
 
