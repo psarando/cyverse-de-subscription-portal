@@ -1,6 +1,6 @@
 "use client";
 
-import palette from "@/components/theme/CyVersePalette";
+import cyverse from "@/components/theme/CyVersePalette";
 
 import { createTheme } from "@mui/material/styles";
 
@@ -15,22 +15,22 @@ const theme = createTheme({
     palette: {
         // All intentions should be defined with references to colors from the new palette.
         primary: {
-            main: palette.cobalt,
+            main: cyverse.cobalt,
         },
         secondary: {
-            main: palette.sky,
+            main: cyverse.sky,
         },
         error: {
-            main: palette.alertRed,
+            main: cyverse.alertRed,
         },
         warning: {
-            main: palette.yellow,
+            main: cyverse.yellow,
         },
         info: {
-            main: palette.blueGrey,
+            main: cyverse.blueGrey,
         },
         success: {
-            main: palette.grass,
+            main: cyverse.grass,
         },
         action: {
             hover: "rgba(0, 0, 0, 0.1)", // was 0.04
@@ -38,6 +38,9 @@ const theme = createTheme({
             selected: "rgba(0, 0, 0, 0.2)", // was 0.08
             selectedOpacity: 0.2,
         },
+
+        // Allow CyVersePalette colors to be referenced in the palette.
+        cyverse,
     },
     typography: {
         fontFamily: "var(--font-roboto)",
@@ -46,5 +49,16 @@ const theme = createTheme({
         },
     },
 });
+
+// Allow CyVersePalette colors to be referenced in the palette.
+declare module "@mui/material/styles" {
+    interface Palette {
+        cyverse: typeof cyverse;
+    }
+
+    interface PaletteOptions {
+        cyverse?: typeof cyverse;
+    }
+}
 
 export default theme;

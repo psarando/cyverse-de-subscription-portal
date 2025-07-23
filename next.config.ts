@@ -88,6 +88,8 @@ if (configurationError) {
 const nextConfig: NextConfig = {
     publicRuntimeConfig,
     serverRuntimeConfig,
+    // Full URL logging to the console when running in dev mode.
+    logging: { fetches: { fullUrl: true } },
 };
 
 export default nextConfig;
