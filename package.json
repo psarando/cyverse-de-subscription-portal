@@ -21,11 +21,13 @@
         "@tanstack/react-query": "^5.83.0",
         "bowser": "^2.11.0",
         "date-fns": "^4.1.0",
+        "formik": "^2.4.6",
         "next": "^15.3.3",
         "next-auth": "^4.24.11",
         "numeral": "^2.0.6",
         "react": "^19.0.0",
-        "react-dom": "^19.0.0"
+        "react-dom": "^19.0.0",
+        "yup": "^1.6.1"
     },
     "devDependencies": {
         "@eslint/eslintrc": "^3",
