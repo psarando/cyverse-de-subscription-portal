@@ -1,0 +1,152 @@
+import React from "react";
+
+import constants from "@/constants";
+import {
+    getPlanTypes,
+    PLAN_TYPES_QUERY_KEY,
+    PlanType,
+    SubscriptionSummaryDetails,
+} from "@/app/api/serviceFacade";
+
+import DEDialog from "@/components/common/DEDialog";
+import FormTextField from "@/components/forms/FormTextField";
+
+import { mapSubscriptionPropsToValues, formatSubscription } from "./formatters";
+
+import { Field, Form, Formik } from "formik";
+import * as Yup from "yup";
+import { useQuery } from "@tanstack/react-query";
+
+import { Button, ListItemText, MenuItem, Skeleton } from "@mui/material";
+
+type EditSubscriptionProps = {
+    subscription: SubscriptionSummaryDetails;
+    open: boolean;
+    onClose: React.MouseEventHandler;
+};
+
+function EditSubscription({
+    subscription,
+    open,
+    onClose,
+}: EditSubscriptionProps) {
+    const { data: planTypesQueryData, isFetching: loadingPlanTypes } = useQuery(
+        {
+            queryKey: [PLAN_TYPES_QUERY_KEY],
+            queryFn: getPlanTypes,
+            staleTime: Infinity,
+        },
+    );
+
+    let planTypes: PlanType[] = [];
+    if (planTypesQueryData?.result) {
+        planTypes = planTypesQueryData.result.filter(
+            (plan: PlanType) => plan.name !== constants.PLAN_NAME_BASIC,
+        );
+    }
+
+    const dialogTitle =
+        subscription && subscription.plan.name !== constants.PLAN_NAME_BASIC
+            ? "Renew Subscription"
+            : "Upgrade Subscription";
+
+    const validationSchema = Yup.object().shape({
+        plan_name: Yup.string()
+            .required("Required")
+            .not(
+                [constants.PLAN_NAME_BASIC],
+                "Please select another subscription plan.",
+            ),
+        periods: Yup.number()
+            .required("Required")
+            .integer("Please enter a valid number.")
+            .positive("Must be greater than 0."),
+    });
+
+    return (
+        <Formik
+            initialValues={mapSubscriptionPropsToValues(subscription)}
+            validationSchema={validationSchema}
+            onSubmit={(values) => {
+                console.log(formatSubscription(values, subscription));
+            }}
+            enableReinitialize={true}
+        >
+            {({ handleSubmit }) => {
+                return (
+                    <Form>
+                        <DEDialog
+                            open={open}
+                            onClose={onClose}
+                            title={dialogTitle}
+                            actions={
+                                <>
+                                    <Button
+                                        onClick={onClose}
+                                        variant="outlined"
+                                    >
+                                        Cancel
+                                    </Button>
+
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        onClick={() => handleSubmit()}
+                                    >
+                                        Add to Cart
+                                    </Button>
+                                </>
+                            }
+                        >
+                            {loadingPlanTypes ? (
+                                <Skeleton variant="text" />
+                            ) : (
+                                <Field
+                                    name="plan_name"
+                                    component={FormTextField}
+                                    label="Plan"
+                                    required
+                                    select
+                                    variant="outlined"
+                                    size="small"
+                                >
+                                    {planTypes.map(
+                                        (type: PlanType, index: number) => (
+                                            <MenuItem
+                                                key={index}
+                                                value={type.name}
+                                            >
+                                                <ListItemText
+                                                    primary={type.name}
+                                                    secondary={`$${type.plan_rates[0].rate}`}
+                                                />
+                                            </MenuItem>
+                                        ),
+                                    )}
+                                </Field>
+                            )}
+                            <Field
+                                name="periods"
+                                component={FormTextField}
+                                label="Subscription Length"
+                                required
+                                select
+                                variant="outlined"
+                                size="small"
+                            >
+                                <MenuItem value={1}>
+                                    <ListItemText primary="1 Year" />
+                                </MenuItem>
+                                <MenuItem value={2}>
+                                    <ListItemText primary="2 Years" />
+                                </MenuItem>
+                            </Field>
+                        </DEDialog>
+                    </Form>
+                );
+            }}
+        </Formik>
+    );
+}
+
+export default EditSubscription;

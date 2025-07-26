@@ -1,7 +1,13 @@
 "use client";
 
+import { useState } from "react";
+
 import constants from "@/constants";
-import { getResourceUsageSummary } from "@/app/api/serviceFacade";
+import {
+    getResourceUsageSummary,
+    RESOURCE_USAGE_QUERY_KEY,
+    SubscriptionSummaryDetails,
+} from "@/app/api/serviceFacade";
 import GridLabelValue from "@/components/common/GridLabelValue";
 import GridLoading from "@/components/common/GridLoading";
 import ErrorHandler from "@/components/common/error/ErrorHandler";
@@ -9,14 +15,16 @@ import DETableHead from "@/components/common/table/DETableHead";
 import { DERow } from "@/components/common/table/DERow";
 import EmptyTable from "@/components/common/table/EmptyTable";
 import TableLoading from "@/components/common/table/TableLoading";
+import EditSubscription from "@/components/forms/EditSubscription";
 import { dateConstants, formatDate } from "@/utils/dateUtils";
 
-import { UUID } from "crypto";
 import numeral from "numeral";
 
 import {
     Box,
+    Button,
     Card,
+    CardActions,
     CardContent,
     CardHeader,
     Grid,
@@ -27,6 +35,9 @@ import {
     TableCell,
     Typography,
 } from "@mui/material";
+
+import ShopIcon from "@mui/icons-material/Shop";
+
 import { useQuery } from "@tanstack/react-query";
 
 const ADDONS_TABLE_COLUMNS = [
@@ -49,57 +60,25 @@ const formatFileSize = (size: number) => {
 
 const formatUsage = (usage: number) => numeral(usage).format("0.00000");
 
-type ResourceUsageSummaryType = {
-    subscription: {
-        plan: {
-            name: string;
-        };
-        effective_start_date: number;
-        effective_end_date: number;
-        quotas: Array<{
-            id: UUID;
-            quota: number;
-            resource_type: {
-                description: string;
-                unit: string;
-            };
-        }>;
-        usages: Array<{
-            id: UUID;
-            usage: number;
-            resource_type: {
-                name: string;
-                description: string;
-            };
-        }>;
-        addons: Array<{
-            id: UUID;
-            amount: number;
-            paid: boolean;
-            addon: {
-                name: string;
-                resource_type: {
-                    name: string;
-                    description: string;
-                };
-            };
-        }>;
-    };
+type ResourceUsageSummary = {
+    subscription: SubscriptionSummaryDetails;
 };
 
-type SubscriptionDetailProps = ResourceUsageSummaryType;
+type SubscriptionDetailProps = ResourceUsageSummary;
 
 const SubscriptionSummary = () => {
+    const [editSubscriptionOpen, setEditSubscriptionOpen] = useState(false);
+
     const {
         isFetching,
         data,
         error: resourceUsageError,
     } = useQuery({
-        queryKey: ["resourceUsageSummary"],
+        queryKey: [RESOURCE_USAGE_QUERY_KEY],
         queryFn: getResourceUsageSummary,
     });
 
-    const resourceUsageSummary = data as ResourceUsageSummaryType;
+    const resourceUsageSummary = data as ResourceUsageSummary;
 
     const subscription = resourceUsageSummary?.subscription;
     const currentPlanName = subscription?.plan?.name;
@@ -171,7 +150,26 @@ const SubscriptionSummary = () => {
                         </Grid>
                     )}
                 </CardContent>
+                <CardActions>
+                    <Button
+                        color="primary"
+                        startIcon={<ShopIcon />}
+                        onClick={() => setEditSubscriptionOpen(true)}
+                    >
+                        {subscription &&
+                        subscription.plan.name !== constants.PLAN_NAME_BASIC
+                            ? "Renew"
+                            : "Upgrade"}
+                    </Button>
+                </CardActions>
             </Card>
+
+            <EditSubscription
+                open={editSubscriptionOpen}
+                onClose={() => setEditSubscriptionOpen(false)}
+                subscription={subscription}
+            />
+
             <Card>
                 <CardHeader
                     title={<Typography>Subscription Add-ons</Typography>}
