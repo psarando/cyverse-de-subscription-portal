@@ -19,10 +19,8 @@ export class HttpError extends Error {
     }
 }
 
-export async function getResourceUsageSummary() {
+async function get(url: string) {
     const method = "GET";
-    const url = "/api/resource-usage/summary";
-
     const response = await fetch(url, {
         method,
         headers: {
@@ -42,4 +40,18 @@ export async function getResourceUsageSummary() {
     }
 
     return await response.json();
+}
+
+/**
+ * Fetch the user's resource usage summary.
+ */
+export async function getResourceUsageSummary() {
+    return await get("/api/resource-usage/summary");
+}
+
+/**
+ * Fetch subscription plan names.
+ */
+export async function getPlanTypes() {
+    return await get("/api/subscriptions/plans");
 }
