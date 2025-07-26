@@ -114,7 +114,6 @@ const SubscriptionSummary = () => {
         <Grid container spacing={2} justifyContent="center">
             <Card
                 sx={{
-                    p: 2,
                     width: {
                         xs: "100%",
                         sm: "75%",
