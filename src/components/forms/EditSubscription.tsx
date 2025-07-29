@@ -9,7 +9,12 @@ import {
 } from "@/app/api/serviceFacade";
 
 import DEDialog from "@/components/common/DEDialog";
+import GridLabelValue from "@/components/common/GridLabelValue";
+import QuotaDetails from "@/components/common/QuotaDetails";
+import UsageDetails from "@/components/common/UsageDetails";
 import FormTextField from "@/components/forms/FormTextField";
+
+import { formatFileSize } from "@/utils/formatUtils";
 
 import { mapSubscriptionPropsToValues, formatSubscription } from "./formatters";
 
@@ -17,7 +22,14 @@ import { Field, Form, Formik } from "formik";
 import * as Yup from "yup";
 import { useQuery } from "@tanstack/react-query";
 
-import { Button, ListItemText, MenuItem, Skeleton } from "@mui/material";
+import {
+    Button,
+    Grid,
+    ListItemText,
+    MenuItem,
+    Skeleton,
+    Typography,
+} from "@mui/material";
 
 type EditSubscriptionProps = {
     subscription: SubscriptionSummaryDetails;
@@ -40,15 +52,16 @@ function EditSubscription({
 
     let planTypes: PlanType[] = [];
     if (planTypesQueryData?.result) {
-        planTypes = planTypesQueryData.result.filter(
-            (plan: PlanType) => plan.name !== constants.PLAN_NAME_BASIC,
-        );
+        planTypes = [...planTypesQueryData.result];
     }
 
     const dialogTitle =
         subscription && subscription.plan.name !== constants.PLAN_NAME_BASIC
             ? "Renew Subscription"
             : "Upgrade Subscription";
+
+    const hasAddons = subscription && subscription.addons.length > 0;
+    const currentQuotasLabel = hasAddons ? "Current Quotas*" : "Current Quotas";
 
     const validationSchema = Yup.object().shape({
         plan_name: Yup.string()
@@ -72,7 +85,11 @@ function EditSubscription({
             }}
             enableReinitialize={true}
         >
-            {({ handleSubmit }) => {
+            {({ handleSubmit, values }) => {
+                const selectedPlanType = planTypes.find(
+                    (type) => type.name === values.plan_name,
+                );
+
                 return (
                     <Form>
                         <DEDialog
@@ -141,6 +158,24 @@ function EditSubscription({
                                     <ListItemText primary="2 Years" />
                                 </MenuItem>
                             </Field>
+                            <Grid container>
+                                <GridLabelValue label="Plan Quotas">
+                                    <PlanQuotaDetails
+                                        planType={selectedPlanType}
+                                    />
+                                </GridLabelValue>
+                                <GridLabelValue label={currentQuotasLabel}>
+                                    <QuotaDetails subscription={subscription} />
+                                    {hasAddons && (
+                                        <Typography variant="caption">
+                                            * includes Add-ons
+                                        </Typography>
+                                    )}
+                                </GridLabelValue>
+                                <GridLabelValue label="Usages">
+                                    <UsageDetails subscription={subscription} />
+                                </GridLabelValue>
+                            </Grid>
                         </DEDialog>
                     </Form>
                 );
@@ -148,5 +183,27 @@ function EditSubscription({
         </Formik>
     );
 }
+
+const PlanQuotaDetails = ({ planType }: { planType?: PlanType }) => {
+    return (
+        <>
+            {planType &&
+                planType?.plan_quota_defaults.length > 0 &&
+                planType.plan_quota_defaults.map((item) => {
+                    // Only format data storage resources to human readable format
+                    const resourceInBytes =
+                        item.resource_type.unit.toLowerCase() === "bytes";
+
+                    return (
+                        <Typography key={item.id}>
+                            {resourceInBytes
+                                ? formatFileSize(item.quota_value)
+                                : `${item.quota_value} ${item.resource_type.unit} `}
+                        </Typography>
+                    );
+                })}
+        </>
+    );
+};
 
 export default EditSubscription;

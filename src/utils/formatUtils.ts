@@ -3,8 +3,9 @@
  */
 
 import { format, toDate } from "date-fns";
+import numeral from "numeral";
 
-const dateConstants = {
+export const dateConstants = {
     DATE_FORMAT: "yyyy-MM-dd",
     TIME_FORMAT: "HH:mm:ss",
     LONG_DATE_FORMAT: "yyyy-MM-dd HH:mm:ss",
@@ -15,7 +16,7 @@ const dateConstants = {
 /**
  * Format a date with the given format or return a `-`.
  */
-function formatDate(
+export function formatDate(
     fromDate: Date | number | string,
     dateFormat = dateConstants.LONG_DATE_FORMAT,
 ) {
@@ -29,4 +30,15 @@ function formatDate(
         : dateConstants.EMPTY_DATE;
 }
 
-export { dateConstants, formatDate };
+export const formatFileSize = (size: number) => {
+    if (!size) {
+        return "-";
+    }
+    if (size < 1024) {
+        return numeral(size).format("0 ib");
+    }
+
+    return numeral(size).format("0.0 ib");
+};
+
+export const formatUsage = (usage: number) => numeral(usage).format("0.00000");
