@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import AccountAvatar from "@/components/AccountAvatar";
+import Cart from "@/components/Cart";
 import SignInCard from "@/components/SignInCard";
 import SubscriptionSummary from "@/components/SubscriptionSummary";
 
@@ -14,6 +15,7 @@ export default async function Home() {
             <AppBar position="static">
                 <Toolbar>
                     <Box sx={{ flexGrow: 1 }} />
+                    <Cart />
                     <AccountAvatar />
                 </Toolbar>
             </AppBar>

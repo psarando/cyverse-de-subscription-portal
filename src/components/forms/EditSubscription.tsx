@@ -1,6 +1,9 @@
 import React from "react";
 
 import constants from "@/constants";
+
+import { useCartInfo } from "@/contexts/cart";
+
 import {
     getPlanTypes,
     PLAN_TYPES_QUERY_KEY,
@@ -42,6 +45,8 @@ function EditSubscription({
     open,
     onClose,
 }: EditSubscriptionProps) {
+    const [cartInfo, setCartInfo] = useCartInfo();
+
     const { data: planTypesQueryData, isFetching: loadingPlanTypes } = useQuery(
         {
             queryKey: [PLAN_TYPES_QUERY_KEY],
@@ -81,7 +86,13 @@ function EditSubscription({
             initialValues={mapSubscriptionPropsToValues(subscription)}
             validationSchema={validationSchema}
             onSubmit={(values) => {
-                console.log(formatSubscription(values, subscription));
+                setCartInfo({
+                    ...cartInfo,
+                    subscription: formatSubscription(values, subscription),
+                });
+
+                // Pass a dummy event to onClose.
+                onClose({} as React.MouseEvent);
             }}
             enableReinitialize={true}
         >
