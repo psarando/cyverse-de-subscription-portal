@@ -105,6 +105,14 @@ export type PlanType = {
     name: string;
     description: string;
     plan_rates: Array<{ rate: number }>;
+    plan_quota_defaults: Array<{
+        id: UUID;
+        quota_value: number;
+        resource_type: {
+            name: string;
+            unit: string;
+        };
+    }>;
 };
 
 export type SubscriptionSubmission = {

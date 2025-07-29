@@ -3,7 +3,7 @@ import {
     SubscriptionSubmission,
     SubscriptionSummaryDetails,
 } from "@/app/api/serviceFacade";
-import { dateConstants, formatDate } from "@/utils/dateUtils";
+import { dateConstants, formatDate } from "@/utils/formatUtils";
 
 export type SubscriptionFormValues = {
     plan_name: string;
@@ -13,14 +13,9 @@ export type SubscriptionFormValues = {
 export function mapSubscriptionPropsToValues(
     subscription: SubscriptionSummaryDetails,
 ): SubscriptionFormValues {
-    const currentPlanName = subscription?.plan.name || "";
-
     return {
         periods: 1,
-        plan_name:
-            currentPlanName !== constants.PLAN_NAME_BASIC
-                ? currentPlanName
-                : "",
+        plan_name: subscription?.plan.name || "",
     };
 }
 

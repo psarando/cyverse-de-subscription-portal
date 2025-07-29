@@ -10,15 +10,15 @@ import {
 } from "@/app/api/serviceFacade";
 import GridLabelValue from "@/components/common/GridLabelValue";
 import GridLoading from "@/components/common/GridLoading";
+import QuotaDetails from "@/components/common/QuotaDetails";
+import UsageDetails from "@/components/common/UsageDetails";
 import ErrorHandler from "@/components/common/error/ErrorHandler";
 import DETableHead from "@/components/common/table/DETableHead";
 import { DERow } from "@/components/common/table/DERow";
 import EmptyTable from "@/components/common/table/EmptyTable";
 import TableLoading from "@/components/common/table/TableLoading";
 import EditSubscription from "@/components/forms/EditSubscription";
-import { dateConstants, formatDate } from "@/utils/dateUtils";
-
-import numeral from "numeral";
+import { dateConstants, formatDate, formatFileSize } from "@/utils/formatUtils";
 
 import {
     Box,
@@ -47,24 +47,9 @@ const ADDONS_TABLE_COLUMNS = [
     { name: "Paid", numeric: false, enableSorting: false },
 ];
 
-const formatFileSize = (size: number) => {
-    if (!size) {
-        return "-";
-    }
-    if (size < 1024) {
-        return numeral(size).format("0 ib");
-    }
-
-    return numeral(size).format("0.0 ib");
-};
-
-const formatUsage = (usage: number) => numeral(usage).format("0.00000");
-
 type ResourceUsageSummary = {
     subscription: SubscriptionSummaryDetails;
 };
-
-type SubscriptionDetailProps = ResourceUsageSummary;
 
 const SubscriptionSummary = () => {
     const [editSubscriptionOpen, setEditSubscriptionOpen] = useState(false);
@@ -142,10 +127,10 @@ const SubscriptionSummary = () => {
                                 </Typography>
                             </GridLabelValue>
                             <GridLabelValue label="Quotas">
-                                <QuotasDetails subscription={subscription} />
+                                <QuotaDetails subscription={subscription} />
                             </GridLabelValue>
                             <GridLabelValue label="Usages">
-                                <UsagesDetails subscription={subscription} />
+                                <UsageDetails subscription={subscription} />
                             </GridLabelValue>
                         </Grid>
                     )}
@@ -185,58 +170,13 @@ const SubscriptionSummary = () => {
     );
 };
 
-const QuotasDetails = ({ subscription }: SubscriptionDetailProps) => {
-    return (
-        <>
-            {subscription &&
-                subscription.quotas.length > 0 &&
-                subscription.quotas.map((item) => {
-                    // Only format data storage resources to human readable format
-                    const resourceInBytes =
-                        item.resource_type.description.toLowerCase() ===
-                        "bytes";
-                    return (
-                        <Typography key={item.id}>
-                            {resourceInBytes
-                                ? formatFileSize(item.quota)
-                                : `${item.quota} ${item.resource_type.description} `}
-                        </Typography>
-                    );
-                })}
-        </>
-    );
-};
-
-const UsagesDetails = ({ subscription }: SubscriptionDetailProps) => {
-    return (
-        <>
-            {subscription &&
-                subscription.usages.length > 0 &&
-                subscription.usages.map((item) => {
-                    // Format usage to readable format
-                    const resourceInBytes =
-                        item.resource_type.description.toLowerCase() ===
-                        "bytes";
-                    return (
-                        <Typography key={item.id}>
-                            {resourceInBytes
-                                ? formatFileSize(item.usage)
-                                : `${formatUsage(item.usage)} ${item.resource_type.description}`}
-                        </Typography>
-                    );
-                })}
-
-            {subscription && !subscription.usages.length && (
-                <Typography>No Usages</Typography>
-            )}
-        </>
-    );
-};
-
 function AddonsDetails({
     subscription,
     loading,
-}: SubscriptionDetailProps & { loading: boolean }) {
+}: {
+    subscription: SubscriptionSummaryDetails;
+    loading: boolean;
+}) {
     const addons = subscription?.addons;
 
     return (
