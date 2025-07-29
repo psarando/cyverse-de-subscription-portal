@@ -10,6 +10,7 @@ import {
     Avatar,
     Button,
     Divider,
+    IconButton,
     Link,
     Paper,
     Popover,
@@ -20,7 +21,9 @@ import {
 import AccountCircle from "@mui/icons-material/AccountCircle";
 
 const AccountAvatar = () => {
-    const [anchorEl, setAnchorEl] = React.useState<HTMLDivElement | null>(null);
+    const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(
+        null,
+    );
 
     const { data: session } = useSession();
 
@@ -35,7 +38,9 @@ const AccountAvatar = () => {
         }
     }, [session]);
 
-    const handleUserAvatarClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const handleUserAvatarClick = (
+        event: React.MouseEvent<HTMLButtonElement>,
+    ) => {
         if (!session) {
             signIn("keycloak");
         } else {
@@ -45,21 +50,22 @@ const AccountAvatar = () => {
 
     return (
         <>
-            <Tooltip title={session ? "Logout" : "Login"}>
-                <Avatar
-                    sx={{
-                        backgroundColor: session
-                            ? "success.main"
-                            : "primary.main",
-                    }}
-                    onClick={handleUserAvatarClick}
-                >
-                    {session ? (
-                        <Typography>{userFirstInitial}</Typography>
-                    ) : (
-                        <AccountCircle />
-                    )}
-                </Avatar>
+            <Tooltip title={session ? "Account Menu" : "Login"}>
+                <IconButton onClick={handleUserAvatarClick} size="large">
+                    <Avatar
+                        sx={{
+                            backgroundColor: session
+                                ? "success.main"
+                                : "primary.main",
+                        }}
+                    >
+                        {session ? (
+                            <Typography>{userFirstInitial}</Typography>
+                        ) : (
+                            <AccountCircle />
+                        )}
+                    </Avatar>
+                </IconButton>
             </Tooltip>
             <Popover
                 open={!!anchorEl}
