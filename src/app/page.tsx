@@ -4,14 +4,7 @@ import SignInCard from "@/components/SignInCard";
 import SubscriptionSummary from "@/components/SubscriptionSummary";
 
 import Image from "next/image";
-import {
-    AppBar,
-    Box,
-    IconButton,
-    Stack,
-    Toolbar,
-    Typography,
-} from "@mui/material";
+import { AppBar, Box, Stack, Toolbar, Typography } from "@mui/material";
 
 export default async function Home() {
     const session = await auth();
@@ -21,16 +14,7 @@ export default async function Home() {
             <AppBar position="static">
                 <Toolbar>
                     <Box sx={{ flexGrow: 1 }} />
-                    <IconButton
-                        size="large"
-                        aria-label={
-                            session
-                                ? `${session?.user?.name} Account Menu`
-                                : "Login"
-                        }
-                    >
-                        <AccountAvatar />
-                    </IconButton>
+                    <AccountAvatar />
                 </Toolbar>
             </AppBar>
             <main>
