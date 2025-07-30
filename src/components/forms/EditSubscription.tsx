@@ -15,6 +15,8 @@ import DEDialog from "@/components/common/DEDialog";
 import GridLabelValue from "@/components/common/GridLabelValue";
 import QuotaDetails from "@/components/common/QuotaDetails";
 import UsageDetails from "@/components/common/UsageDetails";
+import { announce } from "@/components/common/announcer/CyVerseAnnouncer";
+import { SUCCESS } from "@/components/common/announcer/AnnouncerConstants";
 import FormTextField from "@/components/forms/FormTextField";
 
 import { formatFileSize } from "@/utils/formatUtils";
@@ -93,6 +95,10 @@ function EditSubscription({
 
                 // Pass a dummy event to onClose.
                 onClose({} as React.MouseEvent);
+                announce({
+                    text: `Added ${values.plan_name} subscription to cart.`,
+                    variant: SUCCESS,
+                });
             }}
             enableReinitialize={true}
         >

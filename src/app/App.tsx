@@ -1,5 +1,6 @@
 "use client";
 
+import CyVerseAnnouncer from "@/components/common/announcer/CyVerseAnnouncer";
 import { CartInfoProvider } from "@/contexts/cart";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -18,7 +19,10 @@ export default function App({ children }: { children: React.ReactNode }) {
             refetchOnWindowFocus={false}
         >
             <QueryClientProvider client={queryClient}>
-                <CartInfoProvider>{children}</CartInfoProvider>
+                <CartInfoProvider>
+                    <CyVerseAnnouncer />
+                    {children}
+                </CartInfoProvider>
             </QueryClientProvider>
         </SessionProvider>
     );
