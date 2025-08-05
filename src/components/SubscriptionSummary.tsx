@@ -12,6 +12,8 @@ import GridLabelValue from "@/components/common/GridLabelValue";
 import GridLoading from "@/components/common/GridLoading";
 import QuotaDetails from "@/components/common/QuotaDetails";
 import UsageDetails from "@/components/common/UsageDetails";
+import { announce } from "@/components/common/announcer/CyVerseAnnouncer";
+import { ERROR } from "@/components/common/announcer/AnnouncerConstants";
 import ErrorHandler from "@/components/common/error/ErrorHandler";
 import DETableHead from "@/components/common/table/DETableHead";
 import { DERow } from "@/components/common/table/DERow";
@@ -19,6 +21,8 @@ import EmptyTable from "@/components/common/table/EmptyTable";
 import TableLoading from "@/components/common/table/TableLoading";
 import EditSubscription from "@/components/forms/EditSubscription";
 import { dateConstants, formatDate, formatFileSize } from "@/utils/formatUtils";
+
+import { addDays, toDate } from "date-fns";
 
 import {
     Box,
@@ -69,6 +73,20 @@ const SubscriptionSummary = () => {
     const currentPlanName = subscription?.plan?.name;
     const startDate = subscription?.effective_start_date;
     const endDate = subscription?.effective_end_date;
+
+    const handleEditSubscriptionClick = () => {
+        if (
+            !subscription ||
+            toDate(subscription.effective_end_date) > addDays(new Date(), 30)
+        ) {
+            announce({
+                text: "You cannot renew your subscription more than 30 days before the end date.",
+                variant: ERROR,
+            });
+        } else {
+            setEditSubscriptionOpen(true);
+        }
+    };
 
     return resourceUsageError ? (
         <Box maxWidth="sm">
@@ -139,7 +157,7 @@ const SubscriptionSummary = () => {
                     <Button
                         color="primary"
                         startIcon={<ShopIcon />}
-                        onClick={() => setEditSubscriptionOpen(true)}
+                        onClick={handleEditSubscriptionClick}
                     >
                         {subscription &&
                         subscription.plan.name !== constants.PLAN_NAME_BASIC
