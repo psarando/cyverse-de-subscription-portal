@@ -2,7 +2,7 @@
  * Number of milliseconds after which the displayed messages vanishes.
  */
 export const TIMEOUT = 6000;
-export const EMPTY_QUEUE_TIMEOUT = 1000;
+export const EMPTY_QUEUE_TIMEOUT = 500;
 
 export enum VerticalAlignmentEnum {
     /**

@@ -64,47 +64,39 @@ export const announce = (msg: QueueMessage) => {
 };
 
 const CyVerseAnnouncer = () => {
-    const [timer, setTimer] = React.useState<NodeJS.Timeout>();
     const [msg, setMsg] = React.useState<QueueMessage | undefined>();
     const [open, setOpen] = React.useState(false);
-    const [timeout, setTimeout] = React.useState(TIMEOUT);
+    const [timeout, setTimeout] = React.useState(EMPTY_QUEUE_TIMEOUT);
+    const intervalRef = React.useRef<NodeJS.Timeout>(null);
 
-    useEffect(() => {
-        const timer = setInterval(tickCallback, TIMEOUT);
-        //display first message right away
-        dequeue();
-        setTimer(timer);
-
-        return () => {
-            clearInterval(timer);
-        };
+    const dequeue = React.useCallback(() => {
+        if (msgQueue.length > 0) {
+            const nextMsg = msgQueue.shift();
+            setMsg(nextMsg);
+            setOpen(true);
+            setTimeout(
+                msgQueue.length === 0
+                    ? EMPTY_QUEUE_TIMEOUT
+                    : nextMsg?.duration || TIMEOUT,
+            );
+        }
     }, []);
 
-    const dequeue = () => {
-        if (msgQueue.length > 0) {
-            setMsg(msgQueue.shift());
-            setOpen(true);
-            if (msgQueue.length === 0 && timeout !== EMPTY_QUEUE_TIMEOUT) {
-                clearInterval(timer);
-                const newTimer = setInterval(tickCallback, EMPTY_QUEUE_TIMEOUT);
-                setTimer(newTimer);
-                setTimeout(EMPTY_QUEUE_TIMEOUT);
-            } else if (timeout !== TIMEOUT) {
-                clearInterval(timer);
-                const newTimer = setInterval(tickCallback, TIMEOUT);
-                setTimer(newTimer);
-                setTimeout(TIMEOUT);
-            }
-        }
-    };
+    useEffect(() => {
+        //display first message right away
+        dequeue();
+    }, [dequeue]);
+
+    useEffect(() => {
+        clearInterval(intervalRef.current as NodeJS.Timeout);
+        intervalRef.current = timeout ? setInterval(dequeue, timeout) : null;
+
+        return () => clearInterval(intervalRef.current as NodeJS.Timeout);
+    }, [timeout, dequeue]);
 
     const handleClose = () => {
         setOpen(false);
-        tickCallback();
-    };
-
-    const tickCallback = () => {
-        dequeue();
+        setTimeout(EMPTY_QUEUE_TIMEOUT);
     };
 
     const { text, variant, duration, horizontal, vertical, CustomAction } =
