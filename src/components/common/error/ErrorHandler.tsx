@@ -53,7 +53,7 @@ const BasicErrorCard = () => (
         }
         subheader={
             <Typography color="error">
-                This wasn't supposed to happen. Please try again or contact
+                This wasn{"'"}t supposed to happen. Please try again or contact
                 support!
             </Typography>
         }
@@ -77,12 +77,12 @@ const NotAuthorizedCard = () => (
     </ErrorCardTemplate>
 );
 
-const ParsedErrorCard = ({ errorObject }: { errorObject: any }) => {
+const ParsedErrorCard = ({ errorObject }: { errorObject: HttpError }) => {
     let errorData;
 
     try {
         errorData = JSON.parse(errorObject.response);
-    } catch (_) {
+    } catch {
         console.error({ errorResponse: errorObject.response });
     }
 
@@ -127,7 +127,7 @@ const ParsedErrorCard = ({ errorObject }: { errorObject: any }) => {
     );
 };
 
-const ErrorHandler = ({ errorObject }: { errorObject: any }) => {
+const ErrorHandler = ({ errorObject }: { errorObject: unknown }) => {
     if (!(errorObject instanceof HttpError)) {
         return <BasicErrorCard />;
     } else if (errorObject.status === 401) {

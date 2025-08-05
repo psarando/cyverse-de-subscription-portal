@@ -30,7 +30,10 @@ type DETableHeadProps = {
     columnData: Array<DETableHeadColumnData>;
     selectable?: boolean;
     numSelected?: number;
-    onRequestSort?: Function;
+    onRequestSort?: (
+        event: React.MouseEvent<HTMLAnchorElement>,
+        property?: string,
+    ) => void;
     onSelectAllClick?: CheckboxProps["onChange"];
     padding?: TableCellProps["padding"];
     order?: TableCellProps["sortDirection"] & TableSortLabelProps["direction"];
@@ -57,7 +60,7 @@ export default function DETableHead(props: DETableHeadProps) {
 
     const createSortHandler =
         (property?: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
-            onRequestSort && onRequestSort(event, property);
+            onRequestSort?.(event, property);
         };
 
     const getColumnAlignment = (column: DETableHeadColumnData) => {

@@ -3,13 +3,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider } from "next-auth/react";
 
-export default function App({ children }: { children: React.ReactNode }) {
-    const queryClient = new QueryClient({
-        defaultOptions: {
-            queries: { refetchOnWindowFocus: false, retry: false },
-        },
-    });
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: { refetchOnWindowFocus: false, retry: false },
+    },
+});
 
+export default function App({ children }: { children: React.ReactNode }) {
     return (
         <SessionProvider
             // Disable session re-fetches when window is focused
