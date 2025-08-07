@@ -127,7 +127,10 @@ function EditSubscription({
                                         variant="contained"
                                         onClick={() => handleSubmit()}
                                     >
-                                        Add to Cart
+                                        {cartInfo.subscription
+                                            ? "Update"
+                                            : "Add to"}{" "}
+                                        Cart
                                     </Button>
                                 </>
                             }
