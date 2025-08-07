@@ -29,10 +29,21 @@ export async function callTerrain(
     });
 
     if (!response.ok) {
-        const errorJson = await response.json();
+        const text = await response.text();
+
+        let errorJson;
+        try {
+            errorJson = JSON.parse(text);
+        } catch {
+            console.error("non-JSON error response", {
+                status: response.status,
+                url,
+                text,
+            });
+        }
 
         return NextResponse.json(
-            errorJson || { message: `HTTP error ${response.status}` },
+            errorJson || { message: response.statusText },
             {
                 status: response.status || 500,
             },
