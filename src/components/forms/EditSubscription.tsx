@@ -85,7 +85,7 @@ function EditSubscription({
 
     return (
         <Formik
-            initialValues={mapSubscriptionPropsToValues(subscription)}
+            initialValues={mapSubscriptionPropsToValues(subscription, cartInfo)}
             validationSchema={validationSchema}
             onSubmit={(values) => {
                 setCartInfo({

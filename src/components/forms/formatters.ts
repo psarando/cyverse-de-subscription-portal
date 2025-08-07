@@ -2,6 +2,7 @@ import {
     SubscriptionSubmission,
     SubscriptionSummaryDetails,
 } from "@/app/api/serviceFacade";
+import { CartInfo } from "@/contexts/cart";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
 
 export type SubscriptionFormValues = {
@@ -11,10 +12,12 @@ export type SubscriptionFormValues = {
 
 export function mapSubscriptionPropsToValues(
     subscription: SubscriptionSummaryDetails,
+    cartInfo: CartInfo,
 ): SubscriptionFormValues {
     return {
-        periods: 1,
-        plan_name: subscription?.plan.name || "",
+        periods: cartInfo.subscription?.periods || 1,
+        plan_name:
+            cartInfo.subscription?.plan_name || subscription?.plan.name || "",
     };
 }
 
