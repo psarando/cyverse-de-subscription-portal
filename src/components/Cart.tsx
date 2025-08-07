@@ -8,17 +8,24 @@
  */
 import { useCartInfo } from "@/contexts/cart";
 
+import { useRouter } from "next/navigation";
+
 import { Badge, IconButton, Tooltip } from "@mui/material";
 import CartIcon from "@mui/icons-material/ShoppingBasket";
 
 const Cart = () => {
     const [cartInfo] = useCartInfo();
+    const router = useRouter();
 
     const badgeContent = cartInfo.subscription ? 1 : 0;
 
     return (
         <Tooltip title="Checkout">
-            <IconButton color="inherit" size="large">
+            <IconButton
+                color="inherit"
+                size="large"
+                onClick={() => router.push("/checkout")}
+            >
                 <Badge color="error" badgeContent={badgeContent}>
                     <CartIcon />
                 </Badge>
