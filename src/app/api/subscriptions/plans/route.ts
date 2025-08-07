@@ -1,5 +1,5 @@
 import { callTerrain } from "@/app/api/terrain";
 
 export function GET() {
-    return callTerrain("GET", "/resource-usage/summary");
+    return callTerrain("GET", "/qms/plans");
 }

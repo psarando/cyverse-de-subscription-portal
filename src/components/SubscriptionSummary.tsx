@@ -1,22 +1,34 @@
 "use client";
 
+import { useState } from "react";
+
 import constants from "@/constants";
-import { getResourceUsageSummary } from "@/app/api/serviceFacade";
+import {
+    getResourceUsageSummary,
+    RESOURCE_USAGE_QUERY_KEY,
+    SubscriptionSummaryDetails,
+} from "@/app/api/serviceFacade";
 import GridLabelValue from "@/components/common/GridLabelValue";
 import GridLoading from "@/components/common/GridLoading";
+import QuotaDetails from "@/components/common/QuotaDetails";
+import UsageDetails from "@/components/common/UsageDetails";
+import { announce } from "@/components/common/announcer/CyVerseAnnouncer";
+import { ERROR } from "@/components/common/announcer/AnnouncerConstants";
 import ErrorHandler from "@/components/common/error/ErrorHandler";
 import DETableHead from "@/components/common/table/DETableHead";
 import { DERow } from "@/components/common/table/DERow";
 import EmptyTable from "@/components/common/table/EmptyTable";
 import TableLoading from "@/components/common/table/TableLoading";
-import { dateConstants, formatDate } from "@/utils/dateUtils";
+import EditSubscription from "@/components/forms/EditSubscription";
+import { dateConstants, formatDate, formatFileSize } from "@/utils/formatUtils";
 
-import { UUID } from "crypto";
-import numeral from "numeral";
+import { addDays, toDate } from "date-fns";
 
 import {
     Box,
+    Button,
     Card,
+    CardActions,
     CardContent,
     CardHeader,
     Grid,
@@ -27,6 +39,9 @@ import {
     TableCell,
     Typography,
 } from "@mui/material";
+
+import ShopIcon from "@mui/icons-material/Shop";
+
 import { useQuery } from "@tanstack/react-query";
 
 const ADDONS_TABLE_COLUMNS = [
@@ -36,75 +51,42 @@ const ADDONS_TABLE_COLUMNS = [
     { name: "Paid", numeric: false, enableSorting: false },
 ];
 
-const formatFileSize = (size: number) => {
-    if (!size) {
-        return "-";
-    }
-    if (size < 1024) {
-        return numeral(size).format("0 ib");
-    }
-
-    return numeral(size).format("0.0 ib");
+type ResourceUsageSummary = {
+    subscription: SubscriptionSummaryDetails;
 };
-
-const formatUsage = (usage: number) => numeral(usage).format("0.00000");
-
-type ResourceUsageSummaryType = {
-    subscription: {
-        plan: {
-            name: string;
-        };
-        effective_start_date: number;
-        effective_end_date: number;
-        quotas: Array<{
-            id: UUID;
-            quota: number;
-            resource_type: {
-                description: string;
-                unit: string;
-            };
-        }>;
-        usages: Array<{
-            id: UUID;
-            usage: number;
-            resource_type: {
-                name: string;
-                description: string;
-            };
-        }>;
-        addons: Array<{
-            id: UUID;
-            amount: number;
-            paid: boolean;
-            addon: {
-                name: string;
-                resource_type: {
-                    name: string;
-                    description: string;
-                };
-            };
-        }>;
-    };
-};
-
-type SubscriptionDetailProps = ResourceUsageSummaryType;
 
 const SubscriptionSummary = () => {
+    const [editSubscriptionOpen, setEditSubscriptionOpen] = useState(false);
+
     const {
         isFetching,
         data,
         error: resourceUsageError,
     } = useQuery({
-        queryKey: ["resourceUsageSummary"],
+        queryKey: [RESOURCE_USAGE_QUERY_KEY],
         queryFn: getResourceUsageSummary,
     });
 
-    const resourceUsageSummary = data as ResourceUsageSummaryType;
+    const resourceUsageSummary = data as ResourceUsageSummary;
 
     const subscription = resourceUsageSummary?.subscription;
     const currentPlanName = subscription?.plan?.name;
     const startDate = subscription?.effective_start_date;
     const endDate = subscription?.effective_end_date;
+
+    const handleEditSubscriptionClick = () => {
+        if (
+            !subscription ||
+            toDate(subscription.effective_end_date) > addDays(new Date(), 30)
+        ) {
+            announce({
+                text: "You cannot renew your subscription more than 30 days before the end date.",
+                variant: ERROR,
+            });
+        } else {
+            setEditSubscriptionOpen(true);
+        }
+    };
 
     return resourceUsageError ? (
         <Box maxWidth="sm">
@@ -114,7 +96,6 @@ const SubscriptionSummary = () => {
         <Grid container spacing={2} justifyContent="center">
             <Card
                 sx={{
-                    p: 2,
                     width: {
                         xs: "100%",
                         sm: "75%",
@@ -164,15 +145,34 @@ const SubscriptionSummary = () => {
                                 </Typography>
                             </GridLabelValue>
                             <GridLabelValue label="Quotas">
-                                <QuotasDetails subscription={subscription} />
+                                <QuotaDetails subscription={subscription} />
                             </GridLabelValue>
                             <GridLabelValue label="Usages">
-                                <UsagesDetails subscription={subscription} />
+                                <UsageDetails subscription={subscription} />
                             </GridLabelValue>
                         </Grid>
                     )}
                 </CardContent>
+                <CardActions>
+                    <Button
+                        color="primary"
+                        startIcon={<ShopIcon />}
+                        onClick={handleEditSubscriptionClick}
+                    >
+                        {subscription &&
+                        subscription.plan.name !== constants.PLAN_NAME_BASIC
+                            ? "Renew"
+                            : "Upgrade"}
+                    </Button>
+                </CardActions>
             </Card>
+
+            <EditSubscription
+                open={editSubscriptionOpen}
+                onClose={() => setEditSubscriptionOpen(false)}
+                subscription={subscription}
+            />
+
             <Card>
                 <CardHeader
                     title={<Typography>Subscription Add-ons</Typography>}
@@ -188,58 +188,13 @@ const SubscriptionSummary = () => {
     );
 };
 
-const QuotasDetails = ({ subscription }: SubscriptionDetailProps) => {
-    return (
-        <>
-            {subscription &&
-                subscription.quotas.length > 0 &&
-                subscription.quotas.map((item) => {
-                    // Only format data storage resources to human readable format
-                    const resourceInBytes =
-                        item.resource_type.description.toLowerCase() ===
-                        "bytes";
-                    return (
-                        <Typography key={item.id}>
-                            {resourceInBytes
-                                ? formatFileSize(item.quota)
-                                : `${item.quota} ${item.resource_type.description} `}
-                        </Typography>
-                    );
-                })}
-        </>
-    );
-};
-
-const UsagesDetails = ({ subscription }: SubscriptionDetailProps) => {
-    return (
-        <>
-            {subscription &&
-                subscription.usages.length > 0 &&
-                subscription.usages.map((item) => {
-                    // Format usage to readable format
-                    const resourceInBytes =
-                        item.resource_type.description.toLowerCase() ===
-                        "bytes";
-                    return (
-                        <Typography key={item.id}>
-                            {resourceInBytes
-                                ? formatFileSize(item.usage)
-                                : `${formatUsage(item.usage)} ${item.resource_type.description}`}
-                        </Typography>
-                    );
-                })}
-
-            {subscription && !subscription.usages.length && (
-                <Typography>No Usages</Typography>
-            )}
-        </>
-    );
-};
-
 function AddonsDetails({
     subscription,
     loading,
-}: SubscriptionDetailProps & { loading: boolean }) {
+}: {
+    subscription: SubscriptionSummaryDetails;
+    loading: boolean;
+}) {
     const addons = subscription?.addons;
 
     return (

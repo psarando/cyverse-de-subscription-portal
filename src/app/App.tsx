@@ -1,5 +1,8 @@
 "use client";
 
+import CyVerseAnnouncer from "@/components/common/announcer/CyVerseAnnouncer";
+import { CartInfoProvider } from "@/contexts/cart";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider } from "next-auth/react";
 
@@ -16,7 +19,10 @@ export default function App({ children }: { children: React.ReactNode }) {
             refetchOnWindowFocus={false}
         >
             <QueryClientProvider client={queryClient}>
-                {children}
+                <CartInfoProvider>
+                    <CyVerseAnnouncer />
+                    {children}
+                </CartInfoProvider>
             </QueryClientProvider>
         </SessionProvider>
     );
