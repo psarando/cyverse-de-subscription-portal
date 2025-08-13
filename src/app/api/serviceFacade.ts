@@ -118,8 +118,42 @@ export type PlanType = {
 export type SubscriptionSubmission = {
     username: string;
     plan_name: string;
+    plan_rate?: number;
     paid: boolean;
     periods: number;
     start_date?: string;
     end_date?: string;
+};
+
+export type TransactionRequest = {
+    transactionType?: string;
+    amount?: string;
+    currencyCode?: string;
+    payment: {
+        creditCard: {
+            cardNumber: string;
+            expirationDate: string;
+            cardCode: string;
+        };
+    };
+    lineItems?: Array<{
+        itemId: string;
+        name: string;
+        description?: string;
+        quantity: string;
+        unitPrice: string;
+    }>;
+    customer?: {
+        id: string;
+    };
+    billTo: {
+        firstName: string;
+        lastName: string;
+        company?: string;
+        address: string;
+        city: string;
+        state: string;
+        zip: string;
+        country: string;
+    };
 };

@@ -1,6 +1,7 @@
 import {
     SubscriptionSubmission,
     SubscriptionSummaryDetails,
+    TransactionRequest,
 } from "@/app/api/serviceFacade";
 import { CartInfo } from "@/contexts/cart";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
@@ -49,4 +50,62 @@ export function formatSubscription(
     }
 
     return submission;
+}
+
+export function formatCheckoutFormValues(): TransactionRequest {
+    return {
+        billTo: {
+            firstName: "",
+            lastName: "",
+            company: "",
+            address: "",
+            city: "",
+            state: "",
+            zip: "",
+            country: "US",
+        },
+        payment: {
+            creditCard: {
+                cardNumber: "",
+                expirationDate: "",
+                cardCode: "",
+            },
+        },
+    };
+}
+
+export function formatCheckoutTransactionRequest(
+    username: string,
+    cartInfo: CartInfo,
+    values: TransactionRequest,
+): TransactionRequest {
+    const { subscription } = cartInfo;
+    const {
+        payment: { creditCard },
+    } = values;
+    const { cardNumber } = creditCard;
+
+    const request: TransactionRequest = {
+        ...values,
+        amount: cartInfo.totalPrice?.toString() || "0",
+        customer: { id: username },
+        payment: {
+            creditCard: {
+                ...creditCard,
+                cardNumber: cardNumber.replaceAll(" ", ""),
+            },
+        },
+        lineItems: [],
+    };
+
+    if (subscription) {
+        request.lineItems?.push({
+            itemId: "subscription",
+            name: subscription.plan_name,
+            quantity: subscription.periods.toString(),
+            unitPrice: subscription.plan_rate?.toString() || "0",
+        });
+    }
+
+    return request;
 }

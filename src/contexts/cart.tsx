@@ -9,6 +9,7 @@ import { SubscriptionSubmission } from "@/app/api/serviceFacade";
 
 export type CartInfo = {
     subscription?: SubscriptionSubmission;
+    totalPrice?: number;
 };
 
 const CartInfoContext = React.createContext<
