@@ -21,13 +21,13 @@ export class HttpError extends Error {
     }
 }
 
-async function get(url: string) {
-    const method = "GET";
+async function callApiRoute(method: string, url: string, body?: string) {
     const response = await fetch(url, {
         method,
         headers: {
             "Content-Type": "application/json",
         },
+        body,
     });
 
     if (!response.ok) {
@@ -44,11 +44,19 @@ async function get(url: string) {
     return await response.json();
 }
 
+function get(url: string) {
+    return callApiRoute("GET", url);
+}
+
+function post(url: string, body: object) {
+    return callApiRoute("POST", url, JSON.stringify(body));
+}
+
 /**
  * Fetch the user's resource usage summary.
  */
-export async function getResourceUsageSummary() {
-    return await get("/api/resource-usage/summary");
+export function getResourceUsageSummary() {
+    return get("/api/resource-usage/summary");
 }
 
 export const RESOURCE_USAGE_QUERY_KEY = "fetchResourceUsage";
@@ -56,11 +64,18 @@ export const RESOURCE_USAGE_QUERY_KEY = "fetchResourceUsage";
 /**
  * Fetch subscription plan names.
  */
-export async function getPlanTypes() {
-    return await get("/api/subscriptions/plans");
+export function getPlanTypes() {
+    return get("/api/subscriptions/plans");
 }
 
 export const PLAN_TYPES_QUERY_KEY = "fetchPlanTypes";
+
+/**
+ * Place a purchase order.
+ */
+export function postOrder(transaction: TransactionRequest) {
+    return post("/api/order", transaction);
+}
 
 export type SubscriptionSummaryDetails = {
     users: {
@@ -127,8 +142,8 @@ export type SubscriptionSubmission = {
 
 export type TransactionRequest = {
     transactionType?: string;
-    amount?: string;
-    currencyCode?: string;
+    amount: string;
+    currencyCode: string;
     payment: {
         creditCard: {
             cardNumber: string;
@@ -137,15 +152,14 @@ export type TransactionRequest = {
         };
     };
     lineItems?: Array<{
-        itemId: string;
-        name: string;
-        description?: string;
-        quantity: string;
-        unitPrice: string;
+        lineItem: {
+            itemId: string;
+            name: string;
+            description?: string;
+            quantity: string;
+            unitPrice: string;
+        };
     }>;
-    customer?: {
-        id: string;
-    };
     billTo: {
         firstName: string;
         lastName: string;

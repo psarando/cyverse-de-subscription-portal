@@ -33,7 +33,6 @@ import {
     PLAN_TYPES_QUERY_KEY,
     PlanType,
     SubscriptionSubmission,
-    TransactionRequest,
 } from "@/app/api/serviceFacade";
 import { CartInfo, useCartInfo } from "@/contexts/cart";
 import GridLoading from "@/components/common/GridLoading";
@@ -46,6 +45,7 @@ import PaymentForm from "./PaymentForm";
 import Review from "./Review";
 import getFormError from "./getFormError";
 import {
+    CheckoutFormValues,
     formatCheckoutFormValues,
     formatCheckoutTransactionRequest,
 } from "./formatters";
@@ -54,7 +54,7 @@ const steps = ["Billing address", "Payment details", "Review your order"];
 function getStepContent(
     step: number,
     checkoutCart: CartInfo,
-    values: TransactionRequest,
+    values: CheckoutFormValues,
     setFieldValue: FieldProps["form"]["setFieldValue"],
 ) {
     switch (step) {

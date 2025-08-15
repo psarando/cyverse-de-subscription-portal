@@ -52,7 +52,9 @@ export function formatSubscription(
     return submission;
 }
 
-export function formatCheckoutFormValues(): TransactionRequest {
+export type CheckoutFormValues = Pick<TransactionRequest, "billTo" | "payment">;
+
+export function formatCheckoutFormValues(): CheckoutFormValues {
     return {
         billTo: {
             firstName: "",
@@ -77,7 +79,7 @@ export function formatCheckoutFormValues(): TransactionRequest {
 export function formatCheckoutTransactionRequest(
     username: string,
     cartInfo: CartInfo,
-    values: TransactionRequest,
+    values: CheckoutFormValues,
 ): TransactionRequest {
     const { subscription } = cartInfo;
     const {
@@ -88,7 +90,7 @@ export function formatCheckoutTransactionRequest(
     const request: TransactionRequest = {
         ...values,
         amount: cartInfo.totalPrice?.toString() || "0",
-        customer: { id: username },
+        currencyCode: "USD",
         payment: {
             creditCard: {
                 ...creditCard,
@@ -100,10 +102,17 @@ export function formatCheckoutTransactionRequest(
 
     if (subscription) {
         request.lineItems?.push({
-            itemId: "subscription",
-            name: subscription.plan_name,
-            quantity: subscription.periods.toString(),
-            unitPrice: subscription.plan_rate?.toString() || "0",
+            lineItem: {
+                itemId: "subscription",
+                name: subscription.plan_name,
+                description:
+                    `${subscription.periods}-year Subscription for user "${username}".`.substring(
+                        0,
+                        255,
+                    ),
+                quantity: subscription.periods.toString(),
+                unitPrice: subscription.plan_rate?.toString() || "0",
+            },
         });
     }
 
