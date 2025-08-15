@@ -6,9 +6,10 @@
  */
 import React from "react";
 
-import { TransactionRequest } from "@/app/api/serviceFacade";
 import { CartInfo } from "@/contexts/cart";
 import { formatCurrency } from "@/utils/formatUtils";
+
+import { CheckoutFormValues } from "./formatters";
 
 import {
     Divider,
@@ -24,7 +25,7 @@ export default function Review({
     values,
 }: {
     cartInfo: CartInfo;
-    values: TransactionRequest;
+    values: CheckoutFormValues;
 }) {
     return (
         <Stack spacing={2}>

@@ -14,6 +14,12 @@ const appConfiguration = {
         isPublic: false,
         defaultValue: undefined,
     },
+    authorizeNetApiEndpoint: {
+        variable: "SP_AUTHORIZE_NET_API_ENDPOINT",
+        required: true,
+        isPublic: false,
+        defaultValue: undefined,
+    },
     keycloakIssuer: {
         variable: "SP_KEYCLOAK_ISSUER",
         required: true,
