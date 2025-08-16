@@ -26,16 +26,22 @@ import {
 } from "@mui/material";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import {
     getPlanTypes,
     PLAN_TYPES_QUERY_KEY,
     PlanType,
+    postOrder,
     SubscriptionSubmission,
 } from "@/app/api/serviceFacade";
 import { CartInfo, useCartInfo } from "@/contexts/cart";
 import GridLoading from "@/components/common/GridLoading";
+import { SUCCESS } from "@/components/common/announcer/AnnouncerConstants";
+import { announce } from "@/components/common/announcer/CyVerseAnnouncer";
+import withErrorAnnouncer, {
+    WithErrorAnnouncerProps,
+} from "@/components/common/error/withErrorAnnouncer";
 import { formatCurrency } from "@/utils/formatUtils";
 
 import AddressForm from "./AddressForm";
@@ -75,9 +81,11 @@ const schemaStringMaxLen = (max: number): Yup.StringSchema =>
 const schemaRequiredStringMaxLen = (max: number): Yup.StringSchema =>
     schemaStringMaxLen(max).required("Required");
 
-export default function Checkout() {
+function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
     const { data: session } = useSession();
     const [cartInfo] = useCartInfo();
+
+    const { mutate: submitOrder } = useMutation({ mutationFn: postOrder });
 
     const [activeStep, setActiveStep] = React.useState(0);
     const handleNext = () => {
@@ -194,18 +202,40 @@ export default function Checkout() {
                 enableReinitialize
                 initialValues={formatCheckoutFormValues()}
                 validationSchema={validationSchema}
-                onSubmit={(values) => {
-                    console.log(
-                        "onSubmit values:",
+                onSubmit={(values, { setSubmitting }) => {
+                    submitOrder(
                         formatCheckoutTransactionRequest(
                             session?.user?.username as string,
                             checkoutCart,
                             values,
                         ),
+                        {
+                            onSuccess: (response) => {
+                                setSubmitting(false);
+                                announce({
+                                    text: "Order placed successfully!",
+                                    variant: SUCCESS,
+                                });
+                            },
+                            onError(error) {
+                                setSubmitting(false);
+                                showErrorAnnouncer(
+                                    "There was an error placing your order.",
+                                    error,
+                                );
+                            },
+                        },
                     );
                 }}
             >
-                {({ handleSubmit, setFieldValue, values, errors, touched }) => {
+                {({
+                    handleSubmit,
+                    setFieldValue,
+                    isSubmitting,
+                    values,
+                    errors,
+                    touched,
+                }) => {
                     const hasStepError = (stepIndex: number) => {
                         let fieldNames: string[] = [];
 
@@ -438,6 +468,7 @@ export default function Checkout() {
                                         )}
                                         <Button
                                             variant="contained"
+                                            disabled={isSubmitting}
                                             endIcon={
                                                 <ChevronRightRoundedIcon />
                                             }
@@ -467,3 +498,5 @@ export default function Checkout() {
         </Grid>
     );
 }
+
+export default withErrorAnnouncer(Checkout);
