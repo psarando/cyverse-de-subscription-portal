@@ -60,8 +60,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (!response.ok || responseJson?.messages?.resultCode === "Error") {
+        if (responseJson?.messages) {
+            responseJson = {
+                // Include a top-level message for the DEErrorDialog.
+                message: responseJson?.messages?.message[0]?.text,
+                ...responseJson,
+            };
+        }
+
         return NextResponse.json(
-            responseJson?.messages || { message: response.statusText },
+            responseJson || { message: response.statusText },
             {
                 status: !response.ok && status ? status : 500,
             },
