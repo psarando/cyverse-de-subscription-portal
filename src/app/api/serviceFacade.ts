@@ -142,7 +142,7 @@ export type SubscriptionSubmission = {
 
 export type TransactionRequest = {
     transactionType?: string;
-    amount: string;
+    amount: number;
     currencyCode: string;
     payment: {
         creditCard: {
@@ -156,8 +156,8 @@ export type TransactionRequest = {
             itemId: string;
             name: string;
             description?: string;
-            quantity: string;
-            unitPrice: string;
+            quantity: number;
+            unitPrice: number;
         };
     }>;
     billTo: {
