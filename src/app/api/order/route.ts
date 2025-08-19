@@ -1,5 +1,6 @@
 import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
+import { TransactionRequest } from "@/app/api/serviceFacade";
 
 const { serverRuntimeConfig } = getConfig();
 
@@ -17,8 +18,10 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const transactionRequest = await request.json();
+    const transactionRequest = (await request.json()) as TransactionRequest;
 
+    // The Transaction Request fields must be strictly ordered,
+    // since Authorize.net API endpoints convert JSON to XML internally.
     const createTransactionRequest = {
         createTransactionRequest: {
             merchantAuthentication: {
@@ -27,7 +30,11 @@ export async function POST(request: NextRequest) {
             },
             transactionRequest: {
                 transactionType: "authCaptureTransaction",
-                ...transactionRequest,
+                amount: transactionRequest.amount,
+                currencyCode: transactionRequest.currencyCode,
+                payment: transactionRequest.payment,
+                lineItems: transactionRequest.lineItems,
+                billTo: transactionRequest.billTo,
             },
         },
     };

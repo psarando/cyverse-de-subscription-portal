@@ -89,7 +89,7 @@ export function formatCheckoutTransactionRequest(
 
     const request: TransactionRequest = {
         ...values,
-        amount: cartInfo.totalPrice?.toString() || "0",
+        amount: cartInfo.totalPrice || 0,
         currencyCode: "USD",
         payment: {
             creditCard: {
@@ -110,8 +110,8 @@ export function formatCheckoutTransactionRequest(
                         0,
                         255,
                     ),
-                quantity: subscription.periods.toString(),
-                unitPrice: subscription.plan_rate?.toString() || "0",
+                quantity: subscription.periods,
+                unitPrice: subscription.plan_rate || 0,
             },
         });
     }
