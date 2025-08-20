@@ -59,11 +59,23 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    if (!response.ok || responseJson?.messages?.resultCode === "Error") {
-        if (responseJson?.messages) {
+    if (
+        !response.ok ||
+        responseJson?.messages?.resultCode === "Error" ||
+        responseJson?.transactionResponse?.errors?.length > 0
+    ) {
+        let errorMessage;
+
+        if (responseJson?.transactionResponse?.errors?.length > 0) {
+            errorMessage = responseJson.transactionResponse.errors;
+        } else if (responseJson?.messages?.resultCode === "Error") {
+            errorMessage = responseJson?.messages;
+        }
+
+        if (errorMessage) {
             responseJson = {
                 // Include a top-level message for the DEErrorDialog.
-                message: responseJson?.messages?.message[0]?.text,
+                message: errorMessage,
                 ...responseJson,
             };
         }
