@@ -171,3 +171,10 @@ export type TransactionRequest = {
         country: string;
     };
 };
+
+export type OrderError = {
+    transactionResponse?: {
+        errors?: Array<{ errorCode: string; errorText: string }>;
+    };
+    messages?: Array<{ code: string; text: string }>;
+};
