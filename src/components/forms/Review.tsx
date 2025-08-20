@@ -6,6 +6,7 @@
  */
 import React from "react";
 
+import { OrderError } from "@/app/api/serviceFacade";
 import { CartInfo } from "@/contexts/cart";
 import { formatCurrency } from "@/utils/formatUtils";
 
@@ -23,9 +24,11 @@ import {
 export default function Review({
     cartInfo,
     values,
+    orderError,
 }: {
     cartInfo: CartInfo;
     values: CheckoutFormValues;
+    orderError: OrderError | null;
 }) {
     return (
         <Stack spacing={2}>
@@ -106,6 +109,18 @@ export default function Review({
                         </Stack>
                     )}
                 </div>
+                {orderError &&
+                    (orderError?.transactionResponse?.errors?.map(
+                        (error, index) => (
+                            <Typography key={index} color="error" gutterBottom>
+                                {error.errorText}
+                            </Typography>
+                        ),
+                    ) || (
+                        <Typography color="error" gutterBottom>
+                            There was an error processing your order.
+                        </Typography>
+                    ))}
             </Stack>
         </Stack>
     );

@@ -10,7 +10,7 @@ import React from "react";
 
 import { useSession } from "next-auth/react";
 
-import { FieldProps, Formik } from "formik";
+import { FieldProps, Formik, FormikHelpers } from "formik";
 import * as Yup from "yup";
 
 import {
@@ -30,6 +30,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 import {
     getPlanTypes,
+    HttpError,
+    OrderError,
     PLAN_TYPES_QUERY_KEY,
     PlanType,
     postOrder,
@@ -62,6 +64,7 @@ function getStepContent(
     checkoutCart: CartInfo,
     values: CheckoutFormValues,
     setFieldValue: FieldProps["form"]["setFieldValue"],
+    orderError: OrderError | null,
 ) {
     switch (step) {
         case 0:
@@ -69,7 +72,13 @@ function getStepContent(
         case 1:
             return <PaymentForm setFieldValue={setFieldValue} />;
         case 2:
-            return <Review cartInfo={checkoutCart} values={values} />;
+            return (
+                <Review
+                    cartInfo={checkoutCart}
+                    values={values}
+                    orderError={orderError}
+                />
+            );
         default:
             throw new Error("Unknown step");
     }
@@ -86,6 +95,8 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
     const [cartInfo] = useCartInfo();
 
     const { mutate: submitOrder } = useMutation({ mutationFn: postOrder });
+
+    const [orderError, setOrderError] = React.useState<OrderError | null>(null);
 
     const [activeStep, setActiveStep] = React.useState(0);
     const handleNext = () => {
@@ -154,6 +165,55 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
         }),
     });
 
+    const onSubmit = (
+        values: CheckoutFormValues,
+        { setSubmitting }: FormikHelpers<CheckoutFormValues>,
+    ) => {
+        setOrderError(null);
+
+        submitOrder(
+            formatCheckoutTransactionRequest(
+                session?.user?.username as string,
+                checkoutCart,
+                values,
+            ),
+            {
+                onSuccess: (response) => {
+                    console.log("Order response:", response);
+                    setSubmitting(false);
+                    announce({
+                        text: "Order placed successfully!",
+                        variant: SUCCESS,
+                    });
+                },
+                onError(error) {
+                    setSubmitting(false);
+
+                    let errorData;
+
+                    if (error instanceof HttpError) {
+                        try {
+                            errorData = JSON.parse(error.response);
+
+                            if (errorData?.transactionResponse?.errors) {
+                                setOrderError(errorData);
+                            }
+                        } catch {
+                            console.error({
+                                errorResponse: error.response,
+                            });
+                        }
+                    }
+
+                    showErrorAnnouncer(
+                        "There was an error placing your order. Please try again.",
+                        error,
+                    );
+                },
+            },
+        );
+    };
+
     return (
         <Grid
             container
@@ -202,31 +262,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                 enableReinitialize
                 initialValues={formatCheckoutFormValues()}
                 validationSchema={validationSchema}
-                onSubmit={(values, { setSubmitting }) => {
-                    submitOrder(
-                        formatCheckoutTransactionRequest(
-                            session?.user?.username as string,
-                            checkoutCart,
-                            values,
-                        ),
-                        {
-                            onSuccess: (response) => {
-                                setSubmitting(false);
-                                announce({
-                                    text: "Order placed successfully!",
-                                    variant: SUCCESS,
-                                });
-                            },
-                            onError(error) {
-                                setSubmitting(false);
-                                showErrorAnnouncer(
-                                    "There was an error placing your order.",
-                                    error,
-                                );
-                            },
-                        },
-                    );
-                }}
+                onSubmit={onSubmit}
             >
                 {({
                     handleSubmit,
@@ -404,6 +440,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                                         checkoutCart,
                                         values,
                                         setFieldValue,
+                                        orderError,
                                     )}
                                     <Box
                                         sx={[
