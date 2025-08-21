@@ -6,14 +6,19 @@
  */
 import React from "react";
 
+import constants from "@/constants";
 import { OrderError } from "@/app/api/serviceFacade";
 import { CartInfo } from "@/contexts/cart";
 import { formatCurrency } from "@/utils/formatUtils";
 
+import FormCheckbox from "./FormCheckbox";
 import { CheckoutFormValues } from "./formatters";
+
+import { Field } from "formik";
 
 import {
     Divider,
+    Link,
     List,
     ListItem,
     ListItemText,
@@ -109,6 +114,24 @@ export default function Review({
                         </Stack>
                     )}
                 </div>
+                <Field
+                    name="termsAcknowledged"
+                    component={FormCheckbox}
+                    label={
+                        <Typography>
+                            I agree to the{" "}
+                            <Link
+                                href={constants.CYVERSE_POLICY_URL}
+                                target="_blank"
+                                rel="noopener"
+                                underline="hover"
+                            >
+                                Terms of Use
+                            </Link>
+                            .
+                        </Typography>
+                    }
+                />
                 {orderError &&
                     (orderError?.transactionResponse?.errors?.map(
                         (error, index) => (
