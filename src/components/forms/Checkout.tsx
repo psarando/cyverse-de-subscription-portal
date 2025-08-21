@@ -167,7 +167,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
 
     const onSubmit = (
         values: CheckoutFormValues,
-        { setSubmitting }: FormikHelpers<CheckoutFormValues>,
+        { setSubmitting, setFieldError }: FormikHelpers<CheckoutFormValues>,
     ) => {
         setOrderError(null);
 
@@ -197,6 +197,37 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
 
                             if (errorData?.transactionResponse?.errors) {
                                 setOrderError(errorData);
+
+                                const errors = (errorData as OrderError)
+                                    .transactionResponse?.errors;
+
+                                errors?.forEach((err) => {
+                                    // For all error codes, see
+                                    // https://developer.authorize.net/api/reference/dist/json/responseCodes.json
+                                    switch (err.errorCode) {
+                                        case "6":
+                                            setFieldError(
+                                                "payment.creditCard.cardNumber",
+                                                err.errorText,
+                                            );
+                                            break;
+                                        case "7":
+                                        case "8":
+                                            setFieldError(
+                                                "payment.creditCard.expirationDate",
+                                                err.errorText,
+                                            );
+                                            break;
+                                        case "27":
+                                            setFieldError(
+                                                "billTo",
+                                                err.errorText,
+                                            );
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                });
                             }
                         } catch {
                             console.error({
@@ -277,6 +308,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
 
                         if (stepIndex === 0) {
                             fieldNames = [
+                                "billTo",
                                 "billTo.firstName",
                                 "billTo.lastName",
                                 "billTo.company",
@@ -294,9 +326,19 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                             ];
                         }
 
-                        return !!fieldNames.find((fieldName) =>
-                            getFormError(fieldName, touched, errors),
-                        );
+                        return !!fieldNames.find((fieldName) => {
+                            const fieldError = getFormError(
+                                fieldName,
+                                touched,
+                                errors,
+                            );
+
+                            // Once `billTo` has a field with an error,
+                            // it becomes an object, regardless if those fields
+                            // have been touched yet, so only look for actual
+                            // error messages.
+                            return typeof fieldError === "string";
+                        });
                     };
 
                     return (
