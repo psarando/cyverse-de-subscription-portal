@@ -134,6 +134,9 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
     }
 
     const validationSchema = Yup.object().shape({
+        termsAcknowledged: Yup.boolean()
+            .required("Required")
+            .oneOf([true], "You must agree to the Terms of Use."),
         payment: Yup.object().shape({
             creditCard: Yup.object().shape({
                 cardNumber: Yup.string()
@@ -324,6 +327,8 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                                 "payment.creditCard.expirationDate",
                                 "payment.creditCard.cardCode",
                             ];
+                        } else if (stepIndex === 2) {
+                            fieldNames = ["termsAcknowledged"];
                         }
 
                         return !!fieldNames.find((fieldName) => {

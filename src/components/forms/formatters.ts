@@ -52,10 +52,16 @@ export function formatSubscription(
     return submission;
 }
 
-export type CheckoutFormValues = Pick<TransactionRequest, "billTo" | "payment">;
+export type CheckoutFormValues = Pick<
+    TransactionRequest,
+    "billTo" | "payment"
+> & {
+    termsAcknowledged: boolean;
+};
 
 export function formatCheckoutFormValues(): CheckoutFormValues {
     return {
+        termsAcknowledged: false,
         billTo: {
             firstName: "",
             lastName: "",
@@ -79,7 +85,8 @@ export function formatCheckoutFormValues(): CheckoutFormValues {
 export function formatCheckoutTransactionRequest(
     username: string,
     cartInfo: CartInfo,
-    values: CheckoutFormValues,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    { termsAcknowledged, ...values }: CheckoutFormValues,
 ): TransactionRequest {
     const { subscription } = cartInfo;
     const {
