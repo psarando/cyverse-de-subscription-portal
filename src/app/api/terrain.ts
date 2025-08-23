@@ -4,6 +4,25 @@ import { NextResponse } from "next/server";
 
 const { publicRuntimeConfig } = getConfig();
 
+export async function terrainErrorResponse(url: string, response: Response) {
+    const text = await response.text();
+
+    let errorJson;
+    try {
+        errorJson = JSON.parse(text);
+    } catch {
+        console.error("non-JSON error response", {
+            status: response.status,
+            url,
+            text,
+        });
+    }
+
+    return NextResponse.json(errorJson || { message: response.statusText }, {
+        status: response.status || 500,
+    });
+}
+
 export async function callTerrain(
     method: string,
     url: string,
@@ -29,25 +48,7 @@ export async function callTerrain(
     });
 
     if (!response.ok) {
-        const text = await response.text();
-
-        let errorJson;
-        try {
-            errorJson = JSON.parse(text);
-        } catch {
-            console.error("non-JSON error response", {
-                status: response.status,
-                url,
-                text,
-            });
-        }
-
-        return NextResponse.json(
-            errorJson || { message: response.statusText },
-            {
-                status: response.status || 500,
-            },
-        );
+        return terrainErrorResponse(url, response);
     }
 
     const data = await response.json();
