@@ -1,8 +1,10 @@
+import { PlanType, TransactionRequest } from "@/app/api/serviceFacade";
+import { terrainErrorResponse } from "@/app/api/terrain";
+
 import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
-import { TransactionRequest } from "@/app/api/serviceFacade";
 
-const { serverRuntimeConfig } = getConfig();
+const { publicRuntimeConfig, serverRuntimeConfig } = getConfig();
 
 export async function POST(request: NextRequest) {
     const {
@@ -10,6 +12,7 @@ export async function POST(request: NextRequest) {
         authorizeNetTransactionKey,
         authorizeNetApiEndpoint,
     } = serverRuntimeConfig;
+    const { terrainBaseUrl } = publicRuntimeConfig;
 
     if (!authorizeNetApiEndpoint) {
         return NextResponse.json(
@@ -58,14 +61,65 @@ export async function POST(request: NextRequest) {
         },
     };
 
-    const response = await fetch(authorizeNetApiEndpoint, {
+    const currentPricing = { amount: 0 } as {
+        amount: number;
+        subscription?: { name: string; rate: number };
+    };
+
+    const subscription = lineItems?.find(
+        (item) => item.lineItem.itemId === "subscription",
+    )?.lineItem;
+
+    if (subscription) {
+        const plansUrl = "/qms/plans";
+        const plansResponse = await fetch(`${terrainBaseUrl}${plansUrl}`, {
+            headers: { "Content-Type": "application/json" },
+        });
+
+        if (!plansResponse.ok) {
+            return terrainErrorResponse(plansUrl, plansResponse);
+        }
+
+        const plansData = await plansResponse.json();
+        const plan = plansData?.result?.find(
+            (p: PlanType) => p.name === subscription.name,
+        ) as PlanType | undefined;
+
+        if (!plan) {
+            return NextResponse.json(
+                {
+                    error_code: "ERR_NOT_FOUND",
+                    message: `Subscription plan "${subscription.name}" not found.`,
+                },
+                { status: 404 },
+            );
+        }
+
+        const rate = plan.plan_rates[0].rate;
+        currentPricing.amount += rate * subscription.quantity;
+        currentPricing.subscription = { name: subscription.name, rate };
+    }
+
+    if (amount !== currentPricing.amount) {
+        return NextResponse.json(
+            {
+                error_code: "ERR_CONFLICT",
+                message:
+                    "Submitted order amount does not match current pricing.",
+                currentPricing,
+            },
+            { status: 409 },
+        );
+    }
+
+    const authorizeResponse = await fetch(authorizeNetApiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(createTransactionRequest),
     });
 
-    const status = response.status;
-    const text = await response.text();
+    const status = authorizeResponse.status;
+    const text = await authorizeResponse.text();
 
     let responseJson;
     try {
@@ -79,7 +133,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (
-        !response.ok ||
+        !authorizeResponse.ok ||
         responseJson?.messages?.resultCode === "Error" ||
         responseJson?.transactionResponse?.errors?.length > 0
     ) {
@@ -100,9 +154,9 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json(
-            responseJson || { message: response.statusText },
+            responseJson || { message: authorizeResponse.statusText },
             {
-                status: !response.ok && status ? status : 500,
+                status: !authorizeResponse.ok && status ? status : 500,
             },
         );
     }
