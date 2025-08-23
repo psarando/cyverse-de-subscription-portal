@@ -18,7 +18,26 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const transactionRequest = (await request.json()) as TransactionRequest;
+    const transactionRequest = await request.json();
+
+    const { amount, currencyCode, payment, lineItems, billTo } =
+        (transactionRequest || {}) as TransactionRequest;
+
+    if (!amount || !currencyCode || !payment || !billTo) {
+        const missing = [];
+        if (!amount) missing.push("amount");
+        if (!currencyCode) missing.push("currencyCode");
+        if (!payment) missing.push("payment");
+        if (!billTo) missing.push("billTo");
+
+        return NextResponse.json(
+            {
+                error_code: "ERR_BAD_OR_MISSING_FIELD",
+                message: `Missing required transaction fields: ${missing.join(", ")}`,
+            },
+            { status: 400 },
+        );
+    }
 
     // The Transaction Request fields must be strictly ordered,
     // since Authorize.net API endpoints convert JSON to XML internally.
@@ -30,11 +49,11 @@ export async function POST(request: NextRequest) {
             },
             transactionRequest: {
                 transactionType: "authCaptureTransaction",
-                amount: transactionRequest.amount,
-                currencyCode: transactionRequest.currencyCode,
-                payment: transactionRequest.payment,
-                lineItems: transactionRequest.lineItems,
-                billTo: transactionRequest.billTo,
+                amount,
+                currencyCode,
+                payment,
+                lineItems,
+                billTo,
             },
         },
     };
