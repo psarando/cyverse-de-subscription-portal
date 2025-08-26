@@ -26,7 +26,7 @@ import {
 } from "@mui/material";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
     getPlanTypes,
@@ -94,6 +94,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
     const { data: session } = useSession();
     const [cartInfo] = useCartInfo();
 
+    const queryClient = useQueryClient();
     const { mutate: submitOrder } = useMutation({ mutationFn: postOrder });
 
     const [orderError, setOrderError] = React.useState<OrderError | null>(null);
@@ -230,6 +231,16 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                                         default:
                                             break;
                                     }
+                                });
+                            } else if (error.status === 409) {
+                                setOrderError(errorData);
+
+                                // A conflict error is caused when prices
+                                // submitted from the client don't match
+                                // what the server fetched from terrain.
+                                // So refetch the current pricing for plans.
+                                queryClient.invalidateQueries({
+                                    queryKey: [PLAN_TYPES_QUERY_KEY],
                                 });
                             }
                         } catch {

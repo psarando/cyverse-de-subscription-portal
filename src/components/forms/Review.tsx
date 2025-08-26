@@ -13,6 +13,7 @@ import { formatCurrency } from "@/utils/formatUtils";
 
 import FormCheckbox from "./FormCheckbox";
 import { CheckoutFormValues } from "./formatters";
+import OrderErrorCard from "./OrderErrorCard";
 
 import { Field } from "formik";
 
@@ -132,18 +133,7 @@ export default function Review({
                         </Typography>
                     }
                 />
-                {orderError &&
-                    (orderError?.transactionResponse?.errors?.map(
-                        (error, index) => (
-                            <Typography key={index} color="error" gutterBottom>
-                                {error.errorText}
-                            </Typography>
-                        ),
-                    ) || (
-                        <Typography color="error" gutterBottom>
-                            There was an error processing your order.
-                        </Typography>
-                    ))}
+                {orderError && <OrderErrorCard orderError={orderError} />}
             </Stack>
         </Stack>
     );

@@ -2,6 +2,13 @@ import { auth } from "@/auth";
 import getConfig from "next/config";
 import { NextResponse } from "next/server";
 
+export type TerrainError = {
+    error_code?: string;
+    message?: string;
+    reason?: string;
+    grouper_result_message?: string;
+};
+
 const { publicRuntimeConfig } = getConfig();
 
 export async function terrainErrorResponse(url: string, response: Response) {

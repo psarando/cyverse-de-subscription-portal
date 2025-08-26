@@ -1,4 +1,5 @@
 import { UUID } from "crypto";
+import { TerrainError } from "./terrain";
 
 export class HttpError extends Error {
     status: number;
@@ -172,9 +173,13 @@ export type TransactionRequest = {
     };
 };
 
-export type OrderError = {
+export type OrderError = TerrainError & {
     transactionResponse?: {
         errors?: Array<{ errorCode: string; errorText: string }>;
     };
     messages?: Array<{ code: string; text: string }>;
+    currentPricing?: {
+        amount: number;
+        subscription: { name: string; rate: number };
+    };
 };
