@@ -1,5 +1,12 @@
-import { PlanType, TransactionRequest } from "@/app/api/serviceFacade";
+import { auth } from "@/auth";
+import {
+    PlanType,
+    SubscriptionSummaryDetails,
+    TransactionRequest,
+} from "@/app/api/serviceFacade";
 import { terrainErrorResponse } from "@/app/api/terrain";
+
+import { addDays, toDate } from "date-fns";
 
 import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
@@ -71,6 +78,42 @@ export async function POST(request: NextRequest) {
     )?.lineItem;
 
     if (subscription) {
+        const session = await auth();
+        const resourceUsageSummaryURL = "/resource-usage/summary";
+        const resourceUsageSummaryResponse = await fetch(
+            `${terrainBaseUrl}${resourceUsageSummaryURL}`,
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${session?.accessToken}`,
+                },
+            },
+        );
+
+        if (!resourceUsageSummaryResponse.ok) {
+            return terrainErrorResponse(
+                resourceUsageSummaryURL,
+                resourceUsageSummaryResponse,
+            );
+        }
+
+        const resourceUsageSummary = await resourceUsageSummaryResponse.json();
+
+        const currentSubscription =
+            resourceUsageSummary?.subscription as SubscriptionSummaryDetails;
+        const endDate = currentSubscription?.effective_end_date;
+
+        if (!currentSubscription || toDate(endDate) > addDays(new Date(), 30)) {
+            return NextResponse.json(
+                {
+                    error_code: "ERR_BAD_REQUEST",
+                    message:
+                        "You cannot renew your subscription more than 30 days before the end date.",
+                },
+                { status: 400 },
+            );
+        }
+
         const plansUrl = "/qms/plans";
         const plansResponse = await fetch(`${terrainBaseUrl}${plansUrl}`, {
             headers: { "Content-Type": "application/json" },
