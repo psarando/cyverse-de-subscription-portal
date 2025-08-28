@@ -4,7 +4,10 @@ import {
     SubscriptionSummaryDetails,
     TransactionRequest,
 } from "@/app/api/serviceFacade";
-import { terrainErrorResponse } from "@/app/api/terrain";
+import {
+    serviceAccountUpdateSubscription,
+    terrainErrorResponse,
+} from "@/app/api/terrain";
 
 import { addDays, toDate } from "date-fns";
 
@@ -77,6 +80,7 @@ export async function POST(request: NextRequest) {
         (item) => item.lineItem.itemId === "subscription",
     )?.lineItem;
 
+    let currentSubscription;
     if (subscription) {
         const session = await auth();
         const resourceUsageSummaryURL = "/resource-usage/summary";
@@ -99,7 +103,7 @@ export async function POST(request: NextRequest) {
 
         const resourceUsageSummary = await resourceUsageSummaryResponse.json();
 
-        const currentSubscription =
+        currentSubscription =
             resourceUsageSummary?.subscription as SubscriptionSummaryDetails;
         const endDate = currentSubscription?.effective_end_date;
 
@@ -202,6 +206,16 @@ export async function POST(request: NextRequest) {
                 status: !authorizeResponse.ok && status ? status : 500,
             },
         );
+    }
+
+    if (subscription && currentSubscription) {
+        const subscriptionUpdateResult = await serviceAccountUpdateSubscription(
+            currentSubscription,
+            subscription.name,
+            subscription.quantity,
+        );
+
+        responseJson = { ...responseJson, ...subscriptionUpdateResult };
     }
 
     return NextResponse.json(responseJson);
