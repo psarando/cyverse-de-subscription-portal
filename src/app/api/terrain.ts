@@ -137,7 +137,7 @@ export async function serviceAccountUpdateSubscription(
     if (!token) {
         return {
             success: false,
-            message: "Could not get service account token.",
+            error: { message: "Could not get service account token." },
         };
     }
 
@@ -155,10 +155,11 @@ export async function serviceAccountUpdateSubscription(
         users: { username },
     } = currentSubscription;
 
+    const method = "PUT";
     const url = `/service/qms/users/${username}/plan/${plan_name}?${queryParams}`;
 
     const response = await fetch(`${terrainBaseUrl}${url}`, {
-        method: "PUT",
+        method,
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -172,8 +173,13 @@ export async function serviceAccountUpdateSubscription(
 
         return {
             success: false,
-            message: "Could not update user subscription.",
-            error,
+            error: {
+                message: "Could not update user subscription.",
+                method,
+                url,
+                status: response.status,
+                response: error,
+            },
         };
     }
 

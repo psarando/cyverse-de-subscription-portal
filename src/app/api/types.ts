@@ -135,6 +135,34 @@ export type OrderRequest = Pick<
     termsAcknowledged: boolean;
 };
 
+export type OrderUpdateResult = {
+    success: boolean;
+    poNumber?: number;
+    error?: {
+        method: string;
+        url: string;
+        status: number;
+        message?: string;
+        response?: object;
+    };
+    subscription: {
+        status: string;
+        result: Pick<
+            SubscriptionSummaryDetails,
+            "effective_start_date" | "effective_end_date" | "plan"
+        > & {
+            quotas: Array<{
+                id: UUID;
+                quota: number;
+                resource_type: {
+                    name: string;
+                    unit: string;
+                };
+            }>;
+        };
+    };
+};
+
 export type TerrainError = {
     error_code?: string;
     message?: string;
