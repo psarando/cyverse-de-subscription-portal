@@ -6,7 +6,7 @@ import { Typography } from "@mui/material";
 const QuotaDetails = ({
     subscription,
 }: {
-    subscription: SubscriptionSummaryDetails;
+    subscription: SubscriptionSummaryDetails | undefined;
 }) => {
     return (
         <>

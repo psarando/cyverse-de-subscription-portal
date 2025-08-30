@@ -37,7 +37,7 @@ import {
 } from "@mui/material";
 
 type EditSubscriptionProps = {
-    subscription: SubscriptionSummaryDetails;
+    subscription: SubscriptionSummaryDetails | undefined;
     open: boolean;
     onClose: React.MouseEventHandler;
 };
@@ -49,13 +49,12 @@ function EditSubscription({
 }: EditSubscriptionProps) {
     const [cartInfo, setCartInfo] = useCartInfo();
 
-    const { data: planTypesQueryData, isFetching: loadingPlanTypes } = useQuery(
-        {
+    const { data: planTypesQueryData, isFetching: loadingPlanTypes } =
+        useQuery<{ result: PlanType[] }>({
             queryKey: [PLAN_TYPES_QUERY_KEY],
             queryFn: getPlanTypes,
             staleTime: Infinity,
-        },
-    );
+        });
 
     let planTypes: PlanType[] = [];
     if (planTypesQueryData?.result) {
@@ -90,7 +89,10 @@ function EditSubscription({
             onSubmit={(values) => {
                 setCartInfo({
                     ...cartInfo,
-                    subscription: formatSubscription(values, subscription),
+                    subscription: formatSubscription(
+                        values,
+                        subscription as SubscriptionSummaryDetails,
+                    ),
                 });
 
                 // Pass a dummy event to onClose.

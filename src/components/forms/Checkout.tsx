@@ -107,13 +107,12 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
         setActiveStep(activeStep - 1);
     };
 
-    const { data: planTypesQueryData, isFetching: loadingPlanTypes } = useQuery(
-        {
+    const { data: planTypesQueryData, isFetching: loadingPlanTypes } =
+        useQuery<{ result: PlanType[] }>({
             queryKey: [PLAN_TYPES_QUERY_KEY],
             queryFn: getPlanTypes,
             staleTime: Infinity,
-        },
-    );
+        });
 
     let planTypes: PlanType[] = [];
     if (planTypesQueryData?.result) {

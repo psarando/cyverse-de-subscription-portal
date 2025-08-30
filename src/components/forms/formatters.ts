@@ -12,7 +12,7 @@ export type SubscriptionFormValues = {
 };
 
 export function mapSubscriptionPropsToValues(
-    subscription: SubscriptionSummaryDetails,
+    subscription: SubscriptionSummaryDetails | undefined,
     cartInfo: CartInfo,
 ): SubscriptionFormValues {
     return {
