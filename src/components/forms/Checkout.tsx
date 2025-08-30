@@ -8,6 +8,7 @@
  */
 import React from "react";
 
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { FieldProps, Formik, FormikHelpers } from "formik";
@@ -32,9 +33,11 @@ import {
     getPlanTypes,
     HttpError,
     OrderError,
+    OrderUpdateResult,
     PLAN_TYPES_QUERY_KEY,
     PlanType,
     postOrder,
+    RESOURCE_USAGE_QUERY_KEY,
     SubscriptionSubmission,
 } from "@/app/api/serviceFacade";
 import { CartInfo, useCartInfo } from "@/contexts/cart";
@@ -95,7 +98,9 @@ const schemaRequiredStringMaxLen = (max: number): Yup.StringSchema =>
 
 function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
     const { data: session } = useSession();
-    const [cartInfo] = useCartInfo();
+    const [cartInfo, setCartInfo] = useCartInfo();
+
+    const router = useRouter();
 
     const queryClient = useQueryClient();
     const { mutate: submitOrder } = useMutation({ mutationFn: postOrder });
@@ -189,13 +194,22 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                 values,
             ),
             {
-                onSuccess: (response) => {
-                    console.log("Order response:", response);
+                onSuccess: (order: OrderUpdateResult) => {
+                    setCartInfo({ order });
                     setSubmitting(false);
-                    announce({
-                        text: "Order placed successfully!",
-                        variant: SUCCESS,
+
+                    queryClient.invalidateQueries({
+                        queryKey: [RESOURCE_USAGE_QUERY_KEY],
                     });
+
+                    if (order.success) {
+                        announce({
+                            text: "Order placed successfully!",
+                            variant: SUCCESS,
+                        });
+                    }
+
+                    router.replace("/order");
                 },
                 onError(error) {
                     setSubmitting(false);

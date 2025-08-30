@@ -5,11 +5,15 @@
  */
 import React from "react";
 
-import { SubscriptionSubmission } from "@/app/api/serviceFacade";
+import {
+    OrderUpdateResult,
+    SubscriptionSubmission,
+} from "@/app/api/serviceFacade";
 
 export type CartInfo = {
     subscription?: SubscriptionSubmission;
     totalPrice?: number;
+    order?: OrderUpdateResult;
 };
 
 const CartInfoContext = React.createContext<
