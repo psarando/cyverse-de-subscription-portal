@@ -39,7 +39,10 @@ import {
 } from "@/app/api/serviceFacade";
 import { CartInfo, useCartInfo } from "@/contexts/cart";
 import GridLoading from "@/components/common/GridLoading";
-import { SUCCESS } from "@/components/common/announcer/AnnouncerConstants";
+import {
+    ERROR,
+    SUCCESS,
+} from "@/components/common/announcer/AnnouncerConstants";
 import { announce } from "@/components/common/announcer/CyVerseAnnouncer";
 import withErrorAnnouncer, {
     WithErrorAnnouncerProps,
@@ -173,6 +176,11 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
         { setSubmitting, setFieldError }: FormikHelpers<CheckoutFormValues>,
     ) => {
         setOrderError(null);
+
+        if (!cartInfo.subscription) {
+            announce({ text: "Your cart is empty.", variant: ERROR });
+            return;
+        }
 
         submitOrder(
             formatCheckoutTransactionRequest(
