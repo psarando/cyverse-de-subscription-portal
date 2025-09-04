@@ -37,7 +37,7 @@ const OrderErrorCard = ({ orderError }: { orderError: OrderError }) => {
     return (
         <Card>
             <CardHeader avatar={avatar} title={headerTitle} />
-            {orderError.currentPricing && (
+            {orderError.currentPricing?.subscription && (
                 <>
                     <Divider />
                     <CardContent>

@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import {
+    OrderError,
     PlanType,
     SubscriptionSummaryDetails,
     TransactionRequest,
@@ -71,10 +72,7 @@ export async function POST(request: NextRequest) {
         },
     };
 
-    const currentPricing = { amount: 0 } as {
-        amount: number;
-        subscription?: { name: string; rate: number };
-    };
+    const currentPricing: OrderError["currentPricing"] = { amount: 0 };
 
     const subscription = lineItems?.find(
         (item) => item.lineItem.itemId === "subscription",

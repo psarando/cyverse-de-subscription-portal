@@ -180,6 +180,6 @@ export type OrderError = TerrainError & {
     messages?: Array<{ code: string; text: string }>;
     currentPricing?: {
         amount: number;
-        subscription: { name: string; rate: number };
+        subscription?: { name: string; rate: number };
     };
 };
