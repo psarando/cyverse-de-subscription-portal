@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
 
     let currentSubscription;
     if (subscription) {
+        // Validate the user's subscription end date.
         const session = await auth();
         const resourceUsageSummaryURL = "/resource-usage/summary";
         const resourceUsageSummaryResponse = await fetch(
@@ -118,6 +119,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Validate the requested plan name and pricing.
         const plansUrl = "/qms/plans";
         const plansResponse = await fetch(`${terrainBaseUrl}${plansUrl}`, {
             headers: { "Content-Type": "application/json" },
@@ -159,6 +161,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // Submit the order payment.
     const authorizeResponse = await fetch(authorizeNetApiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -179,6 +182,7 @@ export async function POST(request: NextRequest) {
         });
     }
 
+    // Check for payment errors.
     if (
         !authorizeResponse.ok ||
         responseJson?.messages?.resultCode === "Error" ||
@@ -208,6 +212,9 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // The payment was successful, so update the user's subscription,
+    // but only return a success response from here,
+    // so the user knows their payment went through.
     if (subscription && currentSubscription) {
         const subscriptionUpdateResult = await serviceAccountUpdateSubscription(
             currentSubscription,
