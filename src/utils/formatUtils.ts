@@ -42,3 +42,6 @@ export const formatFileSize = (size: number) => {
 };
 
 export const formatUsage = (usage: number) => numeral(usage).format("0.00000");
+
+export const formatCurrency = (amount: number) =>
+    numeral(amount).format("$0,0.00");

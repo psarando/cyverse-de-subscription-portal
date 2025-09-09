@@ -1,7 +1,9 @@
 import {
     SubscriptionSubmission,
     SubscriptionSummaryDetails,
+    TransactionRequest,
 } from "@/app/api/serviceFacade";
+import { CartInfo } from "@/contexts/cart";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
 
 export type SubscriptionFormValues = {
@@ -10,11 +12,13 @@ export type SubscriptionFormValues = {
 };
 
 export function mapSubscriptionPropsToValues(
-    subscription: SubscriptionSummaryDetails,
+    subscription: SubscriptionSummaryDetails | undefined,
+    cartInfo: CartInfo,
 ): SubscriptionFormValues {
     return {
-        periods: 1,
-        plan_name: subscription?.plan.name || "",
+        periods: cartInfo.subscription?.periods || 1,
+        plan_name:
+            cartInfo.subscription?.plan_name || subscription?.plan.name || "",
     };
 }
 
@@ -46,4 +50,78 @@ export function formatSubscription(
     }
 
     return submission;
+}
+
+export type CheckoutFormValues = Pick<
+    TransactionRequest,
+    "billTo" | "payment"
+> & {
+    termsAcknowledged: boolean;
+};
+
+export function formatCheckoutFormValues(): CheckoutFormValues {
+    return {
+        termsAcknowledged: false,
+        billTo: {
+            firstName: "",
+            lastName: "",
+            company: "",
+            address: "",
+            city: "",
+            state: "",
+            zip: "",
+            country: "US",
+        },
+        payment: {
+            creditCard: {
+                cardNumber: "",
+                expirationDate: "",
+                cardCode: "",
+            },
+        },
+    };
+}
+
+export function formatCheckoutTransactionRequest(
+    username: string,
+    cartInfo: CartInfo,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    { termsAcknowledged, ...values }: CheckoutFormValues,
+): TransactionRequest {
+    const { subscription } = cartInfo;
+    const {
+        payment: { creditCard },
+    } = values;
+    const { cardNumber } = creditCard;
+
+    const request: TransactionRequest = {
+        ...values,
+        amount: cartInfo.totalPrice || 0,
+        currencyCode: "USD",
+        payment: {
+            creditCard: {
+                ...creditCard,
+                cardNumber: cardNumber.replaceAll(" ", ""),
+            },
+        },
+        lineItems: [],
+    };
+
+    if (subscription) {
+        request.lineItems?.push({
+            lineItem: {
+                itemId: "subscription",
+                name: subscription.plan_name,
+                description:
+                    `${subscription.periods}-year Subscription for user "${username}".`.substring(
+                        0,
+                        255,
+                    ),
+                quantity: subscription.periods,
+                unitPrice: subscription.plan_rate || 0,
+            },
+        });
+    }
+
+    return request;
 }

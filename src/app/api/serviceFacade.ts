@@ -1,4 +1,5 @@
 import { UUID } from "crypto";
+import { TerrainError } from "./terrain";
 
 export class HttpError extends Error {
     status: number;
@@ -21,13 +22,13 @@ export class HttpError extends Error {
     }
 }
 
-async function get(url: string) {
-    const method = "GET";
+async function callApiRoute(method: string, url: string, body?: string) {
     const response = await fetch(url, {
         method,
         headers: {
             "Content-Type": "application/json",
         },
+        body,
     });
 
     if (!response.ok) {
@@ -44,11 +45,19 @@ async function get(url: string) {
     return await response.json();
 }
 
+function get(url: string) {
+    return callApiRoute("GET", url);
+}
+
+function post(url: string, body: object) {
+    return callApiRoute("POST", url, JSON.stringify(body));
+}
+
 /**
  * Fetch the user's resource usage summary.
  */
-export async function getResourceUsageSummary() {
-    return await get("/api/resource-usage/summary");
+export function getResourceUsageSummary() {
+    return get("/api/resource-usage/summary");
 }
 
 export const RESOURCE_USAGE_QUERY_KEY = "fetchResourceUsage";
@@ -56,11 +65,18 @@ export const RESOURCE_USAGE_QUERY_KEY = "fetchResourceUsage";
 /**
  * Fetch subscription plan names.
  */
-export async function getPlanTypes() {
-    return await get("/api/subscriptions/plans");
+export function getPlanTypes() {
+    return get("/api/subscriptions/plans");
 }
 
 export const PLAN_TYPES_QUERY_KEY = "fetchPlanTypes";
+
+/**
+ * Place a purchase order.
+ */
+export function postOrder(transaction: TransactionRequest) {
+    return post("/api/order", transaction);
+}
 
 export type SubscriptionSummaryDetails = {
     users: {
@@ -118,8 +134,52 @@ export type PlanType = {
 export type SubscriptionSubmission = {
     username: string;
     plan_name: string;
+    plan_rate?: number;
     paid: boolean;
     periods: number;
     start_date?: string;
     end_date?: string;
+};
+
+export type TransactionRequest = {
+    transactionType?: string;
+    amount: number;
+    currencyCode: string;
+    payment: {
+        creditCard: {
+            cardNumber: string;
+            expirationDate: string;
+            cardCode: string;
+        };
+    };
+    lineItems?: Array<{
+        lineItem: {
+            itemId: string;
+            name: string;
+            description?: string;
+            quantity: number;
+            unitPrice: number;
+        };
+    }>;
+    billTo: {
+        firstName: string;
+        lastName: string;
+        company?: string;
+        address: string;
+        city: string;
+        state: string;
+        zip: string;
+        country: string;
+    };
+};
+
+export type OrderError = TerrainError & {
+    transactionResponse?: {
+        errors?: Array<{ errorCode: string; errorText: string }>;
+    };
+    messages?: Array<{ code: string; text: string }>;
+    currentPricing?: {
+        amount: number;
+        subscription?: { name: string; rate: number };
+    };
 };

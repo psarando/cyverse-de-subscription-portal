@@ -1,0 +1,75 @@
+/**
+ * @author psarando
+ */
+import React from "react";
+
+import getFormError from "./getFormError";
+
+import { FieldProps } from "formik";
+
+import Checkbox, { CheckboxProps } from "@mui/material/Checkbox";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormHelperText from "@mui/material/FormHelperText";
+
+/**
+ * Creates an onChange function for use in a MUI Checkbox or Switch field,
+ * which will use the given `setFieldValue` function to update the value of the
+ * field with the given `fieldName`.
+ *
+ * @param {Function} setFieldValue Function that sets a value for `fieldName`.
+ * @param {string} fieldName The `name` of the checkbox field to change.
+ * @param {boolean} readOnly True if the field is read-only and should not change.
+ * Checkbox and switch fields with a `readonly` attribute on their `input`
+ * element will still allow the user to interact with it,
+ * calling its onChange function.
+ *
+ * @returns An onChange function for use in a MUI Checkbox or Switch field.
+ */
+const onCheckboxChange =
+    (
+        setFieldValue: FieldProps["form"]["setFieldValue"],
+        fieldName: string,
+        readOnly: boolean | undefined,
+    ) =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+        const checked = event.target.checked;
+        if (!readOnly) {
+            setFieldValue(fieldName, checked);
+        }
+    };
+
+const FormCheckbox = ({
+    label,
+    helperText,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    field: { value, onChange, ...field },
+    form: { touched, errors, setFieldValue },
+    ...custom
+}: FieldProps & CheckboxProps & { label: string; helperText: string }) => {
+    const errorMsg = getFormError(field.name, touched, errors);
+
+    return (
+        <FormControl variant="standard" error={!!errorMsg}>
+            <FormControlLabel
+                control={
+                    <Checkbox
+                        checked={!!value}
+                        onChange={onCheckboxChange(
+                            setFieldValue,
+                            field.name,
+                            custom.readOnly,
+                        )}
+                        {...field}
+                        {...custom}
+                    />
+                }
+                label={label}
+            />
+            <FormHelperText>{errorMsg || helperText}</FormHelperText>
+        </FormControl>
+    );
+};
+
+export default FormCheckbox;
+export { onCheckboxChange };

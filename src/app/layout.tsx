@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import { AppBar, Box, Stack, Toolbar } from "@mui/material";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { Roboto } from "next/font/google";
 import { ThemeProvider } from "@mui/material/styles";
 import theme from "../theme";
 import "./globals.css";
+
+import { auth } from "@/auth";
+import AccountAvatar from "@/components/AccountAvatar";
+import Cart from "@/components/Cart";
+import SignInCard from "@/components/SignInCard";
 
 import App from "./App";
 
@@ -19,17 +26,47 @@ export const metadata: Metadata = {
     description: "CyVerse Discovery Environment Subscription Portal",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const session = await auth();
+
     return (
         <html lang="en" className={roboto.variable}>
             <body>
                 <AppRouterCacheProvider>
                     <ThemeProvider theme={theme}>
-                        <App>{children}</App>
+                        <App>
+                            <Box>
+                                <AppBar position="static">
+                                    <Toolbar>
+                                        <Box sx={{ flexGrow: 1 }} />
+                                        <Cart />
+                                        <AccountAvatar />
+                                    </Toolbar>
+                                </AppBar>
+                                <main>
+                                    <Stack spacing={2} sx={{ p: 2 }}>
+                                        <Image
+                                            src="/cyverse_logo_2.png"
+                                            alt="CyVerse logo"
+                                            width={375}
+                                            height={76}
+                                            priority
+                                        />
+                                        <Stack alignItems="center" spacing={2}>
+                                            {session ? (
+                                                children
+                                            ) : (
+                                                <SignInCard />
+                                            )}
+                                        </Stack>
+                                    </Stack>
+                                </main>
+                            </Box>
+                        </App>
                     </ThemeProvider>
                 </AppRouterCacheProvider>
             </body>

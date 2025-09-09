@@ -60,14 +60,12 @@ const SubscriptionSummary = () => {
 
     const {
         isFetching,
-        data,
+        data: resourceUsageSummary,
         error: resourceUsageError,
-    } = useQuery({
+    } = useQuery<ResourceUsageSummary>({
         queryKey: [RESOURCE_USAGE_QUERY_KEY],
         queryFn: getResourceUsageSummary,
     });
-
-    const resourceUsageSummary = data as ResourceUsageSummary;
 
     const subscription = resourceUsageSummary?.subscription;
     const currentPlanName = subscription?.plan?.name;
@@ -75,10 +73,7 @@ const SubscriptionSummary = () => {
     const endDate = subscription?.effective_end_date;
 
     const handleEditSubscriptionClick = () => {
-        if (
-            !subscription ||
-            toDate(subscription.effective_end_date) > addDays(new Date(), 30)
-        ) {
+        if (!endDate || toDate(endDate) > addDays(new Date(), 30)) {
             announce({
                 text: "You cannot renew your subscription more than 30 days before the end date.",
                 variant: ERROR,
@@ -130,18 +125,20 @@ const SubscriptionSummary = () => {
                         <Grid container>
                             <GridLabelValue label="Start Date">
                                 <Typography>
-                                    {formatDate(
-                                        startDate && new Date(startDate),
-                                        dateConstants.DATE_FORMAT,
-                                    )}
+                                    {startDate &&
+                                        formatDate(
+                                            new Date(startDate),
+                                            dateConstants.DATE_FORMAT,
+                                        )}
                                 </Typography>
                             </GridLabelValue>
                             <GridLabelValue label="End Date">
                                 <Typography>
-                                    {formatDate(
-                                        endDate && new Date(endDate),
-                                        dateConstants.DATE_FORMAT,
-                                    )}
+                                    {endDate &&
+                                        formatDate(
+                                            new Date(endDate),
+                                            dateConstants.DATE_FORMAT,
+                                        )}
                                 </Typography>
                             </GridLabelValue>
                             <GridLabelValue label="Quotas">
@@ -192,7 +189,7 @@ function AddonsDetails({
     subscription,
     loading,
 }: {
-    subscription: SubscriptionSummaryDetails;
+    subscription: SubscriptionSummaryDetails | undefined;
     loading: boolean;
 }) {
     const addons = subscription?.addons;
