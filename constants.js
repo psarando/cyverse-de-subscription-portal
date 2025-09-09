@@ -1,4 +1,5 @@
 const constants = {
+    CYVERSE_HOME_URL: "https://cyverse.org",
     CYVERSE_ABOUT_URL: "https://cyverse.org/about",
     CYVERSE_POLICY_URL: "https://cyverse.org/policies",
     CYVERSE_SUPPORT_URL: "https://cyverse.org/get-help",

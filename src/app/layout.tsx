@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { AppBar, Box, Stack, Toolbar } from "@mui/material";
+import { AppBar, Box, Link, Stack, Toolbar, Tooltip } from "@mui/material";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { Roboto } from "next/font/google";
 import { ThemeProvider } from "@mui/material/styles";
@@ -8,6 +8,7 @@ import theme from "../theme";
 import "./globals.css";
 
 import { auth } from "@/auth";
+import constants from "@/constants";
 import AccountAvatar from "@/components/AccountAvatar";
 import Cart from "@/components/Cart";
 import SignInCard from "@/components/SignInCard";
@@ -42,27 +43,36 @@ export default async function RootLayout({
                             <Box>
                                 <AppBar position="static">
                                     <Toolbar>
+                                        <Tooltip title="CyVerse Home Page">
+                                            <Link
+                                                href={
+                                                    constants.CYVERSE_HOME_URL
+                                                }
+                                                target="_blank"
+                                                rel="noopener"
+                                                underline="hover"
+                                            >
+                                                <Image
+                                                    src="/cyverse-logo-white.svg"
+                                                    alt="CyVerse logo"
+                                                    width={200}
+                                                    height={40}
+                                                    priority
+                                                />
+                                            </Link>
+                                        </Tooltip>
                                         <Box sx={{ flexGrow: 1 }} />
                                         <Cart />
                                         <AccountAvatar />
                                     </Toolbar>
                                 </AppBar>
                                 <main>
-                                    <Stack spacing={2} sx={{ p: 2 }}>
-                                        <Image
-                                            src="/cyverse_logo_2.png"
-                                            alt="CyVerse logo"
-                                            width={375}
-                                            height={76}
-                                            priority
-                                        />
-                                        <Stack alignItems="center" spacing={2}>
-                                            {session ? (
-                                                children
-                                            ) : (
-                                                <SignInCard />
-                                            )}
-                                        </Stack>
+                                    <Stack
+                                        alignItems="center"
+                                        spacing={2}
+                                        sx={{ p: 2 }}
+                                    >
+                                        {session ? children : <SignInCard />}
                                     </Stack>
                                 </main>
                             </Box>
