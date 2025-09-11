@@ -87,16 +87,17 @@ function loadConfig(phase: string) {
 
 // init initializes the application and exits if an initialization error is encountered.
 function init(phase: string) {
-    const { configurationError, publicRuntimeConfig, serverRuntimeConfig } = loadConfig(phase)
+    const { configurationError, publicRuntimeConfig, serverRuntimeConfig } =
+        loadConfig(phase);
     if (configurationError) {
-        process.exit(1)
+        process.exit(1);
     }
 
     return {
         publicRuntimeConfig,
         serverRuntimeConfig,
         logging: { fetches: { fullUrl: true } },
-    }
+    };
 }
 
 export default init;
