@@ -7,37 +7,31 @@ const appConfiguration = {
         variable: "SP_AUTHORIZE_NET_LOGIN_ID",
         required: true,
         isPublic: false,
-        defaultValue: undefined,
     },
     authorizeNetTransactionKey: {
         variable: "SP_AUTHORIZE_NET_TRANSACTION_KEY",
         required: true,
         isPublic: false,
-        defaultValue: undefined,
     },
     authorizeNetApiEndpoint: {
         variable: "SP_AUTHORIZE_NET_API_ENDPOINT",
         required: true,
         isPublic: false,
-        defaultValue: undefined,
     },
     keycloakIssuer: {
         variable: "SP_KEYCLOAK_ISSUER",
         required: true,
         isPublic: false,
-        defaultValue: undefined,
     },
     keycloakClientId: {
         variable: "SP_KEYCLOAK_CLIENT_ID",
         required: true,
         isPublic: false,
-        defaultValue: undefined,
     },
     keycloakClientSecret: {
         variable: "SP_KEYCLOAK_CLIENT_SECRET",
         required: true,
         isPublic: false,
-        defaultValue: undefined,
     },
     terrainBaseUrl: {
         variable: "SP_TERRAIN_BASE_URL",
@@ -45,7 +39,40 @@ const appConfiguration = {
         isPublic: true,
         defaultValue: "https://de.cyverse.org/terrain",
     },
-};
+    dbDatabase: {
+        variable: "DB_DATABASE",
+        required: true,
+        isPublic: false,
+    },
+    dbUser: {
+        variable: "DB_USER",
+        required: true,
+        isPublic: false,
+    },
+    dbPassword: {
+        variable: "DB_PASSWORD",
+        required: true,
+        isPublic: false,
+    },
+    dbHost: {
+        variable: "DB_HOST",
+        required: true,
+        isPublic: false,
+    },
+    dbPort: {
+        variable: "DB_PORT",
+        required: true,
+        isPublic: false,
+    },
+} as Record<
+    string,
+    {
+        variable: string;
+        required: boolean;
+        isPublic: boolean;
+        defaultValue?: string;
+    }
+>;
 
 // loadConfig loads the runtime configuration from the environment based on the definitions in `appConfiguration`.
 function loadConfig(phase: string) {

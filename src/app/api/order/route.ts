@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { addPurchaseRecord } from "@/db";
 import {
     OrderError,
     PlanType,
@@ -32,10 +33,21 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const transactionRequest = await request.json();
+    const session = await auth();
+    const username = session?.user?.username;
+
+    if (!username) {
+        return NextResponse.json(
+            { message: "Sign In Required" },
+            { status: 401 },
+        );
+    }
+
+    const transactionRequest = ((await request.json()) ||
+        {}) as TransactionRequest;
 
     const { amount, currencyCode, payment, lineItems, billTo } =
-        (transactionRequest || {}) as TransactionRequest;
+        transactionRequest;
 
     if (!amount || !currencyCode || !payment || !billTo) {
         const missing = [];
@@ -53,23 +65,27 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    const customerIP =
+        request.headers.get("X-Forwarded-For")?.split(":")?.slice(-1)?.at(0) ||
+        "0.0.0.0";
+
     // The Transaction Request fields must be strictly ordered,
     // since Authorize.net API endpoints convert JSON to XML internally.
     const createTransactionRequest = {
-        createTransactionRequest: {
-            merchantAuthentication: {
-                name: authorizeNetLoginId,
-                transactionKey: authorizeNetTransactionKey,
-            },
-            transactionRequest: {
-                transactionType: "authCaptureTransaction",
-                amount,
-                currencyCode,
-                payment,
-                lineItems,
-                billTo,
-            },
+        merchantAuthentication: {
+            name: authorizeNetLoginId,
+            transactionKey: authorizeNetTransactionKey,
         },
+        transactionRequest: {
+            transactionType: "authCaptureTransaction",
+            amount,
+            currencyCode,
+            payment,
+            lineItems,
+            poNumber: 0, // placeholder
+            billTo,
+            customerIP,
+        } as TransactionRequest,
     };
 
     const currentPricing: OrderError["currentPricing"] = { amount: 0 };
@@ -81,7 +97,6 @@ export async function POST(request: NextRequest) {
     let currentSubscription;
     if (subscription) {
         // Validate the user's subscription end date.
-        const session = await auth();
         const resourceUsageSummaryURL = "/resource-usage/summary";
         const resourceUsageSummaryResponse = await fetch(
             `${terrainBaseUrl}${resourceUsageSummaryURL}`,
@@ -159,11 +174,27 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // Save the purchase order in the database.
+    const poNumber = await addPurchaseRecord(
+        username,
+        customerIP,
+        transactionRequest,
+    );
+
+    if (!poNumber) {
+        return NextResponse.json(
+            { message: "Could not save purchase order in the database." },
+            { status: 500 },
+        );
+    }
+
+    createTransactionRequest.transactionRequest.poNumber = poNumber;
+
     // Submit the order payment.
     const authorizeResponse = await fetch(authorizeNetApiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createTransactionRequest),
+        body: JSON.stringify({ createTransactionRequest }),
     });
 
     const status = authorizeResponse.status;
@@ -196,18 +227,21 @@ export async function POST(request: NextRequest) {
 
         if (errorMessage) {
             responseJson = {
-                // Include a top-level message for the DEErrorDialog.
+                // Ensure there's a top-level `message` for the DEErrorDialog.
                 message: errorMessage,
                 ...responseJson,
             };
         }
 
-        return NextResponse.json(
-            responseJson || { message: authorizeResponse.statusText },
-            {
-                status: !authorizeResponse.ok && status ? status : 500,
-            },
-        );
+        responseJson = responseJson || {
+            message: authorizeResponse.statusText,
+        };
+
+        responseJson.poNumber = poNumber;
+
+        return NextResponse.json(responseJson, {
+            status: !authorizeResponse.ok && status ? status : 500,
+        });
     }
 
     // The payment was successful, so update the user's subscription,
@@ -220,7 +254,11 @@ export async function POST(request: NextRequest) {
             subscription.quantity,
         );
 
-        responseJson = { ...responseJson, ...subscriptionUpdateResult };
+        responseJson = {
+            poNumber,
+            ...responseJson,
+            ...subscriptionUpdateResult,
+        };
     }
 
     return NextResponse.json(responseJson);

@@ -161,6 +161,7 @@ export type TransactionRequest = {
             unitPrice: number;
         };
     }>;
+    poNumber?: number;
     billTo: {
         firstName: string;
         lastName: string;
@@ -171,6 +172,7 @@ export type TransactionRequest = {
         zip: string;
         country: string;
     };
+    customerIP?: string;
 };
 
 export type OrderError = TerrainError & {
