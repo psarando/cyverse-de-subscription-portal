@@ -8,7 +8,7 @@ CREATE SEQUENCE IF NOT EXISTS purchase_order_numbers START 1;
 
 -- This table contains the payment information for a purchase. We only support credit card payment at this time, so
 -- that's the only type of payment supported by this table. For security, only the last four digits of the credit card
--- number are stored. This gives us enogugh information to process a refund without introducing a risk of leaking credit
+-- number are stored. This gives us enough information to process a refund without introducing a risk of leaking credit
 -- card information. The CVV code is required for purchases but it's not stored for security purposes.
 CREATE TABLE IF NOT EXISTS payments (
     id uuid NOT NULL DEFAULT uuid_generate_v1(),
@@ -39,9 +39,9 @@ CREATE TABLE IF NOT EXISTS purchases (
     username text NOT NULL,
     amount money NOT NULL,
     payment_id uuid NOT NULL REFERENCES payments (id) ON DELETE CASCADE,
-    poNumber text NOT NULL,
+    po_number bigint NOT NULL,
     billing_information_id uuid NOT NULL REFERENCES billing_information (id) ON DELETE CASCADE,
-    customar_ip text NOT NULL,
+    customer_ip text NOT NULL,
     PRIMARY KEY (id)
 );
 CREATE INDEX IF NOT EXISTS purchases_payment_id
@@ -50,7 +50,7 @@ CREATE INDEX IF NOT EXISTS purchases_billing_information_id
     ON purchases (billing_information_id);
 
 -- This table contains line items for a purchase. The item_type column indicates whether the line item refers to a
--- subscription plan or an add-on (in case we need to programatically look up data in the QMS database later.) The
+-- subscription plan or an add-on (in case we need to programmatically look up data in the QMS database later.) The
 -- item_id column refers to the identifier of the add-on or subscription that is being purchased.
 CREATE TABLE IF NOT EXISTS line_items (
     id uuid NOT NULL DEFAULT uuid_generate_v1(),
