@@ -1,3 +1,4 @@
+import { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 // appConfiguration defines the supported configuration settings for the application.
@@ -96,8 +97,9 @@ function init(phase: string) {
     return {
         publicRuntimeConfig,
         serverRuntimeConfig,
+        // Full URL logging to the console when running in dev mode.
         logging: { fetches: { fullUrl: true } },
-    };
+    } as NextConfig;
 }
 
 export default init;
