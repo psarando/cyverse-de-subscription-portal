@@ -41,7 +41,7 @@ const { serverRuntimeConfig } = getConfig();
 export const config = {
     debug: process.env.NODE_ENV !== "production",
     theme: {
-        logo: "/cyverse_logo_0.png",
+        logo: "/cyverse_logo_2.png",
     },
     providers: [
         KeycloakProvider({
