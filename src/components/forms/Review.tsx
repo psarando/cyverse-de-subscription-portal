@@ -7,7 +7,7 @@
 import React from "react";
 
 import constants from "@/constants";
-import { OrderError } from "@/app/api/serviceFacade";
+import { OrderError } from "@/app/api/types";
 import { CartInfo } from "@/contexts/cart";
 import { formatCurrency } from "@/utils/formatUtils";
 

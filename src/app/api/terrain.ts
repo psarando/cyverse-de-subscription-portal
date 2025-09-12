@@ -1,18 +1,11 @@
 import { auth } from "@/auth";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
 
-import { SubscriptionSummaryDetails } from "./serviceFacade";
+import { SubscriptionSummaryDetails } from "./types";
 
 import { addSeconds, toDate } from "date-fns";
 import getConfig from "next/config";
 import { NextResponse } from "next/server";
-
-export type TerrainError = {
-    error_code?: string;
-    message?: string;
-    reason?: string;
-    grouper_result_message?: string;
-};
 
 type KeyCloakToken = {
     access_token: string;

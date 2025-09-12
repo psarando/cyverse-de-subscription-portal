@@ -5,7 +5,7 @@
  */
 import React from "react";
 
-import { SubscriptionSubmission } from "@/app/api/serviceFacade";
+import { SubscriptionSubmission } from "@/app/api/types";
 
 export type CartInfo = {
     subscription?: SubscriptionSubmission;

@@ -2,7 +2,7 @@ import {
     SubscriptionSubmission,
     SubscriptionSummaryDetails,
     TransactionRequest,
-} from "@/app/api/serviceFacade";
+} from "@/app/api/types";
 import { CartInfo } from "@/contexts/cart";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
 

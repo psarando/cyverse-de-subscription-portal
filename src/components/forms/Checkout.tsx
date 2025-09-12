@@ -31,12 +31,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     getPlanTypes,
     HttpError,
-    OrderError,
     PLAN_TYPES_QUERY_KEY,
-    PlanType,
     postOrder,
-    SubscriptionSubmission,
 } from "@/app/api/serviceFacade";
+import { OrderError, PlanType, SubscriptionSubmission } from "@/app/api/types";
 import { CartInfo, useCartInfo } from "@/contexts/cart";
 import GridLoading from "@/components/common/GridLoading";
 import {

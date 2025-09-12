@@ -5,7 +5,7 @@ import {
     PlanType,
     SubscriptionSummaryDetails,
     TransactionRequest,
-} from "@/app/api/serviceFacade";
+} from "@/app/api/types";
 import {
     serviceAccountUpdateSubscription,
     terrainErrorResponse,
