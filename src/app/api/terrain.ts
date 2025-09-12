@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
 
-import { SubscriptionSummaryDetails } from "./serviceFacade";
+import { SubscriptionSummaryDetails } from "./types";
 
 import { addSeconds, toDate } from "date-fns";
 import getConfig from "next/config";

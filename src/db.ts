@@ -1,4 +1,4 @@
-import { TransactionRequest } from "@/app/api/serviceFacade";
+import { TransactionRequest } from "@/app/api/types";
 import { UUID } from "crypto";
 import getConfig from "next/config";
 import { Client } from "pg";

@@ -6,8 +6,8 @@ import constants from "@/constants";
 import {
     getResourceUsageSummary,
     RESOURCE_USAGE_QUERY_KEY,
-    SubscriptionSummaryDetails,
 } from "@/app/api/serviceFacade";
+import { SubscriptionSummaryDetails } from "@/app/api/types";
 import GridLabelValue from "@/components/common/GridLabelValue";
 import GridLoading from "@/components/common/GridLoading";
 import QuotaDetails from "@/components/common/QuotaDetails";

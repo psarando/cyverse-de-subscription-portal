@@ -4,12 +4,8 @@ import constants from "@/constants";
 
 import { useCartInfo } from "@/contexts/cart";
 
-import {
-    getPlanTypes,
-    PLAN_TYPES_QUERY_KEY,
-    PlanType,
-    SubscriptionSummaryDetails,
-} from "@/app/api/serviceFacade";
+import { getPlanTypes, PLAN_TYPES_QUERY_KEY } from "@/app/api/serviceFacade";
+import { PlanType, SubscriptionSummaryDetails } from "@/app/api/types";
 
 import DEDialog from "@/components/common/DEDialog";
 import GridLabelValue from "@/components/common/GridLabelValue";
