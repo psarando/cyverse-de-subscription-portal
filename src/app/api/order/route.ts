@@ -83,7 +83,16 @@ export async function POST(request: NextRequest) {
             payment,
             lineItems,
             poNumber: 0, // placeholder
-            billTo,
+            // The schema's `cast` function may not keep these keys in order.
+            billTo: {
+                firstName: billTo.firstName,
+                lastName: billTo.lastName,
+                company: billTo.company,
+                address: billTo.address,
+                city: billTo.city,
+                state: billTo.state,
+                zip: billTo.zip,
+            },
             customerIP,
         } as TransactionRequest,
     };
