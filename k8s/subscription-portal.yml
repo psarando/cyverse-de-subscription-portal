@@ -48,47 +48,47 @@ spec:
             - name: SP_AUTHORIZE_NET_LOGIN_ID
               valueFrom:
                 secretKeyRef:
-                  name: configs
+                  name: subscription-portal-configs
                   key: SP_AUTHORIZE_NET_LOGIN_ID
             - name: SP_AUTHORIZE_NET_TRANSACTION_KEY
               valueFrom:
                 secretKeyRef:
-                  name: configs
+                  name: subscription-portal-configs
                   key: SP_AUTHORIZE_NET_TRANSACTION_KEY
             - name: SP_AUTHORIZE_NET_API_ENDPOINT
               valueFrom:
                 secretKeyRef:
-                  name: configs
+                  name: subscription-portal-configs
                   key: SP_AUTHORIZE_NET_API_ENDPOINT
             - name: SP_TERRAIN_BASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: configs
+                  name: subscription-portal-configs
                   key: SP_TERRAIN_BASE_URL
             - name: SP_KEYCLOAK_ISSUER
               valueFrom:
                 secretKeyRef:
-                  name: configs
+                  name: subscription-portal-configs
                   key: SP_KEYCLOAK_ISSUER
             - name: SP_KEYCLOAK_CLIENT_ID
               valueFrom:
                 secretKeyRef:
-                  name: configs
+                  name: subscription-portal-configs
                   key: SP_KEYCLOAK_CLIENT_ID
             - name: SP_KEYCLOAK_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: configs
+                  name: subscription-portal-configs
                   key: SP_KEYCLOAK_CLIENT_SECRET
             - name: NEXTAUTH_URL
               valueFrom:
                 secretKeyRef:
-                  name: configs
+                  name: subscription-portal-configs
                   key: NEXTAUTH_URL
             - name: NEXTAUTH_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: configs
+                  name: subscription-portal-configs
                   key: NEXTAUTH_SECRET
           ports:
             - name: listen-port
