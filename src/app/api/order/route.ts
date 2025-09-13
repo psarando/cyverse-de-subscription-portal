@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { addPurchaseRecord } from "@/db";
 import {
     OrderError,
+    OrderRequest,
     PlanType,
     SubscriptionSummaryDetails,
     TransactionRequest,
@@ -10,11 +11,13 @@ import {
     serviceAccountUpdateSubscription,
     terrainErrorResponse,
 } from "@/app/api/terrain";
+import { OrderRequestSchema } from "@/validation";
 
 import { addDays, toDate } from "date-fns";
 
 import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
+import { ValidationError } from "yup";
 
 const { publicRuntimeConfig, serverRuntimeConfig } = getConfig();
 
@@ -43,23 +46,22 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const transactionRequest = ((await request.json()) ||
-        {}) as TransactionRequest;
+    let transactionRequest: OrderRequest;
+    const requestJson = (await request.json()) || {};
 
-    const { amount, currencyCode, payment, lineItems, billTo } =
-        transactionRequest;
+    try {
+        transactionRequest = await OrderRequestSchema.validate(requestJson);
+    } catch (e) {
+        const validationError = e as ValidationError;
 
-    if (!amount || !currencyCode || !payment || !billTo) {
-        const missing = [];
-        if (!amount) missing.push("amount");
-        if (!currencyCode) missing.push("currencyCode");
-        if (!payment) missing.push("payment");
-        if (!billTo) missing.push("billTo");
+        console.error("Validation Error", e);
 
         return NextResponse.json(
             {
                 error_code: "ERR_BAD_OR_MISSING_FIELD",
-                message: `Missing required transaction fields: ${missing.join(", ")}`,
+                message:
+                    validationError.errors?.join("; ") ||
+                    "Request Validation Error",
             },
             { status: 400 },
         );
@@ -71,6 +73,18 @@ export async function POST(request: NextRequest) {
 
     // The Transaction Request fields must be strictly ordered,
     // since Authorize.net API endpoints convert JSON to XML internally.
+    // Also, the schema's `validate` function may not keep the keys in order
+    // if it needs to trim whitespace from string values.
+    const {
+        amount,
+        currencyCode,
+        payment: {
+            creditCard: { cardNumber, expirationDate, cardCode },
+        },
+        lineItems,
+        billTo: { firstName, lastName, company, address, city, state, zip },
+    } = transactionRequest;
+
     const createTransactionRequest = {
         merchantAuthentication: {
             name: authorizeNetLoginId,
@@ -80,19 +94,28 @@ export async function POST(request: NextRequest) {
             transactionType: "authCaptureTransaction",
             amount,
             currencyCode,
-            payment,
-            lineItems,
+            payment: { creditCard: { cardNumber, expirationDate, cardCode } },
+            lineItems: lineItems?.map(
+                ({
+                    lineItem: {
+                        itemId,
+                        name,
+                        description,
+                        quantity,
+                        unitPrice,
+                    },
+                }) => ({
+                    lineItem: {
+                        itemId,
+                        name,
+                        description,
+                        quantity,
+                        unitPrice,
+                    },
+                }),
+            ),
             poNumber: 0, // placeholder
-            // The schema's `cast` function may not keep these keys in order.
-            billTo: {
-                firstName: billTo.firstName,
-                lastName: billTo.lastName,
-                company: billTo.company,
-                address: billTo.address,
-                city: billTo.city,
-                state: billTo.state,
-                zip: billTo.zip,
-            },
+            billTo: { firstName, lastName, company, address, city, state, zip },
             customerIP,
         } as TransactionRequest,
     };

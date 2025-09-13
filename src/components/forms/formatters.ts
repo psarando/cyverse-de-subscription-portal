@@ -1,4 +1,5 @@
 import {
+    OrderRequest,
     SubscriptionSubmission,
     SubscriptionSummaryDetails,
     TransactionRequest,
@@ -53,11 +54,9 @@ export function formatSubscription(
 }
 
 export type CheckoutFormValues = Pick<
-    TransactionRequest,
-    "billTo" | "payment"
-> & {
-    termsAcknowledged: boolean;
-};
+    OrderRequest,
+    "termsAcknowledged" | "billTo" | "payment"
+>;
 
 export function formatCheckoutFormValues(): CheckoutFormValues {
     return {
@@ -85,25 +84,14 @@ export function formatCheckoutFormValues(): CheckoutFormValues {
 export function formatCheckoutTransactionRequest(
     username: string,
     cartInfo: CartInfo,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    { termsAcknowledged, ...values }: CheckoutFormValues,
+    values: CheckoutFormValues,
 ): TransactionRequest {
     const { subscription } = cartInfo;
-    const {
-        payment: { creditCard },
-    } = values;
-    const { cardNumber } = creditCard;
 
     const request: TransactionRequest = {
         ...values,
         amount: cartInfo.totalPrice || 0,
         currencyCode: "USD",
-        payment: {
-            creditCard: {
-                ...creditCard,
-                cardNumber: cardNumber.replaceAll(" ", ""),
-            },
-        },
         lineItems: [],
     };
 

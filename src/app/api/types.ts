@@ -98,6 +98,13 @@ export type TransactionRequest = {
     customerIP?: string;
 };
 
+export type OrderRequest = Pick<
+    TransactionRequest,
+    "amount" | "billTo" | "currencyCode" | "lineItems" | "payment"
+> & {
+    termsAcknowledged: boolean;
+};
+
 export type OrderError = TerrainError & {
     transactionResponse?: {
         errors?: Array<{ errorCode: string; errorText: string }>;
