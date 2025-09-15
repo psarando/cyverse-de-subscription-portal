@@ -64,6 +64,12 @@ const appConfiguration = {
         required: true,
         isPublic: false,
     },
+    dbTimeout: {
+        variable: "DB_TIMEOUT",
+        required: false,
+        isPublic: false,
+        defaultValue: "20000", // 20 seconds, in milliseconds
+    },
 } as Record<
     string,
     {

@@ -11,6 +11,11 @@ const db = new Client({
     host: serverRuntimeConfig.dbHost,
     port: serverRuntimeConfig.dbPort,
     database: serverRuntimeConfig.dbDatabase,
+    connectionTimeoutMillis: serverRuntimeConfig.dbTimeout,
+    statement_timeout: serverRuntimeConfig.dbTimeout,
+    query_timeout: serverRuntimeConfig.dbTimeout,
+    lock_timeout: serverRuntimeConfig.dbTimeout,
+    idle_in_transaction_session_timeout: serverRuntimeConfig.dbTimeout,
 });
 
 await db
