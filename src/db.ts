@@ -52,6 +52,18 @@ type BillingInformation = {
     country: string;
 };
 
+// Represents a row in the "line_items" table.
+type LineItem = {
+    id: UUID;
+    purchase_id: UUID;
+    item_type: string;
+    item_id: UUID;
+    item_name: string;
+    item_description: string;
+    quantity: number;
+    unit_price: string; // money, typically as string
+};
+
 /**
  * Adds the `transaction` to the database as a purchase order,
  * returning the `po_number`.
@@ -61,6 +73,9 @@ export async function addPurchaseRecord(
     customerIP: string,
     transaction: TransactionRequest,
 ) {
+    let poNumber;
+    let purchaseId;
+
     try {
         await db.query("BEGIN");
 
@@ -81,7 +96,7 @@ export async function addPurchaseRecord(
                 customer_ip
             )
             VALUES ($1, $2, $3, nextval('purchase_order_numbers'), $4, $5)
-            RETURNING po_number`,
+            RETURNING id, po_number`,
             [
                 username,
                 transaction.amount,
@@ -91,9 +106,16 @@ export async function addPurchaseRecord(
             ],
         );
 
+        if (rows && rows.length > 0) {
+            purchaseId = rows[0].id;
+            poNumber = rows[0].po_number;
+
+            addLineItems(purchaseId, transaction.lineItems);
+        }
+
         await db.query("COMMIT");
 
-        return rows ? rows[0].po_number : null;
+        return poNumber;
     } catch (e) {
         await db
             .query("ROLLBACK")
@@ -192,4 +214,41 @@ async function getOrAddBillingInfoId(billTo: TransactionRequest["billTo"]) {
     );
 
     return rows ? rows[0].id : null;
+}
+
+async function addLineItems(
+    purchaseId: string,
+    lineItems: TransactionRequest["lineItems"],
+) {
+    if (!lineItems || lineItems?.length < 1) {
+        return;
+    }
+
+    const insertPromises = lineItems.map(
+        ({
+            lineItem: { id, itemId, name, description, quantity, unitPrice },
+        }) =>
+            db.query<LineItem>(
+                `INSERT INTO line_items (
+                    purchase_id,
+                    item_type,
+                    item_id,
+                    item_name,
+                    item_description,
+                    quantity,
+                    unit_price
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                [
+                    purchaseId,
+                    itemId,
+                    id,
+                    name,
+                    description ?? null,
+                    quantity,
+                    unitPrice,
+                ],
+            ),
+    );
+
+    await Promise.all(insertPromises);
 }

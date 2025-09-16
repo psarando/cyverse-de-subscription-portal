@@ -40,6 +40,7 @@ export type SubscriptionSummaryDetails = {
 };
 
 export type PlanType = {
+    id: UUID;
     name: string;
     description: string;
     plan_rates: Array<{ rate: number }>;
@@ -76,7 +77,12 @@ export type TransactionRequest = {
     };
     lineItems?: Array<{
         lineItem: {
+            // The ID of the subscription or add-on from QMS,
+            // not submitted to Authorize.net.
+            id?: UUID;
+            // The item type (subscription or add-on).
             itemId: string;
+            // The plan name or add-on type.
             name: string;
             description?: string;
             quantity: number;

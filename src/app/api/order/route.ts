@@ -126,7 +126,8 @@ export async function POST(request: NextRequest) {
         (item) => item.lineItem.itemId === "subscription",
     )?.lineItem;
 
-    let currentSubscription;
+    let currentSubscription: SubscriptionSummaryDetails | undefined;
+    let orderSubscription: PlanType | undefined;
     if (subscription) {
         // Validate the user's subscription end date.
         const resourceUsageSummaryURL = "/resource-usage/summary";
@@ -149,11 +150,10 @@ export async function POST(request: NextRequest) {
 
         const resourceUsageSummary = await resourceUsageSummaryResponse.json();
 
-        currentSubscription =
-            resourceUsageSummary?.subscription as SubscriptionSummaryDetails;
+        currentSubscription = resourceUsageSummary?.subscription;
         const endDate = currentSubscription?.effective_end_date;
 
-        if (!currentSubscription || toDate(endDate) > addDays(new Date(), 30)) {
+        if (!endDate || toDate(endDate) > addDays(new Date(), 30)) {
             return NextResponse.json(
                 {
                     error_code: "ERR_BAD_REQUEST",
@@ -175,11 +175,11 @@ export async function POST(request: NextRequest) {
         }
 
         const plansData = await plansResponse.json();
-        const plan = plansData?.result?.find(
+        orderSubscription = plansData?.result?.find(
             (p: PlanType) => p.name === subscription.name,
-        ) as PlanType | undefined;
+        );
 
-        if (!plan) {
+        if (!orderSubscription) {
             return NextResponse.json(
                 {
                     error_code: "ERR_NOT_FOUND",
@@ -189,7 +189,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const rate = plan.plan_rates[0].rate;
+        // Update the line item's ID for the database,
+        // not submitted to Authorize.net.
+        subscription.id = orderSubscription.id;
+
+        const rate = orderSubscription.plan_rates[0].rate;
         currentPricing.amount += rate * subscription.quantity;
         currentPricing.subscription = { name: subscription.name, rate };
     }
