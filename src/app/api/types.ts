@@ -103,6 +103,31 @@ export type TransactionRequest = {
     customerIP?: string;
 };
 
+type CreateTransactionResponseMessage = { code: string; text: string };
+
+export type CreateTransactionResponse = {
+    transactionResponse: {
+        responseCode: string;
+        authCode: string;
+        avsResultCode?: string | null;
+        cvvResultCode?: string | null;
+        cavvResultCode?: string | null;
+        transId?: string | null;
+        refTransID?: string | null;
+        testRequest?: string | null;
+        accountNumber?: string | null;
+        accountType?: string | null;
+        transHashSha2?: string | null;
+        SupplementalDataQualificationIndicator?: number | null;
+        networkTransId?: string | null;
+        errors?: Array<{ errorCode: string; errorText: string }>;
+    };
+    messages?: {
+        resultCode: string;
+        message: Array<CreateTransactionResponseMessage>;
+    };
+};
+
 export type OrderRequest = Pick<
     TransactionRequest,
     "amount" | "billTo" | "currencyCode" | "lineItems" | "payment"
@@ -118,10 +143,11 @@ export type TerrainError = {
 };
 
 export type OrderError = TerrainError & {
-    transactionResponse?: {
-        errors?: Array<{ errorCode: string; errorText: string }>;
-    };
-    messages?: Array<{ code: string; text: string }>;
+    transactionResponse?: Pick<
+        CreateTransactionResponse["transactionResponse"],
+        "errors"
+    >;
+    messages?: Array<CreateTransactionResponseMessage>;
     currentPricing?: {
         amount: number;
         subscription?: { name: string; rate: number };

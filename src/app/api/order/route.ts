@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
-import { addPurchaseRecord } from "@/db";
+import { addPurchaseRecord, addTransactionResponse } from "@/db";
 import {
+    CreateTransactionResponse,
     OrderError,
     OrderRequest,
     PlanType,
@@ -14,7 +15,7 @@ import {
 import { OrderRequestSchema } from "@/validation";
 
 import { addDays, toDate } from "date-fns";
-
+import { UUID } from "crypto";
 import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
 import { ValidationError } from "yup";
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the purchase order in the database.
-    const poNumber = await addPurchaseRecord(
+    const { poNumber, purchaseId } = await addPurchaseRecord(
         username,
         customerIP,
         transactionRequest,
@@ -236,9 +237,9 @@ export async function POST(request: NextRequest) {
     const status = authorizeResponse.status;
     const text = await authorizeResponse.text();
 
-    let responseJson;
+    let authorizeResponseJson: CreateTransactionResponse | undefined;
     try {
-        responseJson = JSON.parse(text);
+        authorizeResponseJson = JSON.parse(text);
     } catch {
         console.error("non-JSON response", {
             status,
@@ -247,33 +248,34 @@ export async function POST(request: NextRequest) {
         });
     }
 
+    let responseJson: object = { poNumber, ...authorizeResponseJson };
+
+    if (authorizeResponseJson) {
+        addTransactionResponse(purchaseId as UUID, authorizeResponseJson);
+    }
+
     // Check for payment errors.
+    const transactionErrors =
+        authorizeResponseJson?.transactionResponse?.errors;
+    const transactionMessages = authorizeResponseJson?.messages;
     if (
         !authorizeResponse.ok ||
-        responseJson?.messages?.resultCode === "Error" ||
-        responseJson?.transactionResponse?.errors?.length > 0
+        transactionMessages?.resultCode === "Error" ||
+        (transactionErrors && transactionErrors?.length > 0)
     ) {
         let errorMessage;
 
-        if (responseJson?.transactionResponse?.errors?.length > 0) {
-            errorMessage = responseJson.transactionResponse.errors;
-        } else if (responseJson?.messages?.resultCode === "Error") {
-            errorMessage = responseJson?.messages;
+        if (transactionErrors && transactionErrors.length > 0) {
+            errorMessage = transactionErrors;
+        } else if (transactionMessages?.resultCode === "Error") {
+            errorMessage = transactionMessages;
         }
 
-        if (errorMessage) {
-            responseJson = {
-                // Ensure there's a top-level `message` for the DEErrorDialog.
-                message: errorMessage,
-                ...responseJson,
-            };
-        }
-
-        responseJson = responseJson || {
-            message: authorizeResponse.statusText,
+        responseJson = {
+            // Ensure there's a top-level `message` for the DEErrorDialog.
+            message: errorMessage || authorizeResponse.statusText,
+            ...responseJson,
         };
-
-        responseJson.poNumber = poNumber;
 
         return NextResponse.json(responseJson, {
             status: !authorizeResponse.ok && status ? status : 500,
@@ -291,7 +293,6 @@ export async function POST(request: NextRequest) {
         );
 
         responseJson = {
-            poNumber,
             ...responseJson,
             ...subscriptionUpdateResult,
         };

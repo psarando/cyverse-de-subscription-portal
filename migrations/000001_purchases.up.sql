@@ -72,9 +72,9 @@ CREATE TABLE IF NOT EXISTS transaction_responses (
     purchase_id uuid NOT NULL REFERENCES purchases (id) ON DELETE CASCADE,
     response_code text NOT NULL,
     auth_code text NOT NULL,
-    avsResultCode text,
-    cvvResultCode text,
-    cavvResultCode text,
+    avs_result_code text,
+    cvv_result_code text,
+    cavv_result_code text,
     transaction_id text,
     ref_transaction_id text,
     test_request text,
@@ -98,6 +98,17 @@ CREATE TABLE IF NOT EXISTS transaction_response_messages (
 );
 CREATE INDEX IF NOT EXISTS transaction_response_messages_transaction_response_id
     ON transaction_response_messages (transaction_response_id);
+
+-- This table contains error messages from transaction responses.
+CREATE TABLE IF NOT EXISTS transaction_error_messages (
+    id uuid NOT NULL DEFAULT uuid_generate_v1(),
+    transaction_response_id uuid NOT NULL REFERENCES transaction_responses (id) ON DELETE CASCADE,
+    error_code text NOT NULL,
+    error_text text NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS transaction_error_messages_transaction_response_id
+    ON transaction_error_messages (transaction_response_id);
 
 -- This table references the subscriptions associated with a purchase.
 CREATE TABLE IF NOT EXISTS purchased_subscriptions (

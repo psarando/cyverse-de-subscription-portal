@@ -1,4 +1,4 @@
-import { TransactionRequest } from "@/app/api/types";
+import { CreateTransactionResponse, TransactionRequest } from "@/app/api/types";
 import { UUID } from "crypto";
 import getConfig from "next/config";
 import { Client } from "pg";
@@ -64,6 +64,25 @@ type LineItem = {
     unit_price: string; // money, typically as string
 };
 
+// Represents a row in the "transaction_responses" table.
+type TransactionResponse = {
+    id: UUID;
+    purchase_id: UUID;
+    response_code: string;
+    auth_code: string;
+    avs_result_code?: string | null;
+    cvv_result_code?: string | null;
+    cavv_result_code?: string | null;
+    transaction_id?: string | null;
+    ref_transaction_id?: string | null;
+    test_request?: string | null;
+    account_number?: string | null;
+    account_type?: string | null;
+    transaction_hash_sha2?: string | null;
+    supplemental_data_qualification_indicator?: number | null;
+    network_transaction_id?: string | null;
+};
+
 /**
  * Adds the `transaction` to the database as a purchase order,
  * returning the `po_number`.
@@ -114,8 +133,6 @@ export async function addPurchaseRecord(
         }
 
         await db.query("COMMIT");
-
-        return poNumber;
     } catch (e) {
         await db
             .query("ROLLBACK")
@@ -124,9 +141,9 @@ export async function addPurchaseRecord(
             );
 
         console.error("Could not add purchase order.", e);
-
-        return null;
     }
+
+    return { poNumber, purchaseId };
 }
 
 async function getOrAddPaymentId(
@@ -251,4 +268,109 @@ async function addLineItems(
     );
 
     await Promise.all(insertPromises);
+}
+
+export async function addTransactionResponse(
+    purchaseId: UUID,
+    response: CreateTransactionResponse,
+) {
+    let responseId: UUID | undefined;
+
+    try {
+        const {
+            transactionResponse: {
+                responseCode,
+                authCode,
+                avsResultCode,
+                cvvResultCode,
+                cavvResultCode,
+                transId,
+                refTransID,
+                testRequest,
+                accountNumber,
+                accountType,
+                transHashSha2,
+                SupplementalDataQualificationIndicator,
+                networkTransId,
+                errors,
+            },
+            messages,
+        } = response;
+
+        const { rows } = await db.query<TransactionResponse>(
+            `INSERT INTO transaction_responses (
+                purchase_id,
+                response_code,
+                auth_code,
+                avs_result_code,
+                cvv_result_code,
+                cavv_result_code,
+                transaction_id,
+                ref_transaction_id,
+                test_request,
+                account_number,
+                account_type,
+                transaction_hash_sha2,
+                supplemental_data_qualification_indicator,
+                network_transaction_id
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+            )
+            RETURNING id`,
+            [
+                purchaseId,
+                responseCode,
+                authCode,
+                avsResultCode ?? null,
+                cvvResultCode ?? null,
+                cavvResultCode ?? null,
+                transId ?? null,
+                refTransID ?? null,
+                testRequest ?? null,
+                accountNumber ?? null,
+                accountType ?? null,
+                transHashSha2 ?? null,
+                SupplementalDataQualificationIndicator ?? null,
+                networkTransId ?? null,
+            ],
+        );
+
+        if (rows && rows.length > 0) {
+            responseId = rows[0].id;
+
+            if (errors && errors?.length > 0) {
+                const insertPromises = errors.map(({ errorCode, errorText }) =>
+                    db.query<LineItem>(
+                        `INSERT INTO transaction_error_messages (
+                            transaction_response_id,
+                            error_code,
+                            error_text
+                        ) VALUES ($1, $2, $3)`,
+                        [responseId, errorCode, errorText],
+                    ),
+                );
+
+                await Promise.all(insertPromises);
+            }
+
+            if (messages && messages.message?.length > 0) {
+                const insertPromises = messages.message.map(({ code, text }) =>
+                    db.query<LineItem>(
+                        `INSERT INTO transaction_response_messages (
+                            transaction_response_id,
+                            code,
+                            description
+                        ) VALUES ($1, $2, $3)`,
+                        [responseId, code, text],
+                    ),
+                );
+
+                await Promise.all(insertPromises);
+            }
+        }
+    } catch (e) {
+        console.error("Error saving TransactionResponse to the database.", e);
+    }
+
+    return responseId;
 }
