@@ -1,19 +1,24 @@
 import { auth } from "@/auth";
+import { addPurchaseRecord, addTransactionResponse } from "@/db";
 import {
+    CreateTransactionResponse,
     OrderError,
+    OrderRequest,
     PlanType,
     SubscriptionSummaryDetails,
     TransactionRequest,
-} from "@/app/api/serviceFacade";
+} from "@/app/api/types";
 import {
     serviceAccountUpdateSubscription,
     terrainErrorResponse,
 } from "@/app/api/terrain";
+import { OrderRequestSchema } from "@/validation";
 
 import { addDays, toDate } from "date-fns";
-
+import { UUID } from "crypto";
 import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
+import { ValidationError } from "yup";
 
 const { publicRuntimeConfig, serverRuntimeConfig } = getConfig();
 
@@ -32,44 +37,88 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const transactionRequest = await request.json();
+    const session = await auth();
+    const username = session?.user?.username;
 
-    const { amount, currencyCode, payment, lineItems, billTo } =
-        (transactionRequest || {}) as TransactionRequest;
+    if (!username) {
+        return NextResponse.json(
+            { message: "Sign In Required" },
+            { status: 401 },
+        );
+    }
 
-    if (!amount || !currencyCode || !payment || !billTo) {
-        const missing = [];
-        if (!amount) missing.push("amount");
-        if (!currencyCode) missing.push("currencyCode");
-        if (!payment) missing.push("payment");
-        if (!billTo) missing.push("billTo");
+    let orderRequest: OrderRequest;
+    const requestJson = (await request.json()) || {};
+
+    try {
+        orderRequest = await OrderRequestSchema.validate(requestJson);
+    } catch (e) {
+        const validationError = e as ValidationError;
+
+        console.error("Validation Error", e);
 
         return NextResponse.json(
             {
                 error_code: "ERR_BAD_OR_MISSING_FIELD",
-                message: `Missing required transaction fields: ${missing.join(", ")}`,
+                message:
+                    validationError.errors?.join("; ") ||
+                    "Request Validation Error",
             },
             { status: 400 },
         );
     }
 
+    const customerIP =
+        request.headers.get("X-Forwarded-For")?.split(":")?.slice(-1)?.at(0) ||
+        "0.0.0.0";
+
     // The Transaction Request fields must be strictly ordered,
     // since Authorize.net API endpoints convert JSON to XML internally.
-    const createTransactionRequest = {
-        createTransactionRequest: {
-            merchantAuthentication: {
-                name: authorizeNetLoginId,
-                transactionKey: authorizeNetTransactionKey,
-            },
-            transactionRequest: {
-                transactionType: "authCaptureTransaction",
-                amount,
-                currencyCode,
-                payment,
-                lineItems,
-                billTo,
-            },
+    // Also, the schema's `validate` function may not keep the keys in order
+    // if it needs to trim whitespace from string values.
+    const {
+        amount,
+        currencyCode,
+        payment: {
+            creditCard: { cardNumber, expirationDate, cardCode },
         },
+        lineItems,
+        billTo: { firstName, lastName, company, address, city, state, zip },
+    } = orderRequest;
+
+    const createTransactionRequest = {
+        merchantAuthentication: {
+            name: authorizeNetLoginId,
+            transactionKey: authorizeNetTransactionKey,
+        },
+        transactionRequest: {
+            transactionType: "authCaptureTransaction",
+            amount,
+            currencyCode,
+            payment: { creditCard: { cardNumber, expirationDate, cardCode } },
+            lineItems: lineItems?.map(
+                ({
+                    lineItem: {
+                        itemId,
+                        name,
+                        description,
+                        quantity,
+                        unitPrice,
+                    },
+                }) => ({
+                    lineItem: {
+                        itemId,
+                        name,
+                        description,
+                        quantity,
+                        unitPrice,
+                    },
+                }),
+            ),
+            poNumber: 0, // placeholder
+            billTo: { firstName, lastName, company, address, city, state, zip },
+            customerIP,
+        } as TransactionRequest,
     };
 
     const currentPricing: OrderError["currentPricing"] = { amount: 0 };
@@ -78,10 +127,10 @@ export async function POST(request: NextRequest) {
         (item) => item.lineItem.itemId === "subscription",
     )?.lineItem;
 
-    let currentSubscription;
+    let currentSubscription: SubscriptionSummaryDetails | undefined;
+    let orderSubscription: PlanType | undefined;
     if (subscription) {
         // Validate the user's subscription end date.
-        const session = await auth();
         const resourceUsageSummaryURL = "/resource-usage/summary";
         const resourceUsageSummaryResponse = await fetch(
             `${terrainBaseUrl}${resourceUsageSummaryURL}`,
@@ -102,11 +151,10 @@ export async function POST(request: NextRequest) {
 
         const resourceUsageSummary = await resourceUsageSummaryResponse.json();
 
-        currentSubscription =
-            resourceUsageSummary?.subscription as SubscriptionSummaryDetails;
+        currentSubscription = resourceUsageSummary?.subscription;
         const endDate = currentSubscription?.effective_end_date;
 
-        if (!currentSubscription || toDate(endDate) > addDays(new Date(), 30)) {
+        if (!endDate || toDate(endDate) > addDays(new Date(), 30)) {
             return NextResponse.json(
                 {
                     error_code: "ERR_BAD_REQUEST",
@@ -128,11 +176,11 @@ export async function POST(request: NextRequest) {
         }
 
         const plansData = await plansResponse.json();
-        const plan = plansData?.result?.find(
+        orderSubscription = plansData?.result?.find(
             (p: PlanType) => p.name === subscription.name,
-        ) as PlanType | undefined;
+        );
 
-        if (!plan) {
+        if (!orderSubscription) {
             return NextResponse.json(
                 {
                     error_code: "ERR_NOT_FOUND",
@@ -142,7 +190,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const rate = plan.plan_rates[0].rate;
+        // Update the line item's ID for the database,
+        // not submitted to Authorize.net.
+        subscription.id = orderSubscription.id;
+
+        const rate = orderSubscription.plan_rates[0].rate;
         currentPricing.amount += rate * subscription.quantity;
         currentPricing.subscription = { name: subscription.name, rate };
     }
@@ -159,19 +211,35 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // Save the purchase order in the database.
+    const { poNumber, purchaseId } = await addPurchaseRecord(
+        username,
+        customerIP,
+        orderRequest,
+    );
+
+    if (!poNumber) {
+        return NextResponse.json(
+            { message: "Could not save purchase order in the database." },
+            { status: 500 },
+        );
+    }
+
+    createTransactionRequest.transactionRequest.poNumber = poNumber;
+
     // Submit the order payment.
     const authorizeResponse = await fetch(authorizeNetApiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createTransactionRequest),
+        body: JSON.stringify({ createTransactionRequest }),
     });
 
     const status = authorizeResponse.status;
     const text = await authorizeResponse.text();
 
-    let responseJson;
+    let authorizeResponseJson: CreateTransactionResponse | undefined;
     try {
-        responseJson = JSON.parse(text);
+        authorizeResponseJson = JSON.parse(text);
     } catch {
         console.error("non-JSON response", {
             status,
@@ -180,34 +248,38 @@ export async function POST(request: NextRequest) {
         });
     }
 
+    let responseJson: object = { poNumber, ...authorizeResponseJson };
+
+    if (authorizeResponseJson) {
+        addTransactionResponse(purchaseId as UUID, authorizeResponseJson);
+    }
+
     // Check for payment errors.
+    const transactionErrors =
+        authorizeResponseJson?.transactionResponse?.errors;
+    const transactionMessages = authorizeResponseJson?.messages;
     if (
         !authorizeResponse.ok ||
-        responseJson?.messages?.resultCode === "Error" ||
-        responseJson?.transactionResponse?.errors?.length > 0
+        transactionMessages?.resultCode === "Error" ||
+        (transactionErrors && transactionErrors?.length > 0)
     ) {
         let errorMessage;
 
-        if (responseJson?.transactionResponse?.errors?.length > 0) {
-            errorMessage = responseJson.transactionResponse.errors;
-        } else if (responseJson?.messages?.resultCode === "Error") {
-            errorMessage = responseJson?.messages;
+        if (transactionErrors && transactionErrors.length > 0) {
+            errorMessage = transactionErrors;
+        } else if (transactionMessages?.resultCode === "Error") {
+            errorMessage = transactionMessages;
         }
 
-        if (errorMessage) {
-            responseJson = {
-                // Include a top-level message for the DEErrorDialog.
-                message: errorMessage,
-                ...responseJson,
-            };
-        }
+        responseJson = {
+            // Ensure there's a top-level `message` for the DEErrorDialog.
+            message: errorMessage || authorizeResponse.statusText,
+            ...responseJson,
+        };
 
-        return NextResponse.json(
-            responseJson || { message: authorizeResponse.statusText },
-            {
-                status: !authorizeResponse.ok && status ? status : 500,
-            },
-        );
+        return NextResponse.json(responseJson, {
+            status: !authorizeResponse.ok && status ? status : 500,
+        });
     }
 
     // The payment was successful, so update the user's subscription,
@@ -220,7 +292,10 @@ export async function POST(request: NextRequest) {
             subscription.quantity,
         );
 
-        responseJson = { ...responseJson, ...subscriptionUpdateResult };
+        responseJson = {
+            ...responseJson,
+            ...subscriptionUpdateResult,
+        };
     }
 
     return NextResponse.json(responseJson);

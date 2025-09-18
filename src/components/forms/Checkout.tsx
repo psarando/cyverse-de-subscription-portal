@@ -11,7 +11,6 @@ import React from "react";
 import { useSession } from "next-auth/react";
 
 import { FieldProps, Formik, FormikHelpers } from "formik";
-import * as Yup from "yup";
 
 import {
     Box,
@@ -31,12 +30,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     getPlanTypes,
     HttpError,
-    OrderError,
     PLAN_TYPES_QUERY_KEY,
-    PlanType,
     postOrder,
-    SubscriptionSubmission,
 } from "@/app/api/serviceFacade";
+import { OrderError, PlanType, SubscriptionSubmission } from "@/app/api/types";
 import { CartInfo, useCartInfo } from "@/contexts/cart";
 import GridLoading from "@/components/common/GridLoading";
 import {
@@ -48,6 +45,7 @@ import withErrorAnnouncer, {
     WithErrorAnnouncerProps,
 } from "@/components/common/error/withErrorAnnouncer";
 import { formatCurrency } from "@/utils/formatUtils";
+import { CheckoutFormSchema } from "@/validation";
 
 import AddressForm from "./AddressForm";
 import Info from "./Info";
@@ -86,12 +84,6 @@ function getStepContent(
             throw new Error("Unknown step");
     }
 }
-
-const schemaStringMaxLen = (max: number): Yup.StringSchema =>
-    Yup.string().max(max, `Must be at most ${max} characters.`);
-
-const schemaRequiredStringMaxLen = (max: number): Yup.StringSchema =>
-    schemaStringMaxLen(max).required("Required");
 
 function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
     const { data: session } = useSession();
@@ -136,41 +128,6 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
         };
     }
 
-    const validationSchema = Yup.object().shape({
-        termsAcknowledged: Yup.boolean()
-            .required("Required")
-            .oneOf([true], "You must agree to the Terms of Use."),
-        payment: Yup.object().shape({
-            creditCard: Yup.object().shape({
-                cardNumber: Yup.string()
-                    .required("Required")
-                    // Add 3 to min and max to allow for spaces.
-                    .min(16, "Must be 13 - 16 digits.")
-                    .max(19, "Must be 13 - 16 digits."),
-                expirationDate: Yup.string()
-                    .required("Required")
-                    .matches(/^(\d{4})-(\d{2})/, "Must be YYYY-MM format."),
-                cardCode: Yup.string()
-                    .required("Required")
-                    .matches(/^\d+$/, "Must be digits.")
-                    .min(3, "Must be at least 3 digits.")
-                    .max(4, "Must be 3 or 4 digits."),
-            }),
-        }),
-        billTo: Yup.object().shape({
-            firstName: schemaRequiredStringMaxLen(50),
-            lastName: schemaRequiredStringMaxLen(50),
-            company: schemaStringMaxLen(60),
-            address: schemaRequiredStringMaxLen(60),
-            city: schemaRequiredStringMaxLen(40),
-            state: schemaRequiredStringMaxLen(40),
-            zip: schemaRequiredStringMaxLen(20),
-            country: Yup.string()
-                .required("Required")
-                .length(2, "Please use a 2 character country code."),
-        }),
-    });
-
     const onSubmit = (
         values: CheckoutFormValues,
         { setSubmitting, setFieldError }: FormikHelpers<CheckoutFormValues>,
@@ -186,7 +143,8 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
             formatCheckoutTransactionRequest(
                 session?.user?.username as string,
                 checkoutCart,
-                values,
+                // The schema's `cast` function will also trim string values.
+                CheckoutFormSchema.cast(values),
             ),
             {
                 onSuccess: (response) => {
@@ -313,7 +271,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
             <Formik
                 enableReinitialize
                 initialValues={formatCheckoutFormValues()}
-                validationSchema={validationSchema}
+                validationSchema={CheckoutFormSchema}
                 onSubmit={onSubmit}
             >
                 {({

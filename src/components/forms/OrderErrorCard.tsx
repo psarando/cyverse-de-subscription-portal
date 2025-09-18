@@ -1,4 +1,4 @@
-import type { OrderError } from "@/app/api/serviceFacade";
+import type { OrderError } from "@/app/api/types";
 
 import {
     Card,

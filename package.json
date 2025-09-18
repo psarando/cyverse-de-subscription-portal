@@ -25,6 +25,7 @@
         "next": "^15.3.3",
         "next-auth": "^4.24.11",
         "numeral": "^2.0.6",
+        "pg": "^8.16.3",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "yup": "^1.6.1"
@@ -35,6 +36,7 @@
         "@tanstack/eslint-plugin-query": "^5.81.2",
         "@types/node": "^24.0.3",
         "@types/numeral": "^2.0.5",
+        "@types/pg": "^8.15.5",
         "@types/react": "^19.1.8",
         "@types/react-dom": "^19.1.6",
         "eslint": "^9",

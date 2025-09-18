@@ -1,4 +1,4 @@
-import { SubscriptionSummaryDetails } from "@/app/api/serviceFacade";
+import { SubscriptionSummaryDetails } from "@/app/api/types";
 import { formatFileSize, formatUsage } from "@/utils/formatUtils";
 
 import { Typography } from "@mui/material";

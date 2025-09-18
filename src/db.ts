@@ -1,0 +1,370 @@
+import { CreateTransactionResponse, OrderRequest } from "@/app/api/types";
+import { UUID } from "crypto";
+import getConfig from "next/config";
+import { Client } from "pg";
+
+const { serverRuntimeConfig } = getConfig();
+
+const db = new Client({
+    user: serverRuntimeConfig.dbUser,
+    password: serverRuntimeConfig.dbPassword,
+    host: serverRuntimeConfig.dbHost,
+    port: serverRuntimeConfig.dbPort,
+    database: serverRuntimeConfig.dbDatabase,
+    connectionTimeoutMillis: serverRuntimeConfig.dbTimeout,
+    statement_timeout: serverRuntimeConfig.dbTimeout,
+    query_timeout: serverRuntimeConfig.dbTimeout,
+    lock_timeout: serverRuntimeConfig.dbTimeout,
+    idle_in_transaction_session_timeout: serverRuntimeConfig.dbTimeout,
+});
+
+await db
+    .connect()
+    .catch((e) => console.error("Could not connect to database.", e));
+
+// Represents a row in the "purchases" table.
+type Purchase = {
+    id: UUID;
+    username: string;
+    amount: string; // money, typically represented as a string
+    payment_id: UUID;
+    po_number: number;
+    billing_information_id: UUID;
+};
+
+// Represents a row in the "payments" table.
+type Payment = {
+    id: UUID;
+    credit_card_number: string; // char(4)
+    expiration_date: string; // date, typically as ISO string (YYYY-MM-DD)
+};
+
+// Represents a row in the "billing_information" table.
+type BillingInformation = {
+    id: UUID;
+    first_name: string;
+    last_name: string;
+    company?: string | null;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+};
+
+// Represents a row in the "line_items" table.
+type LineItem = {
+    id: UUID;
+    purchase_id: UUID;
+    item_type: string;
+    item_id: UUID;
+    item_name: string;
+    item_description: string;
+    quantity: number;
+    unit_price: string; // money, typically as string
+};
+
+// Represents a row in the "transaction_responses" table.
+type TransactionResponse = {
+    id: UUID;
+    purchase_id: UUID;
+    response_code: string;
+    auth_code: string;
+    avs_result_code?: string | null;
+    cvv_result_code?: string | null;
+    cavv_result_code?: string | null;
+    transaction_id?: string | null;
+    ref_transaction_id?: string | null;
+    test_request?: string | null;
+    account_number?: string | null;
+    account_type?: string | null;
+    transaction_hash_sha2?: string | null;
+    supplemental_data_qualification_indicator?: number | null;
+    network_transaction_id?: string | null;
+};
+
+/**
+ * Adds the `transaction` to the database as a purchase order,
+ * returning the `po_number`.
+ */
+export async function addPurchaseRecord(
+    username: string,
+    customerIP: string,
+    order: OrderRequest,
+) {
+    let poNumber;
+    let purchaseId;
+
+    try {
+        await db.query("BEGIN");
+
+        const paymentId = await getOrAddPaymentId(
+            username,
+            order.payment.creditCard,
+        );
+
+        const billingInfoId = await getOrAddBillingInfoId(order.billTo);
+
+        const { rows } = await db.query<Purchase>(
+            `INSERT INTO purchases(
+                username,
+                amount,
+                payment_id,
+                po_number,
+                billing_information_id,
+                customer_ip
+            )
+            VALUES ($1, $2, $3, nextval('purchase_order_numbers'), $4, $5)
+            RETURNING id, po_number`,
+            [username, order.amount, paymentId, billingInfoId, customerIP],
+        );
+
+        if (rows && rows.length > 0) {
+            purchaseId = rows[0].id;
+            poNumber = rows[0].po_number;
+
+            addLineItems(purchaseId, order.lineItems);
+        }
+
+        await db.query("COMMIT");
+    } catch (e) {
+        await db
+            .query("ROLLBACK")
+            .catch((dbErr) =>
+                console.error("Could not rollback transaction.", dbErr),
+            );
+
+        console.error("Could not add purchase order.", e);
+    }
+
+    return { poNumber, purchaseId };
+}
+
+async function getOrAddPaymentId(
+    username: string,
+    creditCard: OrderRequest["payment"]["creditCard"],
+) {
+    const values = [
+        creditCard.cardNumber.slice(-4),
+        `${creditCard.expirationDate}-01`,
+    ];
+
+    const { rows: foundRows } = await db.query<Payment>(
+        `SELECT DISTINCT payments.id AS id FROM payments
+            JOIN purchases ON payment_id = payments.id
+            WHERE credit_card_number = $1
+            AND expiration_date = $2
+            AND username = $3`,
+        [...values, username],
+    );
+
+    if (foundRows && foundRows.length > 0) {
+        return foundRows[0].id;
+    }
+
+    const { rows } = await db.query<Payment>(
+        `INSERT INTO payments( credit_card_number, expiration_date )
+        VALUES ($1, $2)
+        RETURNING id`,
+        values,
+    );
+
+    return rows ? rows[0].id : null;
+}
+
+async function getOrAddBillingInfoId(billTo: OrderRequest["billTo"]) {
+    const values = [
+        billTo.firstName,
+        billTo.lastName,
+        billTo.address,
+        billTo.city,
+        billTo.state,
+        billTo.zip,
+        billTo.country,
+    ];
+
+    const { rows: foundRows } = await db.query<BillingInformation>(
+        `SELECT id FROM billing_information
+            WHERE first_name = $1
+            AND last_name = $2
+            AND address = $3
+            AND city = $4
+            AND state = $5
+            AND zip = $6
+            AND country = $7`,
+        values,
+    );
+
+    if (foundRows && foundRows.length > 0) {
+        return foundRows[0].id;
+    }
+
+    const billToCols = [
+        "first_name",
+        "last_name",
+        "address",
+        "city",
+        "state",
+        "zip",
+        "country",
+    ];
+
+    const billToValues = ["$1", "$2", "$3", "$4", "$5", "$6", "$7"];
+
+    if (billTo.company) {
+        values.push(billTo.company);
+        billToCols.push("company");
+        billToValues.push("$8");
+    }
+
+    const { rows } = await db.query<BillingInformation>(
+        `INSERT INTO billing_information( ${billToCols.join(",")} )
+        VALUES (${billToValues.join(",")})
+        RETURNING id`,
+        values,
+    );
+
+    return rows ? rows[0].id : null;
+}
+
+async function addLineItems(
+    purchaseId: string,
+    lineItems: OrderRequest["lineItems"],
+) {
+    if (!lineItems || lineItems?.length < 1) {
+        return;
+    }
+
+    const insertPromises = lineItems.map(
+        ({
+            lineItem: { id, itemId, name, description, quantity, unitPrice },
+        }) =>
+            db.query<LineItem>(
+                `INSERT INTO line_items (
+                    purchase_id,
+                    item_type,
+                    item_id,
+                    item_name,
+                    item_description,
+                    quantity,
+                    unit_price
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                [
+                    purchaseId,
+                    itemId,
+                    id,
+                    name,
+                    description ?? null,
+                    quantity,
+                    unitPrice,
+                ],
+            ),
+    );
+
+    await Promise.all(insertPromises);
+}
+
+export async function addTransactionResponse(
+    purchaseId: UUID,
+    response: CreateTransactionResponse,
+) {
+    let responseId: UUID | undefined;
+
+    try {
+        const {
+            transactionResponse: {
+                responseCode,
+                authCode,
+                avsResultCode,
+                cvvResultCode,
+                cavvResultCode,
+                transId,
+                refTransID,
+                testRequest,
+                accountNumber,
+                accountType,
+                transHashSha2,
+                SupplementalDataQualificationIndicator,
+                networkTransId,
+                errors,
+            },
+            messages,
+        } = response;
+
+        const { rows } = await db.query<TransactionResponse>(
+            `INSERT INTO transaction_responses (
+                purchase_id,
+                response_code,
+                auth_code,
+                avs_result_code,
+                cvv_result_code,
+                cavv_result_code,
+                transaction_id,
+                ref_transaction_id,
+                test_request,
+                account_number,
+                account_type,
+                transaction_hash_sha2,
+                supplemental_data_qualification_indicator,
+                network_transaction_id
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+            )
+            RETURNING id`,
+            [
+                purchaseId,
+                responseCode,
+                authCode,
+                avsResultCode ?? null,
+                cvvResultCode ?? null,
+                cavvResultCode ?? null,
+                transId ?? null,
+                refTransID ?? null,
+                testRequest ?? null,
+                accountNumber ?? null,
+                accountType ?? null,
+                transHashSha2 ?? null,
+                SupplementalDataQualificationIndicator ?? null,
+                networkTransId ?? null,
+            ],
+        );
+
+        if (rows && rows.length > 0) {
+            responseId = rows[0].id;
+
+            if (errors && errors?.length > 0) {
+                const insertPromises = errors.map(({ errorCode, errorText }) =>
+                    db.query<LineItem>(
+                        `INSERT INTO transaction_error_messages (
+                            transaction_response_id,
+                            error_code,
+                            error_text
+                        ) VALUES ($1, $2, $3)`,
+                        [responseId, errorCode, errorText],
+                    ),
+                );
+
+                await Promise.all(insertPromises);
+            }
+
+            if (messages && messages.message?.length > 0) {
+                const insertPromises = messages.message.map(({ code, text }) =>
+                    db.query<LineItem>(
+                        `INSERT INTO transaction_response_messages (
+                            transaction_response_id,
+                            code,
+                            description
+                        ) VALUES ($1, $2, $3)`,
+                        [responseId, code, text],
+                    ),
+                );
+
+                await Promise.all(insertPromises);
+            }
+        }
+    } catch (e) {
+        console.error("Error saving TransactionResponse to the database.", e);
+    }
+
+    return responseId;
+}
