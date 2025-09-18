@@ -83,6 +83,14 @@ type TransactionResponse = {
     network_transaction_id?: string | null;
 };
 
+export async function healthCheck() {
+    const { rows } = await db.query(
+        "SELECT max(version) as current_version FROM schema_migrations WHERE dirty = false",
+    );
+
+    return rows ? rows[0]?.current_version : null;
+}
+
 /**
  * Adds the `transaction` to the database as a purchase order,
  * returning the `po_number`.
