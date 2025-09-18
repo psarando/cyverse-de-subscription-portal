@@ -1,4 +1,4 @@
-import { TransactionRequest } from "./types";
+import { OrderRequest } from "./types";
 
 export class HttpError extends Error {
     status: number;
@@ -73,6 +73,6 @@ export const PLAN_TYPES_QUERY_KEY = "fetchPlanTypes";
 /**
  * Place a purchase order.
  */
-export function postOrder(transaction: TransactionRequest) {
-    return post("/api/order", transaction);
+export function postOrder(order: OrderRequest) {
+    return post("/api/order", order);
 }

@@ -1,4 +1,4 @@
-import { CreateTransactionResponse, TransactionRequest } from "@/app/api/types";
+import { CreateTransactionResponse, OrderRequest } from "@/app/api/types";
 import { UUID } from "crypto";
 import getConfig from "next/config";
 import { Client } from "pg";
@@ -90,7 +90,7 @@ type TransactionResponse = {
 export async function addPurchaseRecord(
     username: string,
     customerIP: string,
-    transaction: TransactionRequest,
+    order: OrderRequest,
 ) {
     let poNumber;
     let purchaseId;
@@ -100,10 +100,10 @@ export async function addPurchaseRecord(
 
         const paymentId = await getOrAddPaymentId(
             username,
-            transaction.payment.creditCard,
+            order.payment.creditCard,
         );
 
-        const billingInfoId = await getOrAddBillingInfoId(transaction.billTo);
+        const billingInfoId = await getOrAddBillingInfoId(order.billTo);
 
         const { rows } = await db.query<Purchase>(
             `INSERT INTO purchases(
@@ -116,20 +116,14 @@ export async function addPurchaseRecord(
             )
             VALUES ($1, $2, $3, nextval('purchase_order_numbers'), $4, $5)
             RETURNING id, po_number`,
-            [
-                username,
-                transaction.amount,
-                paymentId,
-                billingInfoId,
-                customerIP,
-            ],
+            [username, order.amount, paymentId, billingInfoId, customerIP],
         );
 
         if (rows && rows.length > 0) {
             purchaseId = rows[0].id;
             poNumber = rows[0].po_number;
 
-            addLineItems(purchaseId, transaction.lineItems);
+            addLineItems(purchaseId, order.lineItems);
         }
 
         await db.query("COMMIT");
@@ -148,7 +142,7 @@ export async function addPurchaseRecord(
 
 async function getOrAddPaymentId(
     username: string,
-    creditCard: TransactionRequest["payment"]["creditCard"],
+    creditCard: OrderRequest["payment"]["creditCard"],
 ) {
     const values = [
         creditCard.cardNumber.slice(-4),
@@ -178,7 +172,7 @@ async function getOrAddPaymentId(
     return rows ? rows[0].id : null;
 }
 
-async function getOrAddBillingInfoId(billTo: TransactionRequest["billTo"]) {
+async function getOrAddBillingInfoId(billTo: OrderRequest["billTo"]) {
     const values = [
         billTo.firstName,
         billTo.lastName,
@@ -235,7 +229,7 @@ async function getOrAddBillingInfoId(billTo: TransactionRequest["billTo"]) {
 
 async function addLineItems(
     purchaseId: string,
-    lineItems: TransactionRequest["lineItems"],
+    lineItems: OrderRequest["lineItems"],
 ) {
     if (!lineItems || lineItems?.length < 1) {
         return;

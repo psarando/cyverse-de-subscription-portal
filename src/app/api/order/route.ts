@@ -47,11 +47,11 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    let transactionRequest: OrderRequest;
+    let orderRequest: OrderRequest;
     const requestJson = (await request.json()) || {};
 
     try {
-        transactionRequest = await OrderRequestSchema.validate(requestJson);
+        orderRequest = await OrderRequestSchema.validate(requestJson);
     } catch (e) {
         const validationError = e as ValidationError;
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         },
         lineItems,
         billTo: { firstName, lastName, company, address, city, state, zip },
-    } = transactionRequest;
+    } = orderRequest;
 
     const createTransactionRequest = {
         merchantAuthentication: {
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
     const { poNumber, purchaseId } = await addPurchaseRecord(
         username,
         customerIP,
-        transactionRequest,
+        orderRequest,
     );
 
     if (!poNumber) {

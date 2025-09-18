@@ -2,7 +2,6 @@ import {
     OrderRequest,
     SubscriptionSubmission,
     SubscriptionSummaryDetails,
-    TransactionRequest,
 } from "@/app/api/types";
 import { CartInfo } from "@/contexts/cart";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
@@ -85,10 +84,10 @@ export function formatCheckoutTransactionRequest(
     username: string,
     cartInfo: CartInfo,
     values: CheckoutFormValues,
-): TransactionRequest {
+): OrderRequest {
     const { subscription } = cartInfo;
 
-    const request: TransactionRequest = {
+    const request: OrderRequest = {
         ...values,
         amount: cartInfo.totalPrice || 0,
         currencyCode: "USD",

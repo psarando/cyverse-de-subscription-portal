@@ -65,7 +65,7 @@ export type SubscriptionSubmission = {
 };
 
 export type TransactionRequest = {
-    transactionType?: string;
+    transactionType: string;
     amount: number;
     currencyCode: string;
     payment: {
