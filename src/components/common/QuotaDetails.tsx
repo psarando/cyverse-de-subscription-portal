@@ -3,6 +3,25 @@ import { formatFileSize } from "@/utils/formatUtils";
 
 import { Typography } from "@mui/material";
 
+export const FormattedQuota = ({
+    quota,
+    resourceUnit,
+}: {
+    quota: number;
+    resourceUnit: string;
+}) => {
+    // Only format data storage resources to human readable format
+    const resourceInBytes = resourceUnit.toLowerCase() === "bytes";
+
+    return (
+        <Typography>
+            {resourceInBytes
+                ? formatFileSize(quota)
+                : `${quota} ${resourceUnit} `}
+        </Typography>
+    );
+};
+
 const QuotaDetails = ({
     subscription,
 }: {
@@ -12,20 +31,13 @@ const QuotaDetails = ({
         <>
             {subscription &&
                 subscription.quotas.length > 0 &&
-                subscription.quotas.map((item) => {
-                    // Only format data storage resources to human readable format
-                    const resourceInBytes =
-                        item.resource_type.description.toLowerCase() ===
-                        "bytes";
-
-                    return (
-                        <Typography key={item.id}>
-                            {resourceInBytes
-                                ? formatFileSize(item.quota)
-                                : `${item.quota} ${item.resource_type.description} `}
-                        </Typography>
-                    );
-                })}
+                subscription.quotas.map((item) => (
+                    <FormattedQuota
+                        key={item.id}
+                        quota={item.quota}
+                        resourceUnit={item.resource_type.description}
+                    />
+                ))}
         </>
     );
 };

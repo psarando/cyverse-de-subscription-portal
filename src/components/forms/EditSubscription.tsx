@@ -9,13 +9,11 @@ import { PlanType, SubscriptionSummaryDetails } from "@/app/api/types";
 
 import DEDialog from "@/components/common/DEDialog";
 import GridLabelValue from "@/components/common/GridLabelValue";
-import QuotaDetails from "@/components/common/QuotaDetails";
+import QuotaDetails, { FormattedQuota } from "@/components/common/QuotaDetails";
 import UsageDetails from "@/components/common/UsageDetails";
 import { announce } from "@/components/common/announcer/CyVerseAnnouncer";
 import { SUCCESS } from "@/components/common/announcer/AnnouncerConstants";
 import FormTextField from "@/components/forms/FormTextField";
-
-import { formatFileSize } from "@/utils/formatUtils";
 
 import { mapSubscriptionPropsToValues, formatSubscription } from "./formatters";
 
@@ -207,19 +205,13 @@ const PlanQuotaDetails = ({ planType }: { planType?: PlanType }) => {
         <>
             {planType &&
                 planType?.plan_quota_defaults.length > 0 &&
-                planType.plan_quota_defaults.map((item) => {
-                    // Only format data storage resources to human readable format
-                    const resourceInBytes =
-                        item.resource_type.unit.toLowerCase() === "bytes";
-
-                    return (
-                        <Typography key={item.id}>
-                            {resourceInBytes
-                                ? formatFileSize(item.quota_value)
-                                : `${item.quota_value} ${item.resource_type.unit} `}
-                        </Typography>
-                    );
-                })}
+                planType.plan_quota_defaults.map((item) => (
+                    <FormattedQuota
+                        key={item.id}
+                        quota={item.quota_value}
+                        resourceUnit={item.resource_type.unit}
+                    />
+                ))}
         </>
     );
 };

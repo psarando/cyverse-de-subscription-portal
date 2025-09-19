@@ -4,8 +4,9 @@ import constants from "@/constants";
 import { useCartInfo } from "@/contexts/cart";
 import { HttpError } from "@/app/api/serviceFacade";
 import GridLabelValue from "@/components/common/GridLabelValue";
+import { FormattedQuota } from "@/components/common/QuotaDetails";
 import ErrorTypographyWithDialog from "@/components/common/error/ErrorTypographyWithDialog";
-import { dateConstants, formatDate, formatFileSize } from "@/utils/formatUtils";
+import { dateConstants, formatDate } from "@/utils/formatUtils";
 
 import { Grid, Link, Stack, Typography } from "@mui/material";
 
@@ -101,20 +102,13 @@ function OrderConfirmation() {
                         <GridLabelValue label="Quotas">
                             {subscription &&
                                 subscription.quotas.length > 0 &&
-                                subscription.quotas.map((item) => {
-                                    // Only format data storage resources to human readable format
-                                    const resourceInBytes =
-                                        item.resource_type.unit.toLowerCase() ===
-                                        "bytes";
-
-                                    return (
-                                        <Typography key={item.id}>
-                                            {resourceInBytes
-                                                ? formatFileSize(item.quota)
-                                                : `${item.quota} ${item.resource_type.unit} `}
-                                        </Typography>
-                                    );
-                                })}
+                                subscription.quotas.map((item) => (
+                                    <FormattedQuota
+                                        key={item.id}
+                                        quota={item.quota}
+                                        resourceUnit={item.resource_type.unit}
+                                    />
+                                ))}
                         </GridLabelValue>
                     </Grid>
                 </>
