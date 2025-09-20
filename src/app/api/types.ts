@@ -137,15 +137,21 @@ export type OrderRequest = Pick<
 
 export type OrderUpdateResult = {
     success: boolean;
+    message?: string | object;
     poNumber?: number;
+    orderTimestamp?: string;
+    transactionResponse?: Pick<
+        CreateTransactionResponse["transactionResponse"],
+        "transId" | "errors"
+    >;
     error?: {
-        method: string;
-        url: string;
-        status: number;
-        message?: string;
+        method?: string;
+        url?: string;
+        status?: number;
+        message: string;
         response?: object;
     };
-    subscription: {
+    subscription?: {
         status: string;
         result: Pick<
             SubscriptionSummaryDetails,

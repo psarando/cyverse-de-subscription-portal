@@ -4,6 +4,7 @@ import {
     CreateTransactionResponse,
     OrderError,
     OrderRequest,
+    OrderUpdateResult,
     PlanType,
     SubscriptionSummaryDetails,
     TransactionRequest,
@@ -12,6 +13,7 @@ import {
     serviceAccountUpdateSubscription,
     terrainErrorResponse,
 } from "@/app/api/terrain";
+import { dateConstants, formatDate } from "@/utils/formatUtils";
 import { OrderRequestSchema } from "@/validation";
 
 import { addDays, toDate } from "date-fns";
@@ -248,7 +250,12 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    let responseJson: object = { poNumber, ...authorizeResponseJson };
+    let responseJson: OrderUpdateResult = {
+        success: false,
+        poNumber,
+        orderTimestamp: formatDate(new Date(), dateConstants.ISO_8601),
+        ...authorizeResponseJson,
+    };
 
     if (authorizeResponseJson) {
         addTransactionResponse(purchaseId as UUID, authorizeResponseJson);
