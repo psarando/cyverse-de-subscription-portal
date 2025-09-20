@@ -3,12 +3,13 @@
 import constants from "@/constants";
 import { useCartInfo } from "@/contexts/cart";
 import { HttpError } from "@/app/api/serviceFacade";
+import ExternalLink from "@/components/common/ExternalLink";
 import GridLabelValue from "@/components/common/GridLabelValue";
 import { FormattedQuota } from "@/components/common/QuotaDetails";
 import ErrorTypographyWithDialog from "@/components/common/error/ErrorTypographyWithDialog";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
 
-import { Grid, Link, Stack, Typography } from "@mui/material";
+import { Grid, Stack, Typography } from "@mui/material";
 
 function OrderConfirmation() {
     const [cartInfo] = useCartInfo();
@@ -34,14 +35,12 @@ function OrderConfirmation() {
                             subscription could not be updated. Please allow a
                             few business days for your subscription to be
                             updated, or{" "}
-                            <Link
+                            <ExternalLink
                                 href={constants.CYVERSE_SUPPORT_URL}
-                                target="_blank"
                                 rel="noopener"
-                                underline="hover"
                             >
                                 contact support
-                            </Link>
+                            </ExternalLink>
                             . Your order number is{" "}
                             <strong>&nbsp;#{order.poNumber}</strong>.
                         </>
@@ -71,14 +70,12 @@ function OrderConfirmation() {
                     </Typography>
                     <Typography>
                         Your ordered subscription tier is{" "}
-                        <Link
+                        <ExternalLink
                             href={constants.SUBSCRIBE_URL}
-                            target="_blank"
                             rel="noopener"
-                            underline="hover"
                         >
                             {planName}
-                        </Link>
+                        </ExternalLink>
                     </Typography>
                     <Grid container>
                         <GridLabelValue label="Start Date">

@@ -8,6 +8,7 @@ import {
     RESOURCE_USAGE_QUERY_KEY,
 } from "@/app/api/serviceFacade";
 import { SubscriptionSummaryDetails } from "@/app/api/types";
+import ExternalLink from "@/components/common/ExternalLink";
 import GridLabelValue from "@/components/common/GridLabelValue";
 import GridLoading from "@/components/common/GridLoading";
 import QuotaDetails from "@/components/common/QuotaDetails";
@@ -32,7 +33,6 @@ import {
     CardContent,
     CardHeader,
     Grid,
-    Link,
     Skeleton,
     Table,
     TableBody,
@@ -106,14 +106,12 @@ const SubscriptionSummary = () => {
                         ) : (
                             <Typography>
                                 Your current subscription tier is{" "}
-                                <Link
+                                <ExternalLink
                                     href={constants.SUBSCRIBE_URL}
-                                    target="_blank"
                                     rel="noopener"
-                                    underline="hover"
                                 >
                                     {currentPlanName}
-                                </Link>
+                                </ExternalLink>
                             </Typography>
                         )
                     }
