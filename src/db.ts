@@ -84,6 +84,22 @@ type TransactionResponse = {
     network_transaction_id?: string | null;
 };
 
+// Represents a row in the "transaction_error_messages" table.
+type TransactionErrorMessage = {
+    id: UUID;
+    transaction_response_id: UUID;
+    error_code: string;
+    error_text: string;
+};
+
+// Represents a row in the "transaction_response_messages" table.
+type TransactionResponseMessage = {
+    id: UUID;
+    transaction_response_id: UUID;
+    code: string;
+    description: string;
+};
+
 export async function healthCheck() {
     const { rows } = await db.query(
         "SELECT max(version) as current_version FROM schema_migrations WHERE dirty = false",
@@ -345,7 +361,7 @@ export async function addTransactionResponse(
 
             if (errors && errors?.length > 0) {
                 const insertPromises = errors.map(({ errorCode, errorText }) =>
-                    db.query<LineItem>(
+                    db.query<TransactionErrorMessage>(
                         `INSERT INTO transaction_error_messages (
                             transaction_response_id,
                             error_code,
@@ -360,7 +376,7 @@ export async function addTransactionResponse(
 
             if (messages && messages.message?.length > 0) {
                 const insertPromises = messages.message.map(({ code, text }) =>
-                    db.query<LineItem>(
+                    db.query<TransactionResponseMessage>(
                         `INSERT INTO transaction_response_messages (
                             transaction_response_id,
                             code,
