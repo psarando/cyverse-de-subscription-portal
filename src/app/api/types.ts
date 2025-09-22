@@ -139,7 +139,7 @@ export type OrderUpdateResult = {
     success: boolean;
     message?: string | object;
     poNumber?: number;
-    orderTimestamp?: string;
+    orderDate?: string;
     transactionResponse?: Pick<
         CreateTransactionResponse["transactionResponse"],
         "transId" | "errors"

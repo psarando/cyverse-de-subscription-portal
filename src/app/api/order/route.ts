@@ -13,7 +13,6 @@ import {
     serviceAccountUpdateSubscription,
     terrainErrorResponse,
 } from "@/app/api/terrain";
-import { dateConstants, formatDate } from "@/utils/formatUtils";
 import { OrderRequestSchema } from "@/validation";
 
 import { addDays, toDate } from "date-fns";
@@ -214,7 +213,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the purchase order in the database.
-    const { poNumber, purchaseId } = await addPurchaseRecord(
+    const { poNumber, purchaseId, orderDate } = await addPurchaseRecord(
         username,
         customerIP,
         orderRequest,
@@ -253,7 +252,7 @@ export async function POST(request: NextRequest) {
     let responseJson: OrderUpdateResult = {
         success: false,
         poNumber,
-        orderTimestamp: formatDate(new Date(), dateConstants.ISO_8601),
+        orderDate,
         ...authorizeResponseJson,
     };
 

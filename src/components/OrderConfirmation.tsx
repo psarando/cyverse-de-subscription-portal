@@ -19,7 +19,7 @@ function OrderConfirmation() {
     const planName = subscription?.plan?.name;
     const startDate = subscription?.effective_start_date;
     const endDate = subscription?.effective_end_date;
-    const orderTimestamp = order?.orderTimestamp;
+    const orderDate = order?.orderDate;
     const transactionId = order?.transactionResponse?.transId;
 
     return (
@@ -118,9 +118,14 @@ function OrderConfirmation() {
                         </>
                     )}
                     <Grid container>
-                        {orderTimestamp && (
+                        {orderDate && (
                             <GridLabelValue label="Order Date">
-                                <Typography>{orderTimestamp}</Typography>
+                                <Typography>
+                                    {formatDate(
+                                        new Date(orderDate),
+                                        dateConstants.ISO_8601,
+                                    )}
+                                </Typography>
                             </GridLabelValue>
                         )}
                         {transactionId && (
