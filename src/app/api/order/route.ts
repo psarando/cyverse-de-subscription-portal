@@ -4,6 +4,7 @@ import {
     CreateTransactionResponse,
     OrderError,
     OrderRequest,
+    OrderUpdateResult,
     PlanType,
     SubscriptionSummaryDetails,
     TransactionRequest,
@@ -212,7 +213,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the purchase order in the database.
-    const { poNumber, purchaseId } = await addPurchaseRecord(
+    const { poNumber, purchaseId, orderDate } = await addPurchaseRecord(
         username,
         customerIP,
         orderRequest,
@@ -248,7 +249,12 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    let responseJson: object = { poNumber, ...authorizeResponseJson };
+    let responseJson: OrderUpdateResult = {
+        success: false,
+        poNumber,
+        orderDate,
+        ...authorizeResponseJson,
+    };
 
     if (authorizeResponseJson) {
         addTransactionResponse(purchaseId as UUID, authorizeResponseJson);

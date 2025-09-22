@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS purchases (
     po_number bigint NOT NULL,
     billing_information_id uuid NOT NULL REFERENCES billing_information (id) ON DELETE CASCADE,
     customer_ip text NOT NULL,
+    order_date TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (id)
 );
 CREATE INDEX IF NOT EXISTS purchases_payment_id

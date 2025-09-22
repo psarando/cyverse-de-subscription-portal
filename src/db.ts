@@ -30,6 +30,7 @@ type Purchase = {
     payment_id: UUID;
     po_number: number;
     billing_information_id: UUID;
+    order_date: string; // timestampz, typically as ISO string (yyyy-MM-dd'T'HH:mm:ssXXX)
 };
 
 // Represents a row in the "payments" table.
@@ -102,6 +103,7 @@ export async function addPurchaseRecord(
 ) {
     let poNumber;
     let purchaseId;
+    let orderDate;
 
     try {
         await db.query("BEGIN");
@@ -123,13 +125,14 @@ export async function addPurchaseRecord(
                 customer_ip
             )
             VALUES ($1, $2, $3, nextval('purchase_order_numbers'), $4, $5)
-            RETURNING id, po_number`,
+            RETURNING id, po_number, order_date`,
             [username, order.amount, paymentId, billingInfoId, customerIP],
         );
 
         if (rows && rows.length > 0) {
             purchaseId = rows[0].id;
             poNumber = rows[0].po_number;
+            orderDate = rows[0].order_date;
 
             addLineItems(purchaseId, order.lineItems);
         }
@@ -145,7 +148,7 @@ export async function addPurchaseRecord(
         console.error("Could not add purchase order.", e);
     }
 
-    return { poNumber, purchaseId };
+    return { poNumber, purchaseId, orderDate };
 }
 
 async function getOrAddPaymentId(

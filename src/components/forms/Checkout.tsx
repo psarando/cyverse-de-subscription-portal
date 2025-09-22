@@ -8,6 +8,7 @@
  */
 import React from "react";
 
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { FieldProps, Formik, FormikHelpers } from "formik";
@@ -32,8 +33,14 @@ import {
     HttpError,
     PLAN_TYPES_QUERY_KEY,
     postOrder,
+    RESOURCE_USAGE_QUERY_KEY,
 } from "@/app/api/serviceFacade";
-import { OrderError, PlanType, SubscriptionSubmission } from "@/app/api/types";
+import {
+    OrderError,
+    OrderUpdateResult,
+    PlanType,
+    SubscriptionSubmission,
+} from "@/app/api/types";
 import { CartInfo, useCartInfo } from "@/contexts/cart";
 import GridLoading from "@/components/common/GridLoading";
 import {
@@ -87,7 +94,9 @@ function getStepContent(
 
 function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
     const { data: session } = useSession();
-    const [cartInfo] = useCartInfo();
+    const [cartInfo, setCartInfo] = useCartInfo();
+
+    const router = useRouter();
 
     const queryClient = useQueryClient();
     const { mutate: submitOrder } = useMutation({ mutationFn: postOrder });
@@ -147,13 +156,22 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                 CheckoutFormSchema.cast(values),
             ),
             {
-                onSuccess: (response) => {
-                    console.log("Order response:", response);
+                onSuccess: (order: OrderUpdateResult) => {
+                    setCartInfo({ order });
                     setSubmitting(false);
-                    announce({
-                        text: "Order placed successfully!",
-                        variant: SUCCESS,
+
+                    queryClient.invalidateQueries({
+                        queryKey: [RESOURCE_USAGE_QUERY_KEY],
                     });
+
+                    if (order.success) {
+                        announce({
+                            text: "Order placed successfully!",
+                            variant: SUCCESS,
+                        });
+                    }
+
+                    router.replace("/order");
                 },
                 onError(error) {
                     setSubmitting(false);

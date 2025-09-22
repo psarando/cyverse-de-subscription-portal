@@ -5,13 +5,13 @@ import React from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 
 import constants from "@/constants";
+import ExternalLink from "@/components/common/ExternalLink";
 
 import {
     Avatar,
     Button,
     Divider,
     IconButton,
-    Link,
     Paper,
     Popover,
     Stack,
@@ -136,23 +136,21 @@ const AccountAvatar = () => {
                             justifyContent="center"
                             alignItems="center"
                         >
-                            <Link
+                            <ExternalLink
                                 href={constants.CYVERSE_POLICY_URL}
-                                target="_blank"
-                                underline="hover"
+                                rel="noopener"
                             >
                                 <Typography variant="caption">
                                     Policies
                                 </Typography>
-                            </Link>
+                            </ExternalLink>
                             <Typography variant="caption">•</Typography>
-                            <Link
+                            <ExternalLink
                                 href={constants.CYVERSE_ABOUT_URL}
-                                target="_blank"
-                                underline="hover"
+                                rel="noopener"
                             >
                                 <Typography variant="caption">About</Typography>
-                            </Link>
+                            </ExternalLink>
                         </Stack>
                     </Stack>
                 </Paper>

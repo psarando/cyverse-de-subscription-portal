@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { AppBar, Box, Link, Stack, Toolbar, Tooltip } from "@mui/material";
+import { AppBar, Box, Stack, Toolbar, Tooltip } from "@mui/material";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { Roboto } from "next/font/google";
 import { ThemeProvider } from "@mui/material/styles";
@@ -12,6 +12,7 @@ import constants from "@/constants";
 import AccountAvatar from "@/components/AccountAvatar";
 import Cart from "@/components/Cart";
 import SignInCard from "@/components/SignInCard";
+import ExternalLink from "@/components/common/ExternalLink";
 
 import App from "./App";
 
@@ -44,13 +45,11 @@ export default async function RootLayout({
                                 <AppBar position="static">
                                     <Toolbar>
                                         <Tooltip title="CyVerse Home Page">
-                                            <Link
+                                            <ExternalLink
                                                 href={
                                                     constants.CYVERSE_HOME_URL
                                                 }
-                                                target="_blank"
                                                 rel="noopener"
-                                                underline="hover"
                                             >
                                                 <Image
                                                     src="/cyverse-logo-white.svg"
@@ -59,7 +58,7 @@ export default async function RootLayout({
                                                     height={40}
                                                     priority
                                                 />
-                                            </Link>
+                                            </ExternalLink>
                                         </Tooltip>
                                         <Box sx={{ flexGrow: 1 }} />
                                         <Cart />
