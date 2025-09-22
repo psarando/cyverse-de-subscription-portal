@@ -1,7 +1,7 @@
 import { CreateTransactionResponse, OrderRequest } from "@/app/api/types";
 import { UUID } from "crypto";
 import getConfig from "next/config";
-import { Client } from "pg";
+import { Client, QueryResult } from "pg";
 
 const { serverRuntimeConfig } = getConfig();
 
@@ -82,6 +82,29 @@ type TransactionResponse = {
     transaction_hash_sha2?: string | null;
     supplemental_data_qualification_indicator?: number | null;
     network_transaction_id?: string | null;
+};
+
+// Represents a row in the "transaction_error_messages" table.
+type TransactionErrorMessage = {
+    id: UUID;
+    transaction_response_id: UUID;
+    error_code: string;
+    error_text: string;
+};
+
+// Represents a row in the "transaction_response_messages" table.
+type TransactionResponseMessage = {
+    id: UUID;
+    transaction_response_id: UUID;
+    code: string;
+    description: string;
+};
+
+// Represents a row in the "purchased_subscriptions" table.
+type PurchasedSubscription = {
+    id: UUID;
+    purchase_id: UUID;
+    subscription_id: UUID;
 };
 
 export async function healthCheck() {
@@ -246,7 +269,7 @@ async function addLineItems(
         return;
     }
 
-    const insertPromises = lineItems.map(
+    const lineItemPromises = lineItems.map(
         ({
             lineItem: { id, itemId, name, description, quantity, unitPrice },
         }) =>
@@ -272,7 +295,25 @@ async function addLineItems(
             ),
     );
 
-    await Promise.all(insertPromises);
+    const purchasedSubscriptionPromises: Promise<
+        QueryResult<PurchasedSubscription>
+    >[] = [];
+
+    lineItems.forEach(({ lineItem: { id, itemId } }) => {
+        if (itemId === "subscription") {
+            purchasedSubscriptionPromises.push(
+                db.query<PurchasedSubscription>(
+                    `INSERT INTO purchased_subscriptions (
+                        purchase_id,
+                        subscription_id
+                    ) VALUES ($1, $2)`,
+                    [purchaseId, id],
+                ),
+            );
+        }
+    });
+
+    await Promise.all([...lineItemPromises, ...purchasedSubscriptionPromises]);
 }
 
 export async function addTransactionResponse(
@@ -345,7 +386,7 @@ export async function addTransactionResponse(
 
             if (errors && errors?.length > 0) {
                 const insertPromises = errors.map(({ errorCode, errorText }) =>
-                    db.query<LineItem>(
+                    db.query<TransactionErrorMessage>(
                         `INSERT INTO transaction_error_messages (
                             transaction_response_id,
                             error_code,
@@ -360,7 +401,7 @@ export async function addTransactionResponse(
 
             if (messages && messages.message?.length > 0) {
                 const insertPromises = messages.message.map(({ code, text }) =>
-                    db.query<LineItem>(
+                    db.query<TransactionResponseMessage>(
                         `INSERT INTO transaction_response_messages (
                             transaction_response_id,
                             code,
