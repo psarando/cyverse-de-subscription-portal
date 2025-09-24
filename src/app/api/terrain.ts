@@ -75,7 +75,7 @@ export async function callTerrain(
     return NextResponse.json(data);
 }
 
-async function getServiceAccountToken() {
+export async function getServiceAccountToken() {
     if (
         !serviceAccountToken ||
         !serviceAccountToken.accessTokenExp ||
