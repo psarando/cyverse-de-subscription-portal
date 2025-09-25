@@ -1,3 +1,6 @@
+/**
+ * @author psarando
+ */
 import React from "react";
 
 import constants from "@/constants";

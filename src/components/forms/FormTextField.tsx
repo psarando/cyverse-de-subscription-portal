@@ -4,7 +4,7 @@
 import getFormError from "./getFormError";
 
 import { FieldProps } from "formik";
-import TextField from "@mui/material/TextField";
+import TextField, { TextFieldProps } from "@mui/material/TextField";
 
 const FormTextField = ({
     field,
@@ -13,7 +13,7 @@ const FormTextField = ({
     required,
     form: { touched, errors },
     ...custom
-}: FieldProps & { label: string; helperText: string; required: boolean }) => {
+}: FieldProps & TextFieldProps) => {
     const errorMsg = getFormError(field.name, touched, errors);
     return (
         <TextField

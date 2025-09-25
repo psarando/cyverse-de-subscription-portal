@@ -1,4 +1,6 @@
 import {
+    AddonsList,
+    AddonsType,
     OrderRequest,
     SubscriptionSubmission,
     SubscriptionSummaryDetails,
@@ -50,6 +52,16 @@ export function formatSubscription(
     }
 
     return submission;
+}
+
+export type AddonsFormValues = {
+    addons?: Array<AddonsType & { amount: number }>;
+};
+
+export function mapAddonsPropsToValues(
+    addons?: AddonsList["addons"],
+): AddonsFormValues {
+    return { addons: addons?.map((addon) => ({ amount: 0, ...addon })) };
 }
 
 export type CheckoutFormValues = Pick<
