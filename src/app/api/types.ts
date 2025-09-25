@@ -54,6 +54,23 @@ export type PlanType = {
     }>;
 };
 
+export type AddonsType = {
+    uuid: UUID;
+    name: string;
+    description: string;
+    resource_type: {
+        name: string;
+        unit: string;
+    };
+    addon_rates: Array<{
+        rate: number;
+    }>;
+};
+
+export type AddonsList = {
+    addons: Array<AddonsType>;
+};
+
 export type SubscriptionSubmission = {
     username: string;
     plan_name: string;
