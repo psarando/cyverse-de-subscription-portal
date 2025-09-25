@@ -6,9 +6,11 @@
 import React from "react";
 
 import { OrderUpdateResult, SubscriptionSubmission } from "@/app/api/types";
+import { AddonsFormValues } from "@/components/forms/formatters";
 
 export type CartInfo = {
     subscription?: SubscriptionSubmission;
+    addons?: AddonsFormValues["addons"];
     totalPrice?: number;
     order?: OrderUpdateResult;
 };

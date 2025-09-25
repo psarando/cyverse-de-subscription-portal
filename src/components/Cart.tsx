@@ -17,7 +17,8 @@ const Cart = () => {
     const [cartInfo] = useCartInfo();
     const router = useRouter();
 
-    const badgeContent = cartInfo.subscription ? 1 : 0;
+    let badgeContent = cartInfo.addons?.length || 0;
+    badgeContent += cartInfo.subscription ? 1 : 0;
 
     return (
         <Tooltip title="Checkout">
