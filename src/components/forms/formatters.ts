@@ -60,8 +60,16 @@ export type AddonsFormValues = {
 
 export function mapAddonsPropsToValues(
     addons?: AddonsList["addons"],
+    cartInfo?: CartInfo,
 ): AddonsFormValues {
-    return { addons: addons?.map((addon) => ({ amount: 0, ...addon })) };
+    return {
+        addons: addons?.map((addon) => ({
+            amount:
+                cartInfo?.addons?.find((a) => a.uuid === addon.uuid)?.amount ||
+                0,
+            ...addon,
+        })),
+    };
 }
 
 export type CheckoutFormValues = Pick<

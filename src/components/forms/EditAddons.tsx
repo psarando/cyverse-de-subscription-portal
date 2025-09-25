@@ -13,6 +13,9 @@ import {
     SubscriptionSummaryDetails,
 } from "@/app/api/types";
 import DEDialog from "@/components/common/DEDialog";
+import { announce } from "@/components/common/announcer/CyVerseAnnouncer";
+import { SUCCESS } from "@/components/common/announcer/AnnouncerConstants";
+import { useCartInfo } from "@/contexts/cart";
 import { formatCurrency } from "@/utils/formatUtils";
 
 import { differenceInCalendarDays } from "date-fns";
@@ -31,6 +34,8 @@ function EditAddons({
     onClose: React.MouseEventHandler;
     subscription: SubscriptionSummaryDetails | undefined;
 }) {
+    const [cartInfo, setCartInfo] = useCartInfo();
+
     const { data: addonsQueryData, isFetching: loadingAddons } =
         useQuery<AddonsList>({
             queryKey: [ADDONS_QUERY_KEY],
@@ -58,10 +63,26 @@ function EditAddons({
     return (
         <Formik
             enableReinitialize={true}
-            initialValues={mapAddonsPropsToValues(addonsQueryData?.addons)}
+            initialValues={mapAddonsPropsToValues(
+                addonsQueryData?.addons,
+                cartInfo,
+            )}
             validationSchema={validationSchema}
             onSubmit={(values) => {
-                console.log(values);
+                const addons = values.addons?.filter(
+                    (addon) => addon.amount > 0,
+                );
+
+                if (addons) {
+                    setCartInfo({ ...cartInfo, addons });
+                    onClose({} as React.MouseEvent);
+                    announce({
+                        text: addons.length
+                            ? `Added ${addons.length} Add-on(s) to cart.`
+                            : "Removed Add-ons from cart.",
+                        variant: SUCCESS,
+                    });
+                }
             }}
         >
             {({ handleSubmit, values }) => {
