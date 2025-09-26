@@ -30,6 +30,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
     getPlanTypes,
+    getResourceUsageSummary,
     HttpError,
     PLAN_TYPES_QUERY_KEY,
     postOrder,
@@ -39,6 +40,7 @@ import {
     OrderError,
     OrderUpdateResult,
     PlanType,
+    ResourceUsageSummary,
     SubscriptionSubmission,
 } from "@/app/api/types";
 import { CartInfo, useCartInfo } from "@/contexts/cart";
@@ -48,9 +50,11 @@ import {
     SUCCESS,
 } from "@/components/common/announcer/AnnouncerConstants";
 import { announce } from "@/components/common/announcer/CyVerseAnnouncer";
+import ErrorHandler from "@/components/common/error/ErrorHandler";
 import withErrorAnnouncer, {
     WithErrorAnnouncerProps,
 } from "@/components/common/error/withErrorAnnouncer";
+import { addonProratedRate } from "@/utils/rates";
 import { formatCurrency } from "@/utils/formatUtils";
 import { CheckoutFormSchema } from "@/validation";
 
@@ -111,30 +115,60 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
         setActiveStep(activeStep - 1);
     };
 
-    const { data: planTypesQueryData, isFetching: loadingPlanTypes } =
-        useQuery<{ result: PlanType[] }>({
-            queryKey: [PLAN_TYPES_QUERY_KEY],
-            queryFn: getPlanTypes,
-            staleTime: Infinity,
-        });
+    const {
+        isFetching: loadingResourceUsage,
+        data: resourceUsageSummary,
+        error: resourceUsageError,
+    } = useQuery<ResourceUsageSummary>({
+        queryKey: [RESOURCE_USAGE_QUERY_KEY],
+        queryFn: getResourceUsageSummary,
+    });
+
+    const currentSubscription = resourceUsageSummary?.subscription;
+    const subscriptionEndDate = currentSubscription?.effective_end_date;
+
+    const {
+        data: planTypesQueryData,
+        isFetching: loadingPlanTypes,
+        error: planTypesQueryError,
+    } = useQuery<{ result: PlanType[] }>({
+        queryKey: [PLAN_TYPES_QUERY_KEY],
+        queryFn: getPlanTypes,
+        staleTime: Infinity,
+    });
 
     let planTypes: PlanType[] = [];
     if (planTypesQueryData?.result) {
         planTypes = [...planTypesQueryData.result];
     }
 
-    const subscription = cartInfo.subscription;
+    const cartSubscription = cartInfo.subscription;
     const planRate = planTypes.find(
-        (plan) => plan.name === subscription?.plan_name,
+        (plan) => plan.name === cartSubscription?.plan_name,
     )?.plan_rates[0].rate;
 
+    const addons = cartInfo.addons;
+
     const checkoutCart: CartInfo = {};
-    if (subscription) {
-        checkoutCart.totalPrice = (planRate || 0) * subscription.periods;
+    checkoutCart.totalPrice = 0;
+
+    if (cartSubscription) {
+        checkoutCart.totalPrice += (planRate || 0) * cartSubscription.periods;
         checkoutCart.subscription = {
-            ...(subscription as SubscriptionSubmission),
+            ...(cartSubscription as SubscriptionSubmission),
             plan_rate: planRate,
         };
+    }
+
+    if (addons && addons.length > 0) {
+        let addonsTotal = 0;
+        addons.forEach((addon) => {
+            addonsTotal +=
+                addonProratedRate(subscriptionEndDate, addon) * addon.amount;
+        });
+
+        checkoutCart.totalPrice += addonsTotal;
+        checkoutCart.addons = addons;
     }
 
     const onSubmit = (
@@ -143,7 +177,12 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
     ) => {
         setOrderError(null);
 
-        if (!cartInfo.subscription) {
+        if (
+            !(
+                cartInfo.subscription ||
+                (cartInfo.addons && cartInfo.addons.length)
+            )
+        ) {
             announce({ text: "Your cart is empty.", variant: ERROR });
             return;
         }
@@ -151,6 +190,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
         submitOrder(
             formatCheckoutTransactionRequest(
                 session?.user?.username as string,
+                subscriptionEndDate,
                 checkoutCart,
                 // The schema's `cast` function will also trim string values.
                 CheckoutFormSchema.cast(values),
@@ -242,7 +282,13 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
         );
     };
 
-    return (
+    return resourceUsageError || planTypesQueryError ? (
+        <Box maxWidth="sm">
+            <ErrorHandler
+                errorObject={resourceUsageError || planTypesQueryError}
+            />
+        </Box>
+    ) : (
         <Grid
             container
             sx={{
@@ -279,10 +325,13 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                         maxWidth: 500,
                     }}
                 >
-                    {loadingPlanTypes ? (
+                    {loadingResourceUsage || loadingPlanTypes ? (
                         <GridLoading />
                     ) : (
-                        <Info cartInfo={checkoutCart} />
+                        <Info
+                            cartInfo={checkoutCart}
+                            subscriptionEndDate={subscriptionEndDate}
+                        />
                     )}
                 </Box>
             </Grid>
@@ -430,7 +479,12 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                                             )}
                                         </Typography>
                                     </div>
-                                    <InfoMobile cartInfo={checkoutCart} />
+                                    <InfoMobile
+                                        cartInfo={checkoutCart}
+                                        subscriptionEndDate={
+                                            subscriptionEndDate
+                                        }
+                                    />
                                 </CardContent>
                             </Card>
                             <Box

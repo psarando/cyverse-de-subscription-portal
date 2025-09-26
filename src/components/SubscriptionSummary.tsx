@@ -7,7 +7,10 @@ import {
     getResourceUsageSummary,
     RESOURCE_USAGE_QUERY_KEY,
 } from "@/app/api/serviceFacade";
-import { SubscriptionSummaryDetails } from "@/app/api/types";
+import {
+    ResourceUsageSummary,
+    SubscriptionSummaryDetails,
+} from "@/app/api/types";
 import ExternalLink from "@/components/common/ExternalLink";
 import GridLabelValue from "@/components/common/GridLabelValue";
 import GridLoading from "@/components/common/GridLoading";
@@ -51,10 +54,6 @@ const ADDONS_TABLE_COLUMNS = [
     { name: "Resource Type", numeric: false, enableSorting: false },
     { name: "Paid", numeric: false, enableSorting: false },
 ];
-
-type ResourceUsageSummary = {
-    subscription: SubscriptionSummaryDetails;
-};
 
 const SubscriptionSummary = () => {
     const [editSubscriptionOpen, setEditSubscriptionOpen] = useState(false);

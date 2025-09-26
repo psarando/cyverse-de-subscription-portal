@@ -1,12 +1,14 @@
 import {
     AddonsList,
     AddonsType,
+    LineItemIDEnum,
     OrderRequest,
     SubscriptionSubmission,
     SubscriptionSummaryDetails,
 } from "@/app/api/types";
 import { CartInfo } from "@/contexts/cart";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
+import { addonProratedRate } from "@/utils/rates";
 
 export type SubscriptionFormValues = {
     plan_name: string;
@@ -102,10 +104,11 @@ export function formatCheckoutFormValues(): CheckoutFormValues {
 
 export function formatCheckoutTransactionRequest(
     username: string,
+    subscriptionEndDate: number | undefined,
     cartInfo: CartInfo,
     values: CheckoutFormValues,
 ): OrderRequest {
-    const { subscription } = cartInfo;
+    const { subscription, addons } = cartInfo;
 
     const request: OrderRequest = {
         ...values,
@@ -117,7 +120,7 @@ export function formatCheckoutTransactionRequest(
     if (subscription) {
         request.lineItems?.push({
             lineItem: {
-                itemId: "subscription",
+                itemId: LineItemIDEnum.SUBSCRIPTION,
                 name: subscription.plan_name,
                 description:
                     `${subscription.periods}-year Subscription for user "${username}".`.substring(
@@ -128,6 +131,25 @@ export function formatCheckoutTransactionRequest(
                 unitPrice: subscription.plan_rate || 0,
             },
         });
+    }
+
+    if (addons) {
+        addons.forEach((addon) =>
+            request.lineItems?.push({
+                lineItem: {
+                    id: addon.uuid,
+                    itemId: LineItemIDEnum.ADDON,
+                    name: addon.name,
+                    description:
+                        `${addon.amount} x ${addon.name} for user "${username}".`.substring(
+                            0,
+                            255,
+                        ),
+                    quantity: addon.amount,
+                    unitPrice: addonProratedRate(subscriptionEndDate, addon),
+                },
+            }),
+        );
     }
 
     return request;

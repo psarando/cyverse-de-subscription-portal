@@ -8,12 +8,19 @@
  */
 import React from "react";
 
-import { formatCurrency } from "@/utils/formatUtils";
 import { CartInfo } from "@/contexts/cart";
+import { formatCurrency } from "@/utils/formatUtils";
+import { addonProratedRate } from "@/utils/rates";
 
 import { List, ListItem, ListItemText, Typography } from "@mui/material";
 
-export default function Info({ cartInfo }: { cartInfo: CartInfo }) {
+export default function Info({
+    cartInfo,
+    subscriptionEndDate,
+}: {
+    cartInfo: CartInfo;
+    subscriptionEndDate?: number;
+}) {
     return (
         <React.Fragment>
             <Typography variant="subtitle2" sx={{ color: "text.secondary" }}>
@@ -24,31 +31,53 @@ export default function Info({ cartInfo }: { cartInfo: CartInfo }) {
             </Typography>
             <List disablePadding>
                 {cartInfo.subscription && (
-                    <ListItem
-                        key={cartInfo.subscription.plan_name}
-                        sx={{ py: 1, px: 0 }}
-                    >
-                        <ListItemText
-                            sx={{ mr: 2 }}
-                            primary={`${cartInfo.subscription.plan_name} Subscription`}
-                            secondary={
-                                cartInfo.subscription.periods === 1
-                                    ? "1 Year"
-                                    : "2 Years"
+                    <CartInfoListItem
+                        name={`${cartInfo.subscription.plan_name} Subscription`}
+                        desc={
+                            cartInfo.subscription.periods === 1
+                                ? "1 Year"
+                                : "2 Years"
+                        }
+                        price={
+                            (cartInfo.subscription.plan_rate || 0) *
+                            cartInfo.subscription.periods
+                        }
+                    />
+                )}
+                {cartInfo.addons &&
+                    cartInfo.addons.map((addon) => (
+                        <CartInfoListItem
+                            key={addon.uuid}
+                            name={`Add-on ${addon.name}`}
+                            desc={`${addon.amount} x ${formatCurrency(
+                                addon.addon_rates[0].rate,
+                            )} prorated to the current subscription expiration date.`}
+                            price={
+                                addonProratedRate(subscriptionEndDate, addon) *
+                                addon.amount
                             }
                         />
-                        <Typography
-                            variant="body1"
-                            sx={{ fontWeight: "medium" }}
-                        >
-                            {formatCurrency(
-                                (cartInfo.subscription.plan_rate || 0) *
-                                    cartInfo.subscription.periods,
-                            )}
-                        </Typography>
-                    </ListItem>
-                )}
+                    ))}
             </List>
         </React.Fragment>
+    );
+}
+
+function CartInfoListItem({
+    name,
+    desc,
+    price,
+}: {
+    name: string;
+    desc: string;
+    price: number;
+}) {
+    return (
+        <ListItem sx={{ py: 1, px: 0 }}>
+            <ListItemText sx={{ mr: 2 }} primary={name} secondary={desc} />
+            <Typography variant="body1" sx={{ fontWeight: "medium" }}>
+                {formatCurrency(price)}
+            </Typography>
+        </ListItem>
     );
 }
