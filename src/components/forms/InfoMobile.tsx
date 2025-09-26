@@ -16,7 +16,13 @@ import { Box, Button, Drawer, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 
-export default function InfoMobile({ cartInfo }: { cartInfo: CartInfo }) {
+export default function InfoMobile({
+    cartInfo,
+    subscriptionEndDate,
+}: {
+    cartInfo: CartInfo;
+    subscriptionEndDate?: number;
+}) {
     const [open, setOpen] = React.useState(false);
 
     const toggleDrawer = (newOpen: boolean) => () => {
@@ -31,7 +37,10 @@ export default function InfoMobile({ cartInfo }: { cartInfo: CartInfo }) {
             >
                 <CloseIcon />
             </IconButton>
-            <Info cartInfo={cartInfo} />
+            <Info
+                cartInfo={cartInfo}
+                subscriptionEndDate={subscriptionEndDate}
+            />
         </Box>
     );
 

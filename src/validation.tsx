@@ -1,6 +1,7 @@
-import { OrderRequest } from "@/app/api/types";
+import { LineItemIDEnum, OrderRequest } from "@/app/api/types";
 import { CheckoutFormValues } from "@/components/forms/formatters";
 
+import { UUID } from "crypto";
 import * as Yup from "yup";
 
 const schemaStringMaxLen = (label: string, max: number) =>
@@ -63,10 +64,11 @@ export const OrderRequestSchema: Yup.ObjectSchema<OrderRequest> =
             lineItems: Yup.array().of(
                 Yup.object().shape({
                     lineItem: Yup.object().shape({
+                        id: Yup.string<UUID>().uuid(),
                         itemId: schemaRequiredStringMaxLen(
                             "Line Item ID is required",
                             31,
-                        ),
+                        ).oneOf(Object.values(LineItemIDEnum)),
                         name: schemaRequiredStringMaxLen(
                             "Line Item Name is required",
                             30,

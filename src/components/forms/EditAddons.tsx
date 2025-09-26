@@ -17,8 +17,8 @@ import { announce } from "@/components/common/announcer/CyVerseAnnouncer";
 import { SUCCESS } from "@/components/common/announcer/AnnouncerConstants";
 import { useCartInfo } from "@/contexts/cart";
 import { formatCurrency } from "@/utils/formatUtils";
+import { addonProratedRate } from "@/utils/rates";
 
-import { differenceInCalendarDays } from "date-fns";
 import { Field, FieldArray, Form, Formik } from "formik";
 import * as Yup from "yup";
 
@@ -54,11 +54,6 @@ function EditAddons({
     });
 
     const subscriptionEndDate = subscription?.effective_end_date;
-    let prorateDaysRemaining = 0;
-    if (subscriptionEndDate) {
-        prorateDaysRemaining =
-            differenceInCalendarDays(subscriptionEndDate, new Date()) / 365;
-    }
 
     return (
         <Formik
@@ -87,15 +82,12 @@ function EditAddons({
         >
             {({ handleSubmit, values }) => {
                 let subTotal = 0;
-                if (prorateDaysRemaining && values.addons) {
+                if (values.addons) {
                     values.addons.forEach((addon) => {
-                        const addonRate = addon.addon_rates[0].rate;
-                        const prorateAddonPrice = Math.floor(
-                            addonRate * prorateDaysRemaining,
-                        );
-
-                        if (prorateAddonPrice > 0 && addon.amount > 0) {
-                            subTotal += prorateAddonPrice * addon.amount;
+                        if (addon.amount > 0) {
+                            subTotal +=
+                                addonProratedRate(subscriptionEndDate, addon) *
+                                addon.amount;
                         }
                     });
                 }
