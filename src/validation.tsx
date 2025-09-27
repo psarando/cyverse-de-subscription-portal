@@ -61,9 +61,9 @@ export const OrderRequestSchema: Yup.ObjectSchema<OrderRequest> =
                 .required("Currency code is required")
                 .trim()
                 .length(3, "Please use a 3 character currency code"),
-            lineItems: Yup.array().of(
-                Yup.object().shape({
-                    lineItem: Yup.object().shape({
+            lineItems: Yup.object().shape({
+                lineItem: Yup.array().of(
+                    Yup.object().shape({
                         id: Yup.string().uuid() as Yup.StringSchema<UUID>,
                         itemId: schemaRequiredStringMaxLen(
                             "Line Item ID is required",
@@ -83,7 +83,7 @@ export const OrderRequestSchema: Yup.ObjectSchema<OrderRequest> =
                             .required("Line Item Unit Price is required")
                             .positive("Line Item Unit Price must be positive"),
                     }),
-                }),
-            ),
+                ),
+            }),
         }),
     );
