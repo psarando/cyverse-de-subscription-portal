@@ -100,7 +100,10 @@ export async function getServiceAccountToken() {
             body: "grant_type=client_credentials",
         });
 
-        if (!tokenResponse.ok) {
+        if (tokenResponse.ok) {
+            const tokenData = await tokenResponse.json();
+            serviceAccountToken = tokenData;
+        } else {
             const errorJson = await parseErrorJson(tokenResponse, tokenUrl);
 
             console.error("Could not get service account token.", {
@@ -108,18 +111,11 @@ export async function getServiceAccountToken() {
             });
         }
 
-        const tokenData = await tokenResponse.json();
-        serviceAccountToken = tokenData;
-
         if (serviceAccountToken) {
             serviceAccountToken.accessTokenExp = addSeconds(
                 new Date(),
                 serviceAccountToken.expires_in,
             );
-        } else {
-            console.error("Could not get service account token.", {
-                tokenData,
-            });
         }
     }
 
