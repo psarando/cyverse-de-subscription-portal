@@ -19,8 +19,12 @@ function OrderConfirmation() {
     const planName = subscription?.plan?.name;
     const startDate = subscription?.effective_start_date;
     const endDate = subscription?.effective_end_date;
+    const addons = order?.addons?.filter((addon) => !addon.error);
     const orderDate = order?.orderDate;
     const transactionId = order?.transactionResponse?.transId;
+
+    const orderError =
+        order?.error || order?.addons?.find((addon) => addon.error)?.error;
 
     return (
         <Stack spacing={2} useFlexGap>
@@ -52,11 +56,11 @@ function OrderConfirmation() {
                             }
                             errorObject={
                                 new HttpError(
-                                    order.error?.method || "",
-                                    order.error?.url || "",
-                                    order.error?.status || 500,
-                                    order.error?.message || "",
-                                    JSON.stringify(order.error?.response || {}),
+                                    orderError?.method || "",
+                                    orderError?.url || "",
+                                    orderError?.status || 500,
+                                    orderError?.message || "",
+                                    JSON.stringify(orderError?.response || {}),
                                 )
                             }
                         />
@@ -73,6 +77,11 @@ function OrderConfirmation() {
                                 <strong>&nbsp;#{order.poNumber}</strong>. We
                                 have emailed your order confirmation.
                             </Typography>
+                        </>
+                    )}
+
+                    {subscription && (
+                        <>
                             <Typography>
                                 Your ordered subscription tier is{" "}
                                 <ExternalLink
@@ -117,6 +126,30 @@ function OrderConfirmation() {
                             </Grid>
                         </>
                     )}
+
+                    {addons && addons.length > 0 && (
+                        <>
+                            <Typography>Add-ons</Typography>
+                            <Grid container>
+                                {addons.map((addon) => (
+                                    <GridLabelValue
+                                        key={addon.subscription_addon?.uuid}
+                                        label={
+                                            addon.subscription_addon?.addon.name
+                                        }
+                                    >
+                                        <Typography>
+                                            {
+                                                addon.subscription_addon?.addon
+                                                    .description
+                                            }
+                                        </Typography>
+                                    </GridLabelValue>
+                                ))}
+                            </Grid>
+                        </>
+                    )}
+
                     <Grid container>
                         {orderDate && (
                             <GridLabelValue label="Order Date">
