@@ -114,40 +114,36 @@ export function formatCheckoutTransactionRequest(
         ...values,
         amount: cartInfo.totalPrice || 0,
         currencyCode: "USD",
-        lineItems: [],
+        lineItems: { lineItem: [] },
     };
 
     if (subscription) {
-        request.lineItems?.push({
-            lineItem: {
-                itemId: LineItemIDEnum.SUBSCRIPTION,
-                name: subscription.plan_name,
-                description:
-                    `${subscription.periods}-year Subscription for user "${username}".`.substring(
-                        0,
-                        255,
-                    ),
-                quantity: subscription.periods,
-                unitPrice: subscription.plan_rate || 0,
-            },
+        request.lineItems?.lineItem?.push({
+            itemId: LineItemIDEnum.SUBSCRIPTION,
+            name: subscription.plan_name,
+            description:
+                `${subscription.periods}-year Subscription for user "${username}".`.substring(
+                    0,
+                    255,
+                ),
+            quantity: subscription.periods,
+            unitPrice: subscription.plan_rate || 0,
         });
     }
 
     if (addons) {
         addons.forEach((addon) =>
-            request.lineItems?.push({
-                lineItem: {
-                    id: addon.uuid,
-                    itemId: LineItemIDEnum.ADDON,
-                    name: addon.name,
-                    description:
-                        `${addon.amount} x ${addon.name} for user "${username}".`.substring(
-                            0,
-                            255,
-                        ),
-                    quantity: addon.amount,
-                    unitPrice: addonProratedRate(subscriptionEndDate, addon),
-                },
+            request.lineItems?.lineItem?.push({
+                id: addon.uuid,
+                itemId: LineItemIDEnum.ADDON,
+                name: addon.name,
+                description:
+                    `${addon.amount} x ${addon.name} for user "${username}".`.substring(
+                        0,
+                        255,
+                    ),
+                quantity: addon.amount,
+                unitPrice: addonProratedRate(subscriptionEndDate, addon),
             }),
         );
     }

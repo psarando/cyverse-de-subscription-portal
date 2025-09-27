@@ -265,14 +265,12 @@ async function addLineItems(
     purchaseId: string,
     lineItems: OrderRequest["lineItems"],
 ) {
-    if (!lineItems || lineItems?.length < 1) {
+    if (!lineItems?.lineItem || lineItems.lineItem.length < 1) {
         return;
     }
 
-    const lineItemPromises = lineItems.map(
-        ({
-            lineItem: { id, itemId, name, description, quantity, unitPrice },
-        }) =>
+    const lineItemPromises = lineItems.lineItem.map(
+        ({ id, itemId, name, description, quantity, unitPrice }) =>
             db.query<LineItem>(
                 `INSERT INTO line_items (
                     purchase_id,
@@ -299,7 +297,7 @@ async function addLineItems(
         QueryResult<PurchasedSubscription>
     >[] = [];
 
-    lineItems.forEach(({ lineItem: { id, itemId } }) => {
+    lineItems.lineItem.forEach(({ id, itemId }) => {
         if (itemId === "subscription") {
             purchasedSubscriptionPromises.push(
                 db.query<PurchasedSubscription>(

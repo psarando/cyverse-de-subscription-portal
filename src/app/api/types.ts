@@ -101,8 +101,8 @@ export type TransactionRequest = {
             cardCode: string;
         };
     };
-    lineItems?: Array<{
-        lineItem: {
+    lineItems?: {
+        lineItem?: Array<{
             /**
              * The ID of the subscription or add-on from QMS,
              * not submitted to Authorize.net.
@@ -119,8 +119,8 @@ export type TransactionRequest = {
             description?: string;
             quantity: number;
             unitPrice: number;
-        };
-    }>;
+        }>;
+    };
     poNumber?: number;
     billTo: {
         firstName: string;

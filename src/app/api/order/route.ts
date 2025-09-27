@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { addPurchaseRecord, addTransactionResponse } from "@/db";
 import {
     CreateTransactionResponse,
+    LineItemIDEnum,
     OrderError,
     OrderRequest,
     OrderUpdateResult,
@@ -97,25 +98,17 @@ export async function POST(request: NextRequest) {
             amount,
             currencyCode,
             payment: { creditCard: { cardNumber, expirationDate, cardCode } },
-            lineItems: lineItems?.map(
-                ({
-                    lineItem: {
+            lineItems: {
+                lineItem: lineItems?.lineItem?.map(
+                    ({ itemId, name, description, quantity, unitPrice }) => ({
                         itemId,
                         name,
                         description,
                         quantity,
                         unitPrice,
-                    },
-                }) => ({
-                    lineItem: {
-                        itemId,
-                        name,
-                        description,
-                        quantity,
-                        unitPrice,
-                    },
-                }),
-            ),
+                    }),
+                ),
+            },
             poNumber: 0, // placeholder
             billTo: { firstName, lastName, company, address, city, state, zip },
             customerIP,
@@ -124,9 +117,9 @@ export async function POST(request: NextRequest) {
 
     const currentPricing: OrderError["currentPricing"] = { amount: 0 };
 
-    const subscription = lineItems?.find(
-        (item) => item.lineItem.itemId === "subscription",
-    )?.lineItem;
+    const subscription = lineItems?.lineItem?.find(
+        (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
+    );
 
     let currentSubscription: SubscriptionSummaryDetails | undefined;
     let orderSubscription: PlanType | undefined;
