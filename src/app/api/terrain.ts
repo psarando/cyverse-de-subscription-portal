@@ -122,21 +122,44 @@ export async function getServiceAccountToken() {
     return serviceAccountToken?.access_token;
 }
 
-export async function serviceAccountUpdateSubscription(
-    currentSubscription: SubscriptionSummaryDetails,
-    plan_name: string,
-    periods: number,
+export async function serviceAccountCallTerrain(
+    method: string,
+    url: string,
+    body?: BodyInit,
 ) {
     const { terrainBaseUrl } = publicRuntimeConfig;
 
     const token = await getServiceAccountToken();
     if (!token) {
-        return {
-            success: false,
-            error: { message: "Could not get service account token." },
-        };
+        return NextResponse.json(
+            { message: "Could not get service account token." },
+            {
+                status: 500,
+            },
+        );
     }
 
+    const response = await fetch(`${terrainBaseUrl}${url}`, {
+        method,
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body,
+    });
+
+    if (!response.ok) {
+        return terrainErrorResponse(url, response);
+    }
+
+    return response;
+}
+
+export async function serviceAccountUpdateSubscription(
+    currentSubscription: SubscriptionSummaryDetails,
+    plan_name: string,
+    periods: number,
+) {
     const today = new Date();
     const currentEndDate = toDate(currentSubscription.effective_end_date);
     const newStartDate = currentEndDate > today ? currentEndDate : today;
@@ -154,13 +177,7 @@ export async function serviceAccountUpdateSubscription(
     const method = "PUT";
     const url = `/service/qms/users/${username}/plan/${plan_name}?${queryParams}`;
 
-    const response = await fetch(`${terrainBaseUrl}${url}`, {
-        method,
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-    });
+    const response = await serviceAccountCallTerrain(method, url);
 
     if (!response.ok) {
         const error = await parseErrorJson(response, url);
@@ -182,4 +199,62 @@ export async function serviceAccountUpdateSubscription(
     const data = await response.json();
 
     return { success: true, subscription: data };
+}
+
+export async function serviceAccountFetchAddons() {
+    const url = "/service/qms/addons";
+    const response = await serviceAccountCallTerrain("GET", url);
+
+    if (!response.ok) {
+        return terrainErrorResponse(url, response);
+    }
+
+    return response;
+}
+
+export async function serviceAccountUpdateAddons(
+    subscriptionId: string,
+    addons: Array<{ id?: string; quantity: number }>,
+) {
+    let success = true;
+    const addonsResults = [];
+
+    const method = "POST";
+    const url = `/service/qms/subscriptions/${subscriptionId}/addons`;
+
+    for (const addon of addons) {
+        for (let i = 0; i < addon.quantity; i++) {
+            const response = await serviceAccountCallTerrain(
+                method,
+                url,
+                JSON.stringify({ uuid: addon.id }),
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                addonsResults.push(data);
+            } else {
+                success = false;
+
+                const error = await parseErrorJson(response, url);
+
+                console.error("Could not update user subscription addon.", {
+                    error,
+                });
+
+                addonsResults.push({
+                    success: false,
+                    error: {
+                        message: "Could not update user subscription.",
+                        method,
+                        url,
+                        status: response.status,
+                        response: error,
+                    },
+                });
+            }
+        }
+    }
+
+    return { success, addons: addonsResults };
 }
