@@ -10,55 +10,36 @@ import constants from "@/constants";
 import { OrderError } from "@/app/api/types";
 import { CartInfo } from "@/contexts/cart";
 import ExternalLink from "@/components/common/ExternalLink";
-import { formatCurrency } from "@/utils/formatUtils";
 
 import FormCheckbox from "./FormCheckbox";
 import { CheckoutFormValues } from "./formatters";
+import Info from "./Info";
 import OrderErrorCard from "./OrderErrorCard";
 
 import { Field } from "formik";
 
-import {
-    Divider,
-    List,
-    ListItem,
-    ListItemText,
-    Stack,
-    Typography,
-} from "@mui/material";
+import { Box, Divider, Stack, Typography } from "@mui/material";
 
 export default function Review({
     cartInfo,
+    subscriptionEndDate,
     values,
     orderError,
 }: {
     cartInfo: CartInfo;
+    subscriptionEndDate?: number;
     values: CheckoutFormValues;
     orderError: OrderError | null;
 }) {
     return (
         <Stack spacing={2}>
-            <List disablePadding>
-                {cartInfo.subscription && (
-                    <ListItem sx={{ py: 1, px: 0 }}>
-                        <ListItemText
-                            primary={`${cartInfo.subscription?.plan_name} Subscription`}
-                            secondary={
-                                cartInfo.subscription?.periods === 2
-                                    ? "2 Years"
-                                    : "1 Year"
-                            }
-                        />
-                        <Typography variant="body2">
-                            {formatCurrency(
-                                (cartInfo.subscription?.plan_rate || 0) *
-                                    (cartInfo.subscription?.periods || 1),
-                            )}
-                        </Typography>
-                    </ListItem>
-                )}
-            </List>
-            <Divider />
+            <Box sx={{ display: { xs: "flex", md: "none" } }}>
+                <Info
+                    cartInfo={cartInfo}
+                    subscriptionEndDate={subscriptionEndDate}
+                />
+            </Box>
+            <Divider sx={{ display: { xs: "flex", md: "none" } }} />
             <Stack
                 direction="column"
                 divider={<Divider flexItem />}

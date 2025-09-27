@@ -23,13 +23,23 @@ export default function Info({
 }) {
     return (
         <React.Fragment>
-            <Typography variant="subtitle2" sx={{ color: "text.secondary" }}>
-                Total
-            </Typography>
-            <Typography variant="h4" gutterBottom>
-                {formatCurrency(cartInfo.totalPrice || 0)}
-            </Typography>
             <List disablePadding>
+                <ListItem sx={{ py: 1, px: 0 }}>
+                    <ListItemText
+                        sx={{ mr: 2 }}
+                        primary={
+                            <Typography
+                                variant="subtitle2"
+                                sx={{ color: "text.secondary" }}
+                            >
+                                Total
+                            </Typography>
+                        }
+                    />
+                    <Typography variant="h4" gutterBottom>
+                        {formatCurrency(cartInfo.totalPrice || 0)}
+                    </Typography>
+                </ListItem>
                 {cartInfo.subscription && (
                     <CartInfoListItem
                         name={`${cartInfo.subscription.plan_name} Subscription`}

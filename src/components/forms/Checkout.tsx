@@ -74,6 +74,7 @@ const steps = ["Billing address", "Payment details", "Review your order"];
 function getStepContent(
     step: number,
     checkoutCart: CartInfo,
+    subscriptionEndDate: number | undefined,
     values: CheckoutFormValues,
     setFieldValue: FieldProps["form"]["setFieldValue"],
     orderError: OrderError | null,
@@ -87,6 +88,7 @@ function getStepContent(
             return (
                 <Review
                     cartInfo={checkoutCart}
+                    subscriptionEndDate={subscriptionEndDate}
                     values={values}
                     orderError={orderError}
                 />
@@ -533,6 +535,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                                     {getStepContent(
                                         activeStep,
                                         checkoutCart,
+                                        subscriptionEndDate,
                                         values,
                                         setFieldValue,
                                         orderError,
