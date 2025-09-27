@@ -123,6 +123,9 @@ export type TransactionRequest = {
         }>;
     };
     poNumber?: number;
+    customer?: {
+        email: string;
+    };
     billTo: {
         firstName: string;
         lastName: string;
