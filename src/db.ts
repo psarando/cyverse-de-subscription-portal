@@ -1,4 +1,12 @@
-import { CreateTransactionResponse, OrderRequest } from "@/app/api/types";
+/**
+ * @author psarando
+ */
+import {
+    CreateTransactionResponse,
+    LineItemIDEnum,
+    OrderRequest,
+} from "@/app/api/types";
+
 import { UUID } from "crypto";
 import getConfig from "next/config";
 import { Client, QueryResult } from "pg";
@@ -105,6 +113,13 @@ type PurchasedSubscription = {
     id: UUID;
     purchase_id: UUID;
     subscription_id: UUID;
+};
+
+// Represents a row in the "purchased_subscription_addons" table.
+type PurchasedSubscriptionAddon = {
+    id: UUID;
+    purchase_id: UUID;
+    subscription_addon_id: UUID;
 };
 
 export async function healthCheck() {
@@ -294,16 +309,28 @@ async function addLineItems(
     );
 
     const purchasedSubscriptionPromises: Promise<
-        QueryResult<PurchasedSubscription>
+        QueryResult<PurchasedSubscription | PurchasedSubscriptionAddon>
     >[] = [];
 
     lineItems.lineItem.forEach(({ id, itemId }) => {
-        if (itemId === "subscription") {
+        if (itemId === LineItemIDEnum.SUBSCRIPTION) {
             purchasedSubscriptionPromises.push(
                 db.query<PurchasedSubscription>(
                     `INSERT INTO purchased_subscriptions (
                         purchase_id,
                         subscription_id
+                    ) VALUES ($1, $2)`,
+                    [purchaseId, id],
+                ),
+            );
+        }
+
+        if (itemId === LineItemIDEnum.ADDON) {
+            purchasedSubscriptionPromises.push(
+                db.query<PurchasedSubscriptionAddon>(
+                    `INSERT INTO purchased_subscription_addons (
+                        purchase_id,
+                        subscription_addon_id
                     ) VALUES ($1, $2)`,
                     [purchaseId, id],
                 ),
