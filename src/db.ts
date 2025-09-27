@@ -348,25 +348,31 @@ export async function addTransactionResponse(
     let responseId: UUID | undefined;
 
     try {
+        const { transactionResponse, messages } = response;
+
+        if (!transactionResponse) {
+            console.error(
+                "No transactionResponse found in CreateTransactionResponse.",
+            );
+            return responseId;
+        }
+
         const {
-            transactionResponse: {
-                responseCode,
-                authCode,
-                avsResultCode,
-                cvvResultCode,
-                cavvResultCode,
-                transId,
-                refTransID,
-                testRequest,
-                accountNumber,
-                accountType,
-                transHashSha2,
-                SupplementalDataQualificationIndicator,
-                networkTransId,
-                errors,
-            },
-            messages,
-        } = response;
+            responseCode,
+            authCode,
+            avsResultCode,
+            cvvResultCode,
+            cavvResultCode,
+            transId,
+            refTransID,
+            testRequest,
+            accountNumber,
+            accountType,
+            transHashSha2,
+            SupplementalDataQualificationIndicator,
+            networkTransId,
+            errors,
+        } = transactionResponse || {};
 
         const { rows } = await db.query<TransactionResponse>(
             `INSERT INTO transaction_responses (
