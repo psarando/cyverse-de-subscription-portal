@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import constants from "@/constants";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
 
 import { SubscriptionSummaryDetails } from "./types";
@@ -162,7 +163,11 @@ export async function serviceAccountUpdateSubscription(
 ) {
     const today = new Date();
     const currentEndDate = toDate(currentSubscription.effective_end_date);
-    const newStartDate = currentEndDate > today ? currentEndDate : today;
+    const newStartDate =
+        currentSubscription.plan.name !== constants.PLAN_NAME_BASIC &&
+        currentEndDate > today
+            ? currentEndDate
+            : today;
 
     const queryParams = new URLSearchParams({
         periods: periods.toString(),
