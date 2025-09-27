@@ -7,7 +7,6 @@ import {
     SubscriptionSummaryDetails,
 } from "@/app/api/types";
 import { CartInfo } from "@/contexts/cart";
-import { dateConstants, formatDate } from "@/utils/formatUtils";
 import { addonProratedRate } from "@/utils/rates";
 
 export type SubscriptionFormValues = {
@@ -34,24 +33,13 @@ export function formatSubscription(
 
     const {
         users: { username },
-        effective_end_date,
     } = subscription;
-
-    const currentEndDate = new Date(effective_end_date);
 
     const submission: SubscriptionSubmission = {
         username,
         plan_name,
-        paid: true,
         periods,
     };
-
-    if (currentEndDate > new Date()) {
-        submission.start_date = formatDate(
-            currentEndDate,
-            dateConstants.ISO_8601,
-        );
-    }
 
     return submission;
 }

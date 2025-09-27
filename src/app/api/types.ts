@@ -80,7 +80,7 @@ export type SubscriptionSubmission = {
     username: string;
     plan_name: string;
     plan_rate?: number;
-    paid: boolean;
+    paid?: boolean;
     periods: number;
     start_date?: string;
     end_date?: string;
