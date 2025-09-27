@@ -166,7 +166,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
         let addonsTotal = 0;
         addons.forEach((addon) => {
             addonsTotal +=
-                addonProratedRate(subscriptionEndDate, addon) * addon.amount;
+                addonProratedRate(subscriptionEndDate, addon) * addon.quantity;
         });
 
         checkoutCart.totalPrice += addonsTotal;

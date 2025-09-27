@@ -59,12 +59,12 @@ export default function Info({
                         <CartInfoListItem
                             key={addon.uuid}
                             name={`Add-on ${addon.name}`}
-                            desc={`${addon.amount} x ${formatCurrency(
+                            desc={`${addon.quantity} x ${formatCurrency(
                                 addon.addon_rates[0].rate,
                             )} prorated to the current subscription expiration date.`}
                             price={
                                 addonProratedRate(subscriptionEndDate, addon) *
-                                addon.amount
+                                addon.quantity
                             }
                         />
                     ))}
