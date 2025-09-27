@@ -1,6 +1,7 @@
 import { UUID } from "crypto";
 
 export type SubscriptionSummaryDetails = {
+    id: UUID;
     users: {
         username: string;
     };
@@ -167,6 +168,14 @@ export type OrderRequest = Pick<
     termsAcknowledged: boolean;
 };
 
+export type OrderUpdateError = {
+    method?: string;
+    url?: string;
+    status?: number;
+    message: string;
+    response?: object;
+};
+
 export type OrderUpdateResult = {
     success: boolean;
     message?: string | object;
@@ -176,13 +185,7 @@ export type OrderUpdateResult = {
         CreateTransactionResponse["transactionResponse"],
         "transId" | "errors"
     >;
-    error?: {
-        method?: string;
-        url?: string;
-        status?: number;
-        message: string;
-        response?: object;
-    };
+    error?: OrderUpdateError;
     subscription?: {
         status: string;
         result: Pick<
@@ -199,6 +202,22 @@ export type OrderUpdateResult = {
             }>;
         };
     };
+    addons?: Array<{
+        error?: OrderUpdateError;
+        subscription_addon?: {
+            uuid: UUID;
+            amount: number;
+            paid: boolean;
+            addon: {
+                name: string;
+                description: string;
+                resource_type: {
+                    name: string;
+                    unit: string;
+                };
+            };
+        };
+    }>;
 };
 
 export type TerrainError = {
