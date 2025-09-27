@@ -57,7 +57,7 @@ export function formatSubscription(
 }
 
 export type AddonsFormValues = {
-    addons?: Array<AddonsType & { amount: number }>;
+    addons?: Array<AddonsType & { quantity: number }>;
 };
 
 export function mapAddonsPropsToValues(
@@ -66,9 +66,9 @@ export function mapAddonsPropsToValues(
 ): AddonsFormValues {
     return {
         addons: addons?.map((addon) => ({
-            amount:
-                cartInfo?.addons?.find((a) => a.uuid === addon.uuid)?.amount ||
-                0,
+            quantity:
+                cartInfo?.addons?.find((a) => a.uuid === addon.uuid)
+                    ?.quantity || 0,
             ...addon,
         })),
     };
@@ -138,11 +138,11 @@ export function formatCheckoutTransactionRequest(
                 itemId: LineItemIDEnum.ADDON,
                 name: addon.name,
                 description:
-                    `${addon.amount} x ${addon.name} for user "${username}".`.substring(
+                    `${addon.quantity} x ${addon.name} for user "${username}".`.substring(
                         0,
                         255,
                     ),
-                quantity: addon.amount,
+                quantity: addon.quantity,
                 unitPrice: addonProratedRate(subscriptionEndDate, addon),
             }),
         );

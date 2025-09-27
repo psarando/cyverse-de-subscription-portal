@@ -65,7 +65,7 @@ function EditAddons({
             validationSchema={validationSchema}
             onSubmit={(values) => {
                 const addons = values.addons?.filter(
-                    (addon) => addon.amount > 0,
+                    (addon) => addon.quantity > 0,
                 );
 
                 if (addons) {
@@ -84,10 +84,10 @@ function EditAddons({
                 let subTotal = 0;
                 if (values.addons) {
                     values.addons.forEach((addon) => {
-                        if (addon.amount > 0) {
+                        if (addon.quantity > 0) {
                             subTotal +=
                                 addonProratedRate(subscriptionEndDate, addon) *
-                                addon.amount;
+                                addon.quantity;
                         }
                     });
                 }
@@ -129,7 +129,7 @@ function EditAddons({
                                                         <AddonFormField
                                                             key={addon.uuid}
                                                             addon={addon}
-                                                            name={`addons.${index}.amount`}
+                                                            name={`addons.${index}.quantity`}
                                                         />
                                                     ),
                                                 )}
