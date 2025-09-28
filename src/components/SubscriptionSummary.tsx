@@ -7,7 +7,10 @@ import {
     getResourceUsageSummary,
     RESOURCE_USAGE_QUERY_KEY,
 } from "@/app/api/serviceFacade";
-import { SubscriptionSummaryDetails } from "@/app/api/types";
+import {
+    ResourceUsageSummary,
+    SubscriptionSummaryDetails,
+} from "@/app/api/types";
 import ExternalLink from "@/components/common/ExternalLink";
 import GridLabelValue from "@/components/common/GridLabelValue";
 import GridLoading from "@/components/common/GridLoading";
@@ -20,10 +23,11 @@ import DETableHead from "@/components/common/table/DETableHead";
 import { DERow } from "@/components/common/table/DERow";
 import EmptyTable from "@/components/common/table/EmptyTable";
 import TableLoading from "@/components/common/table/TableLoading";
+import EditAddons from "@/components/forms/EditAddons";
 import EditSubscription from "@/components/forms/EditSubscription";
 import { dateConstants, formatDate, formatFileSize } from "@/utils/formatUtils";
 
-import { addDays, toDate } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 
 import {
     Box,
@@ -51,12 +55,9 @@ const ADDONS_TABLE_COLUMNS = [
     { name: "Paid", numeric: false, enableSorting: false },
 ];
 
-type ResourceUsageSummary = {
-    subscription: SubscriptionSummaryDetails;
-};
-
 const SubscriptionSummary = () => {
     const [editSubscriptionOpen, setEditSubscriptionOpen] = useState(false);
+    const [editAddonsOpen, setEditAddonsOpen] = useState(false);
 
     const {
         isFetching,
@@ -72,8 +73,14 @@ const SubscriptionSummary = () => {
     const startDate = subscription?.effective_start_date;
     const endDate = subscription?.effective_end_date;
 
+    const handleEditAddonsClick = () => {
+        if (subscription) {
+            setEditAddonsOpen(true);
+        }
+    };
+
     const handleEditSubscriptionClick = () => {
-        if (!endDate || toDate(endDate) > addDays(new Date(), 30)) {
+        if (!endDate || differenceInCalendarDays(endDate, new Date()) > 30) {
             announce({
                 text: "You cannot renew your subscription more than 30 days before the end date.",
                 variant: ERROR,
@@ -178,7 +185,22 @@ const SubscriptionSummary = () => {
                         loading={isFetching}
                     />
                 </CardContent>
+                <CardActions>
+                    <Button
+                        color="primary"
+                        startIcon={<ShopIcon />}
+                        onClick={handleEditAddonsClick}
+                    >
+                        Purchase Add-ons
+                    </Button>
+                </CardActions>
             </Card>
+
+            <EditAddons
+                open={editAddonsOpen}
+                onClose={() => setEditAddonsOpen(false)}
+                subscription={subscription}
+            />
         </Grid>
     );
 };

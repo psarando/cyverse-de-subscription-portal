@@ -71,6 +71,15 @@ export function getPlanTypes() {
 export const PLAN_TYPES_QUERY_KEY = "fetchPlanTypes";
 
 /**
+ * Fetch subscription add-ons.
+ */
+export function getAddons() {
+    return get("/api/subscriptions/addons");
+}
+
+export const ADDONS_QUERY_KEY = "fetchAddons";
+
+/**
  * Place a purchase order.
  */
 export function postOrder(order: OrderRequest) {

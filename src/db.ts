@@ -1,4 +1,12 @@
-import { CreateTransactionResponse, OrderRequest } from "@/app/api/types";
+/**
+ * @author psarando
+ */
+import {
+    CreateTransactionResponse,
+    LineItemIDEnum,
+    OrderRequest,
+} from "@/app/api/types";
+
 import { UUID } from "crypto";
 import getConfig from "next/config";
 import { Client, QueryResult } from "pg";
@@ -105,6 +113,13 @@ type PurchasedSubscription = {
     id: UUID;
     purchase_id: UUID;
     subscription_id: UUID;
+};
+
+// Represents a row in the "purchased_subscription_addons" table.
+type PurchasedSubscriptionAddon = {
+    id: UUID;
+    purchase_id: UUID;
+    subscription_addon_id: UUID;
 };
 
 export async function healthCheck() {
@@ -265,14 +280,12 @@ async function addLineItems(
     purchaseId: string,
     lineItems: OrderRequest["lineItems"],
 ) {
-    if (!lineItems || lineItems?.length < 1) {
+    if (!lineItems?.lineItem || lineItems.lineItem.length < 1) {
         return;
     }
 
-    const lineItemPromises = lineItems.map(
-        ({
-            lineItem: { id, itemId, name, description, quantity, unitPrice },
-        }) =>
+    const lineItemPromises = lineItems.lineItem.map(
+        ({ id, itemId, name, description, quantity, unitPrice }) =>
             db.query<LineItem>(
                 `INSERT INTO line_items (
                     purchase_id,
@@ -296,16 +309,28 @@ async function addLineItems(
     );
 
     const purchasedSubscriptionPromises: Promise<
-        QueryResult<PurchasedSubscription>
+        QueryResult<PurchasedSubscription | PurchasedSubscriptionAddon>
     >[] = [];
 
-    lineItems.forEach(({ lineItem: { id, itemId } }) => {
-        if (itemId === "subscription") {
+    lineItems.lineItem.forEach(({ id, itemId }) => {
+        if (itemId === LineItemIDEnum.SUBSCRIPTION) {
             purchasedSubscriptionPromises.push(
                 db.query<PurchasedSubscription>(
                     `INSERT INTO purchased_subscriptions (
                         purchase_id,
                         subscription_id
+                    ) VALUES ($1, $2)`,
+                    [purchaseId, id],
+                ),
+            );
+        }
+
+        if (itemId === LineItemIDEnum.ADDON) {
+            purchasedSubscriptionPromises.push(
+                db.query<PurchasedSubscriptionAddon>(
+                    `INSERT INTO purchased_subscription_addons (
+                        purchase_id,
+                        subscription_addon_id
                     ) VALUES ($1, $2)`,
                     [purchaseId, id],
                 ),
@@ -323,25 +348,31 @@ export async function addTransactionResponse(
     let responseId: UUID | undefined;
 
     try {
+        const { transactionResponse, messages } = response;
+
+        if (!transactionResponse) {
+            console.error(
+                "No transactionResponse found in CreateTransactionResponse.",
+            );
+            return responseId;
+        }
+
         const {
-            transactionResponse: {
-                responseCode,
-                authCode,
-                avsResultCode,
-                cvvResultCode,
-                cavvResultCode,
-                transId,
-                refTransID,
-                testRequest,
-                accountNumber,
-                accountType,
-                transHashSha2,
-                SupplementalDataQualificationIndicator,
-                networkTransId,
-                errors,
-            },
-            messages,
-        } = response;
+            responseCode,
+            authCode,
+            avsResultCode,
+            cvvResultCode,
+            cavvResultCode,
+            transId,
+            refTransID,
+            testRequest,
+            accountNumber,
+            accountType,
+            transHashSha2,
+            SupplementalDataQualificationIndicator,
+            networkTransId,
+            errors,
+        } = transactionResponse || {};
 
         const { rows } = await db.query<TransactionResponse>(
             `INSERT INTO transaction_responses (

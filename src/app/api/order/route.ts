@@ -1,21 +1,26 @@
 import { auth } from "@/auth";
 import { addPurchaseRecord, addTransactionResponse } from "@/db";
 import {
+    AddonsList,
     CreateTransactionResponse,
+    LineItemIDEnum,
     OrderError,
     OrderRequest,
     OrderUpdateResult,
     PlanType,
-    SubscriptionSummaryDetails,
+    ResourceUsageSummary,
     TransactionRequest,
 } from "@/app/api/types";
 import {
+    serviceAccountFetchAddons,
+    serviceAccountUpdateAddons,
     serviceAccountUpdateSubscription,
     terrainErrorResponse,
 } from "@/app/api/terrain";
+import { addonProratedRate } from "@/utils/rates";
 import { OrderRequestSchema } from "@/validation";
 
-import { addDays, toDate } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 import { UUID } from "crypto";
 import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
@@ -97,26 +102,19 @@ export async function POST(request: NextRequest) {
             amount,
             currencyCode,
             payment: { creditCard: { cardNumber, expirationDate, cardCode } },
-            lineItems: lineItems?.map(
-                ({
-                    lineItem: {
+            lineItems: {
+                lineItem: lineItems?.lineItem?.map(
+                    ({ itemId, name, description, quantity, unitPrice }) => ({
                         itemId,
                         name,
                         description,
                         quantity,
                         unitPrice,
-                    },
-                }) => ({
-                    lineItem: {
-                        itemId,
-                        name,
-                        description,
-                        quantity,
-                        unitPrice,
-                    },
-                }),
-            ),
+                    }),
+                ),
+            },
             poNumber: 0, // placeholder
+            customer: { email: session.user?.email },
             billTo: { firstName, lastName, company, address, city, state, zip },
             customerIP,
         } as TransactionRequest,
@@ -124,38 +122,41 @@ export async function POST(request: NextRequest) {
 
     const currentPricing: OrderError["currentPricing"] = { amount: 0 };
 
-    const subscription = lineItems?.find(
-        (item) => item.lineItem.itemId === "subscription",
-    )?.lineItem;
+    const subscription = lineItems?.lineItem?.find(
+        (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
+    );
 
-    let currentSubscription: SubscriptionSummaryDetails | undefined;
+    const resourceUsageSummaryURL = "/resource-usage/summary";
+    const resourceUsageSummaryResponse = await fetch(
+        `${terrainBaseUrl}${resourceUsageSummaryURL}`,
+        {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session?.accessToken}`,
+            },
+        },
+    );
+
+    if (!resourceUsageSummaryResponse.ok) {
+        return terrainErrorResponse(
+            resourceUsageSummaryURL,
+            resourceUsageSummaryResponse,
+        );
+    }
+
+    const resourceUsageSummary: ResourceUsageSummary =
+        await resourceUsageSummaryResponse.json();
+
+    const currentSubscription = resourceUsageSummary?.subscription;
+    const subscriptionEndDate = currentSubscription?.effective_end_date;
+
     let orderSubscription: PlanType | undefined;
     if (subscription) {
         // Validate the user's subscription end date.
-        const resourceUsageSummaryURL = "/resource-usage/summary";
-        const resourceUsageSummaryResponse = await fetch(
-            `${terrainBaseUrl}${resourceUsageSummaryURL}`,
-            {
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${session?.accessToken}`,
-                },
-            },
-        );
-
-        if (!resourceUsageSummaryResponse.ok) {
-            return terrainErrorResponse(
-                resourceUsageSummaryURL,
-                resourceUsageSummaryResponse,
-            );
-        }
-
-        const resourceUsageSummary = await resourceUsageSummaryResponse.json();
-
-        currentSubscription = resourceUsageSummary?.subscription;
-        const endDate = currentSubscription?.effective_end_date;
-
-        if (!endDate || toDate(endDate) > addDays(new Date(), 30)) {
+        if (
+            !subscriptionEndDate ||
+            differenceInCalendarDays(subscriptionEndDate, new Date()) > 30
+        ) {
             return NextResponse.json(
                 {
                     error_code: "ERR_BAD_REQUEST",
@@ -198,6 +199,41 @@ export async function POST(request: NextRequest) {
         const rate = orderSubscription.plan_rates[0].rate;
         currentPricing.amount += rate * subscription.quantity;
         currentPricing.subscription = { name: subscription.name, rate };
+    }
+
+    const addons = lineItems?.lineItem?.filter(
+        (item) => item.itemId === LineItemIDEnum.ADDON,
+    );
+
+    if (addons && addons.length > 0) {
+        // Validate the requested addons pricing.
+        const addonsResponse = await serviceAccountFetchAddons();
+        if (!addonsResponse.ok) {
+            return addonsResponse;
+        }
+
+        const addonsData: AddonsList = await addonsResponse.json();
+        if (!addonsData.addons || addonsData.addons.length === 0) {
+            console.error("Could not lookup addons current pricing.", {
+                addonsData,
+            });
+
+            return NextResponse.json(
+                {
+                    error_code: "ERR_NOT_FOUND",
+                    message: "Could not lookup addons current pricing.",
+                },
+                { status: 500 },
+            );
+        }
+
+        for (const addon of addons) {
+            currentPricing.amount +=
+                addonProratedRate(
+                    subscriptionEndDate,
+                    addonsData.addons.find((a) => a.uuid === addon.id),
+                ) * addon.quantity;
+        }
     }
 
     if (amount !== currentPricing.amount) {
@@ -288,9 +324,10 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    // The payment was successful, so update the user's subscription,
+    // The payment was successful, so update the user's subscription and addons,
     // but only return a success response from here,
     // so the user knows their payment went through.
+    responseJson.success = true;
     if (subscription && currentSubscription) {
         const subscriptionUpdateResult = await serviceAccountUpdateSubscription(
             currentSubscription,
@@ -301,6 +338,20 @@ export async function POST(request: NextRequest) {
         responseJson = {
             ...responseJson,
             ...subscriptionUpdateResult,
+            success: responseJson.success && subscriptionUpdateResult.success,
+        };
+    }
+
+    if (addons && addons.length > 0 && currentSubscription) {
+        const addonsUpdateResult = await serviceAccountUpdateAddons(
+            currentSubscription.id,
+            addons,
+        );
+
+        responseJson = {
+            ...responseJson,
+            ...addonsUpdateResult,
+            success: responseJson.success && addonsUpdateResult.success,
         };
     }
 

@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import constants from "@/constants";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
 
 import { SubscriptionSummaryDetails } from "./types";
@@ -75,7 +76,7 @@ export async function callTerrain(
     return NextResponse.json(data);
 }
 
-async function getServiceAccountToken() {
+export async function getServiceAccountToken() {
     if (
         !serviceAccountToken ||
         !serviceAccountToken.accessTokenExp ||
@@ -100,7 +101,10 @@ async function getServiceAccountToken() {
             body: "grant_type=client_credentials",
         });
 
-        if (!tokenResponse.ok) {
+        if (tokenResponse.ok) {
+            const tokenData = await tokenResponse.json();
+            serviceAccountToken = tokenData;
+        } else {
             const errorJson = await parseErrorJson(tokenResponse, tokenUrl);
 
             console.error("Could not get service account token.", {
@@ -108,22 +112,48 @@ async function getServiceAccountToken() {
             });
         }
 
-        const tokenData = await tokenResponse.json();
-        serviceAccountToken = tokenData;
-
         if (serviceAccountToken) {
             serviceAccountToken.accessTokenExp = addSeconds(
                 new Date(),
                 serviceAccountToken.expires_in,
             );
-        } else {
-            console.error("Could not get service account token.", {
-                tokenData,
-            });
         }
     }
 
     return serviceAccountToken?.access_token;
+}
+
+export async function serviceAccountCallTerrain(
+    method: string,
+    url: string,
+    body?: BodyInit,
+) {
+    const { terrainBaseUrl } = publicRuntimeConfig;
+
+    const token = await getServiceAccountToken();
+    if (!token) {
+        return NextResponse.json(
+            { message: "Could not get service account token." },
+            {
+                status: 500,
+            },
+        );
+    }
+
+    const response = await fetch(`${terrainBaseUrl}${url}`, {
+        method,
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body,
+    });
+
+    if (!response.ok) {
+        return terrainErrorResponse(url, response);
+    }
+
+    return response;
 }
 
 export async function serviceAccountUpdateSubscription(
@@ -131,19 +161,13 @@ export async function serviceAccountUpdateSubscription(
     plan_name: string,
     periods: number,
 ) {
-    const { terrainBaseUrl } = publicRuntimeConfig;
-
-    const token = await getServiceAccountToken();
-    if (!token) {
-        return {
-            success: false,
-            error: { message: "Could not get service account token." },
-        };
-    }
-
     const today = new Date();
     const currentEndDate = toDate(currentSubscription.effective_end_date);
-    const newStartDate = currentEndDate > today ? currentEndDate : today;
+    const newStartDate =
+        currentSubscription.plan.name !== constants.PLAN_NAME_BASIC &&
+        currentEndDate > today
+            ? currentEndDate
+            : today;
 
     const queryParams = new URLSearchParams({
         periods: periods.toString(),
@@ -158,13 +182,7 @@ export async function serviceAccountUpdateSubscription(
     const method = "PUT";
     const url = `/service/qms/users/${username}/plan/${plan_name}?${queryParams}`;
 
-    const response = await fetch(`${terrainBaseUrl}${url}`, {
-        method,
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-    });
+    const response = await serviceAccountCallTerrain(method, url);
 
     if (!response.ok) {
         const error = await parseErrorJson(response, url);
@@ -186,4 +204,62 @@ export async function serviceAccountUpdateSubscription(
     const data = await response.json();
 
     return { success: true, subscription: data };
+}
+
+export async function serviceAccountFetchAddons() {
+    const url = "/service/qms/addons";
+    const response = await serviceAccountCallTerrain("GET", url);
+
+    if (!response.ok) {
+        return terrainErrorResponse(url, response);
+    }
+
+    return response;
+}
+
+export async function serviceAccountUpdateAddons(
+    subscriptionId: string,
+    addons: Array<{ id?: string; quantity: number }>,
+) {
+    let success = true;
+    const addonsResults = [];
+
+    const method = "POST";
+    const url = `/service/qms/subscriptions/${subscriptionId}/addons`;
+
+    for (const addon of addons) {
+        for (let i = 0; i < addon.quantity; i++) {
+            const response = await serviceAccountCallTerrain(
+                method,
+                url,
+                JSON.stringify({ uuid: addon.id }),
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                addonsResults.push(data);
+            } else {
+                success = false;
+
+                const error = await parseErrorJson(response, url);
+
+                console.error("Could not update user subscription addon.", {
+                    error,
+                });
+
+                addonsResults.push({
+                    success: false,
+                    error: {
+                        message: "Could not update user subscription.",
+                        method,
+                        url,
+                        status: response.status,
+                        response: error,
+                    },
+                });
+            }
+        }
+    }
+
+    return { success, addons: addonsResults };
 }

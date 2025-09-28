@@ -1,6 +1,7 @@
 import { UUID } from "crypto";
 
 export type SubscriptionSummaryDetails = {
+    id: UUID;
     users: {
         username: string;
     };
@@ -39,6 +40,10 @@ export type SubscriptionSummaryDetails = {
     }>;
 };
 
+export type ResourceUsageSummary = {
+    subscription: SubscriptionSummaryDetails;
+};
+
 export type PlanType = {
     id: UUID;
     name: string;
@@ -54,15 +59,37 @@ export type PlanType = {
     }>;
 };
 
+export type AddonsType = {
+    uuid: UUID;
+    name: string;
+    description: string;
+    resource_type: {
+        name: string;
+        unit: string;
+    };
+    addon_rates: Array<{
+        rate: number;
+    }>;
+};
+
+export type AddonsList = {
+    addons: Array<AddonsType>;
+};
+
 export type SubscriptionSubmission = {
     username: string;
     plan_name: string;
     plan_rate?: number;
-    paid: boolean;
+    paid?: boolean;
     periods: number;
     start_date?: string;
     end_date?: string;
 };
+
+export enum LineItemIDEnum {
+    SUBSCRIPTION = "subscription",
+    ADDON = "addon",
+}
 
 export type TransactionRequest = {
     transactionType: string;
@@ -75,21 +102,30 @@ export type TransactionRequest = {
             cardCode: string;
         };
     };
-    lineItems?: Array<{
-        lineItem: {
-            // The ID of the subscription or add-on from QMS,
-            // not submitted to Authorize.net.
+    lineItems?: {
+        lineItem?: Array<{
+            /**
+             * The ID of the subscription or add-on from QMS,
+             * not submitted to Authorize.net.
+             */
             id?: UUID;
-            // The item type (subscription or add-on).
-            itemId: string;
-            // The plan name or add-on type.
+            /**
+             * The item type ("subscription" or "addon").
+             */
+            itemId: LineItemIDEnum;
+            /**
+             * The plan name or add-on name.
+             */
             name: string;
             description?: string;
             quantity: number;
             unitPrice: number;
-        };
-    }>;
+        }>;
+    };
     poNumber?: number;
+    customer?: {
+        email: string;
+    };
     billTo: {
         firstName: string;
         lastName: string;
@@ -135,6 +171,14 @@ export type OrderRequest = Pick<
     termsAcknowledged: boolean;
 };
 
+export type OrderUpdateError = {
+    method?: string;
+    url?: string;
+    status?: number;
+    message: string;
+    response?: object;
+};
+
 export type OrderUpdateResult = {
     success: boolean;
     message?: string | object;
@@ -144,13 +188,7 @@ export type OrderUpdateResult = {
         CreateTransactionResponse["transactionResponse"],
         "transId" | "errors"
     >;
-    error?: {
-        method?: string;
-        url?: string;
-        status?: number;
-        message: string;
-        response?: object;
-    };
+    error?: OrderUpdateError;
     subscription?: {
         status: string;
         result: Pick<
@@ -167,6 +205,22 @@ export type OrderUpdateResult = {
             }>;
         };
     };
+    addons?: Array<{
+        error?: OrderUpdateError;
+        subscription_addon?: {
+            uuid: UUID;
+            amount: number;
+            paid: boolean;
+            addon: {
+                name: string;
+                description: string;
+                resource_type: {
+                    name: string;
+                    unit: string;
+                };
+            };
+        };
+    }>;
 };
 
 export type TerrainError = {
