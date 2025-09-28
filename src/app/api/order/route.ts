@@ -20,7 +20,7 @@ import {
 import { addonProratedRate } from "@/utils/rates";
 import { OrderRequestSchema } from "@/validation";
 
-import { addDays, toDate } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 import { UUID } from "crypto";
 import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         // Validate the user's subscription end date.
         if (
             !subscriptionEndDate ||
-            toDate(subscriptionEndDate) > addDays(new Date(), 30)
+            differenceInCalendarDays(subscriptionEndDate, new Date()) > 30
         ) {
             return NextResponse.json(
                 {

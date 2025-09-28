@@ -27,7 +27,7 @@ import EditAddons from "@/components/forms/EditAddons";
 import EditSubscription from "@/components/forms/EditSubscription";
 import { dateConstants, formatDate, formatFileSize } from "@/utils/formatUtils";
 
-import { addDays, toDate } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 
 import {
     Box,
@@ -80,7 +80,7 @@ const SubscriptionSummary = () => {
     };
 
     const handleEditSubscriptionClick = () => {
-        if (!endDate || toDate(endDate) > addDays(new Date(), 30)) {
+        if (!endDate || differenceInCalendarDays(endDate, new Date()) > 30) {
             announce({
                 text: "You cannot renew your subscription more than 30 days before the end date.",
                 variant: ERROR,
