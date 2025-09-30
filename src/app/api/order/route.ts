@@ -145,6 +145,20 @@ export async function POST(request: NextRequest) {
                             serverRuntimeConfig.authorizeNetTestRequests !==
                             "false",
                     },
+                    {
+                        settingName: "emailCustomer",
+                        settingValue: true,
+                    },
+                    {
+                        settingName: "headerEmailReceipt",
+                        settingValue:
+                            "Thank you for your purchase with CyVerse! We greatly appreciate your business.",
+                    },
+                    {
+                        settingName: "footerEmailReceipt",
+                        settingValue:
+                            "Please feel free to contact us at support@cyverse.org if you have any questions or encounter any problems.",
+                    },
                 ],
             },
         } as TransactionRequest,
