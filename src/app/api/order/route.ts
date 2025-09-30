@@ -12,6 +12,7 @@ import {
     TransactionRequest,
 } from "@/app/api/types";
 import {
+    serviceAccountEmailReceipt,
     serviceAccountFetchAddons,
     serviceAccountUpdateAddons,
     serviceAccountUpdateSubscription,
@@ -354,6 +355,13 @@ export async function POST(request: NextRequest) {
             success: responseJson.success && addonsUpdateResult.success,
         };
     }
+
+    await serviceAccountEmailReceipt(
+        session.user?.username || "",
+        session.user?.email || "",
+        lineItems,
+        responseJson,
+    );
 
     return NextResponse.json(responseJson);
 }

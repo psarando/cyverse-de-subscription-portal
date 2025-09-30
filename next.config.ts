@@ -39,6 +39,12 @@ const appConfiguration = {
         isPublic: true,
         defaultValue: "https://de.cyverse.org/terrain",
     },
+    supportEmail: {
+        variable: "SP_CYVERSE_SUPPORT_EMAIL",
+        required: false,
+        isPublic: false,
+        defaultValue: "support@cyverse.org",
+    },
     dbDatabase: {
         variable: "DB_DATABASE",
         required: true,
