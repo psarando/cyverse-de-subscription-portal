@@ -19,7 +19,7 @@ export const addonProratedRate = (
         const addonRate = addon.addon_rates[0].rate;
         const prorateAddonPrice = Math.round(addonRate * prorateDaysRemaining);
 
-        return Math.min(prorateAddonPrice, 1);
+        return Math.max(prorateAddonPrice, 1);
     }
 
     return 0;
