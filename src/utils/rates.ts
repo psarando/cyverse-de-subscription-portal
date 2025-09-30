@@ -17,9 +17,9 @@ export const addonProratedRate = (
 
     if (prorateDaysRemaining && addon) {
         const addonRate = addon.addon_rates[0].rate;
-        const prorateAddonPrice = Math.floor(addonRate * prorateDaysRemaining);
+        const prorateAddonPrice = Math.round(addonRate * prorateDaysRemaining);
 
-        return prorateAddonPrice;
+        return Math.min(prorateAddonPrice, 1);
     }
 
     return 0;
