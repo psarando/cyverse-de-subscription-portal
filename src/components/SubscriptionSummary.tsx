@@ -80,7 +80,10 @@ const SubscriptionSummary = () => {
     };
 
     const handleEditSubscriptionClick = () => {
-        if (!endDate || differenceInCalendarDays(endDate, new Date()) > 30) {
+        if (
+            currentPlanName !== constants.PLAN_NAME_BASIC &&
+            (!endDate || differenceInCalendarDays(endDate, new Date()) > 30)
+        ) {
             announce({
                 text: "You cannot renew your subscription more than 30 days before the end date.",
                 variant: ERROR,

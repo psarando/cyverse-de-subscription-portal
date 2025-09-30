@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import constants from "@/constants";
 import { addPurchaseRecord, addTransactionResponse } from "@/db";
 import {
     AddonsList,
@@ -155,8 +156,9 @@ export async function POST(request: NextRequest) {
     if (subscription) {
         // Validate the user's subscription end date.
         if (
-            !subscriptionEndDate ||
-            differenceInCalendarDays(subscriptionEndDate, new Date()) > 30
+            currentSubscription?.plan.name !== constants.PLAN_NAME_BASIC &&
+            (!subscriptionEndDate ||
+                differenceInCalendarDays(subscriptionEndDate, new Date()) > 30)
         ) {
             return NextResponse.json(
                 {
