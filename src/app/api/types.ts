@@ -44,6 +44,11 @@ export type ResourceUsageSummary = {
     subscription: SubscriptionSummaryDetails;
 };
 
+type ResourceType = {
+    name: string;
+    unit: string;
+};
+
 export type PlanType = {
     id: UUID;
     name: string;
@@ -52,10 +57,7 @@ export type PlanType = {
     plan_quota_defaults: Array<{
         id: UUID;
         quota_value: number;
-        resource_type: {
-            name: string;
-            unit: string;
-        };
+        resource_type: ResourceType;
     }>;
 };
 
@@ -63,10 +65,7 @@ export type AddonsType = {
     uuid: UUID;
     name: string;
     description: string;
-    resource_type: {
-        name: string;
-        unit: string;
-    };
+    resource_type: ResourceType;
     addon_rates: Array<{
         rate: number;
     }>;
@@ -198,10 +197,7 @@ export type OrderUpdateResult = {
             quotas: Array<{
                 id: UUID;
                 quota: number;
-                resource_type: {
-                    name: string;
-                    unit: string;
-                };
+                resource_type: ResourceType;
             }>;
         };
     };
@@ -214,10 +210,7 @@ export type OrderUpdateResult = {
             addon: {
                 name: string;
                 description: string;
-                resource_type: {
-                    name: string;
-                    unit: string;
-                };
+                resource_type: ResourceType;
             };
         };
     }>;
