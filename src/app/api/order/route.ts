@@ -356,7 +356,7 @@ export async function POST(request: NextRequest) {
         };
     }
 
-    await serviceAccountEmailReceipt(
+    serviceAccountEmailReceipt(
         session.user?.username || "",
         session.user?.email || "",
         lineItems,
