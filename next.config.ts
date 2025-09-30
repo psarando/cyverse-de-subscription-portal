@@ -18,6 +18,12 @@ const appConfiguration = {
         required: true,
         isPublic: false,
     },
+    authorizeNetTestRequests: {
+        variable: "SP_AUTHORIZE_NET_TEST_REQUESTS",
+        required: false,
+        isPublic: false,
+        defaultValue: "false",
+    },
     keycloakIssuer: {
         variable: "SP_KEYCLOAK_ISSUER",
         required: true,

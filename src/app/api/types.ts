@@ -136,6 +136,12 @@ export type TransactionRequest = {
         country: string;
     };
     customerIP?: string;
+    transactionSettings: {
+        setting: Array<{
+            settingName: string;
+            settingValue: string | boolean;
+        }>;
+    };
 };
 
 type CreateTransactionResponseMessage = { code: string; text: string };

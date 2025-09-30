@@ -119,6 +119,16 @@ export async function POST(request: NextRequest) {
             customer: { email: session.user?.email },
             billTo: { firstName, lastName, company, address, city, state, zip },
             customerIP,
+            transactionSettings: {
+                setting: [
+                    {
+                        settingName: "testRequest",
+                        settingValue:
+                            serverRuntimeConfig.authorizeNetTestRequests !==
+                            "false",
+                    },
+                ],
+            },
         } as TransactionRequest,
     };
 
