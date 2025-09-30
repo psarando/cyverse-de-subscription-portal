@@ -38,14 +38,14 @@ type Purchase = {
     payment_id: UUID;
     po_number: number;
     billing_information_id: UUID;
-    order_date: string; // timestampz, typically as ISO string (yyyy-MM-dd'T'HH:mm:ssXXX)
+    order_date: Date; // timestampz, returned as JS Date
 };
 
 // Represents a row in the "payments" table.
 type Payment = {
     id: UUID;
     credit_card_number: string; // char(4)
-    expiration_date: string; // date, typically as ISO string (YYYY-MM-DD)
+    expiration_date: Date; // date (YYYY-MM-DD), returned as JS Date
 };
 
 // Represents a row in the "billing_information" table.

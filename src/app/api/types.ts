@@ -182,7 +182,10 @@ export type OrderUpdateResult = {
     success: boolean;
     message?: string | object;
     poNumber?: number;
-    orderDate?: string;
+    /**
+     * Date when read from the db, or string from the /api/order endpoint.
+     */
+    orderDate?: Date | string;
     transactionResponse?: Pick<
         CreateTransactionResponse["transactionResponse"],
         "transId" | "errors"
