@@ -91,7 +91,16 @@ export async function POST(request: NextRequest) {
             creditCard: { cardNumber, expirationDate, cardCode },
         },
         lineItems,
-        billTo: { firstName, lastName, company, address, city, state, zip },
+        billTo: {
+            firstName,
+            lastName,
+            company,
+            address,
+            city,
+            state,
+            zip,
+            country,
+        },
     } = orderRequest;
 
     const createTransactionRequest = {
@@ -117,7 +126,16 @@ export async function POST(request: NextRequest) {
             },
             poNumber: 0, // placeholder
             customer: { email: session.user?.email },
-            billTo: { firstName, lastName, company, address, city, state, zip },
+            billTo: {
+                firstName,
+                lastName,
+                company,
+                address,
+                city,
+                state,
+                zip,
+                country,
+            },
             customerIP,
             transactionSettings: {
                 setting: [
