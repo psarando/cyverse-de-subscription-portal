@@ -2,7 +2,11 @@ import { auth } from "@/auth";
 import constants from "@/constants";
 import { dateConstants, formatDate } from "@/utils/formatUtils";
 
-import { SubscriptionSummaryDetails } from "./types";
+import {
+    OrderUpdateResult,
+    SubscriptionSummaryDetails,
+    TransactionRequest,
+} from "./types";
 
 import { addSeconds, toDate } from "date-fns";
 import getConfig from "next/config";
@@ -262,4 +266,66 @@ export async function serviceAccountUpdateAddons(
     }
 
     return { success, addons: addonsResults };
+}
+
+export async function serviceAccountEmailReceipt(
+    username: string,
+    email: string,
+    lineItems: TransactionRequest["lineItems"] | undefined,
+    {
+        success,
+        poNumber,
+        orderDate,
+        transactionResponse,
+        subscription,
+        addons,
+    }: OrderUpdateResult,
+) {
+    const method = "POST";
+    const url = "/service/email";
+    const body = {
+        to: success ? email : serverRuntimeConfig.supportEmail,
+        from_addr: "support@cyverse.org",
+        from_name: "CyVerse Subscription Portal",
+        subject: `CyVerse Subscription Order #${poNumber}`,
+        template: success
+            ? "subscription_purchase_complete"
+            : "subscription_purchase_admin_required",
+        values: {
+            PoNumber: poNumber,
+            PurchaseTime: formatDate(
+                new Date(orderDate as Date),
+                dateConstants.ISO_8601,
+            ),
+            TransactionId: transactionResponse?.transId,
+            SubscriptionLevel: subscription?.result.plan.name,
+            SubscriptionDetails: success
+                ? undefined
+                : JSON.stringify(
+                      { username, lineItems, subscription, addons },
+                      null,
+                      2,
+                  ),
+        },
+    };
+
+    const response = await serviceAccountCallTerrain(
+        method,
+        url,
+        JSON.stringify(body),
+    );
+
+    if (response.ok) {
+        const result = await response.json();
+        console.log("Order receipt email status.", { result });
+    } else {
+        const error = await parseErrorJson(response, url);
+
+        console.error(
+            "Could not send order receipt email.",
+            { body },
+            { error },
+            { reason: error.reason },
+        );
+    }
 }
