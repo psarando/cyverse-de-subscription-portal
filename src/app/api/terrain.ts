@@ -281,51 +281,68 @@ export async function serviceAccountEmailReceipt(
         addons,
     }: OrderUpdateResult,
 ) {
-    const method = "POST";
-    const url = "/service/email";
+    const values = {
+        PoNumber: poNumber,
+        PurchaseTime: formatDate(
+            new Date(orderDate as Date),
+            dateConstants.ISO_8601,
+        ),
+        TransactionId: transactionResponse?.transId,
+        SubscriptionLevel: subscription?.result.plan.name,
+    };
+
     const body = {
-        to: success ? email : serverRuntimeConfig.supportEmail,
         from_addr: "support@cyverse.org",
         from_name: "CyVerse Subscription Portal",
         subject: `CyVerse Subscription Order #${poNumber}`,
-        template: success
-            ? "subscription_purchase_complete"
-            : "subscription_purchase_admin_required",
-        values: {
-            PoNumber: poNumber,
-            PurchaseTime: formatDate(
-                new Date(orderDate as Date),
-                dateConstants.ISO_8601,
-            ),
-            TransactionId: transactionResponse?.transId,
-            SubscriptionLevel: subscription?.result.plan.name,
-            SubscriptionDetails: success
-                ? undefined
-                : JSON.stringify(
-                      { username, lineItems, subscription, addons },
-                      null,
-                      2,
-                  ),
-        },
+        template: "subscription_purchase_complete",
+        values,
     };
 
-    const response = await serviceAccountCallTerrain(
-        method,
-        url,
-        JSON.stringify(body),
-    );
+    serviceAccountSendEmail({ ...body, to: email });
 
-    if (response.ok) {
-        const result = await response.json();
-        console.log("Order receipt email status.", { result });
+    if (success) {
+        serviceAccountSendEmail({
+            ...body,
+            to: serverRuntimeConfig.supportEmail,
+        });
     } else {
-        const error = await parseErrorJson(response, url);
-
-        console.error(
-            "Could not send order receipt email.",
-            { body },
-            { error },
-            { reason: error.reason },
-        );
+        serviceAccountSendEmail({
+            ...body,
+            to: serverRuntimeConfig.supportEmail,
+            template: "subscription_purchase_admin_required",
+            values: {
+                ...values,
+                SubscriptionDetails: JSON.stringify(
+                    { username, lineItems, subscription, addons },
+                    null,
+                    2,
+                ),
+            },
+        });
     }
+}
+
+async function serviceAccountSendEmail(body: object) {
+    const url = "/service/email";
+
+    serviceAccountCallTerrain("POST", url, JSON.stringify(body))
+        .then((response) => {
+            if (!response.ok) {
+                parseErrorJson(response, url).then((error) =>
+                    console.error(
+                        "Could not send order receipt email.",
+                        JSON.stringify({ body }),
+                        JSON.stringify({ error }),
+                    ),
+                );
+            }
+        })
+        .catch((error) => {
+            console.error(
+                "Could not send order receipt email.",
+                JSON.stringify({ body }),
+                error,
+            );
+        });
 }
