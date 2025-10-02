@@ -5,9 +5,8 @@ import { useCartInfo } from "@/contexts/cart";
 import { HttpError } from "@/app/api/serviceFacade";
 import ExternalLink from "@/components/common/ExternalLink";
 import GridLabelValue from "@/components/common/GridLabelValue";
-import { FormattedQuota } from "@/components/common/QuotaDetails";
 import ErrorTypographyWithDialog from "@/components/common/error/ErrorTypographyWithDialog";
-import { dateConstants, formatDate } from "@/utils/formatUtils";
+import { dateConstants, formatDate, formatQuota } from "@/utils/formatUtils";
 
 import { Grid, Stack, Typography } from "@mui/material";
 
@@ -114,13 +113,12 @@ function OrderConfirmation() {
                                     {subscription &&
                                         subscription.quotas.length > 0 &&
                                         subscription.quotas.map((item) => (
-                                            <FormattedQuota
-                                                key={item.id}
-                                                quota={item.quota}
-                                                resourceUnit={
-                                                    item.resource_type.unit
-                                                }
-                                            />
+                                            <Typography key={item.id}>
+                                                {formatQuota(
+                                                    item.quota,
+                                                    item.resource_type.unit,
+                                                )}
+                                            </Typography>
                                         ))}
                                 </GridLabelValue>
                             </Grid>

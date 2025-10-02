@@ -1,11 +1,17 @@
 import { auth } from "@/auth";
 import constants from "@/constants";
-import { dateConstants, formatDate } from "@/utils/formatUtils";
+import {
+    dateConstants,
+    formatCurrency,
+    formatDate,
+    formatQuota,
+} from "@/utils/formatUtils";
 
 import {
+    LineItemIDEnum,
+    OrderRequest,
     OrderUpdateResult,
     SubscriptionSummaryDetails,
-    TransactionRequest,
 } from "./types";
 
 import { addSeconds, toDate } from "date-fns";
@@ -271,7 +277,7 @@ export async function serviceAccountUpdateAddons(
 export async function serviceAccountEmailReceipt(
     username: string,
     email: string,
-    lineItems: TransactionRequest["lineItems"] | undefined,
+    orderRequest: OrderRequest,
     {
         success,
         poNumber,
@@ -281,14 +287,60 @@ export async function serviceAccountEmailReceipt(
         addons,
     }: OrderUpdateResult,
 ) {
+    const { amount, lineItems, billTo } = orderRequest;
+    const orderedSubscription = orderRequest.lineItems?.lineItem?.find(
+        (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
+    );
+
     const values = {
+        Amount: formatCurrency(amount),
         PoNumber: poNumber,
         PurchaseTime: formatDate(
             new Date(orderDate as Date),
             dateConstants.ISO_8601,
         ),
         TransactionId: transactionResponse?.transId,
+        BillToName: `${billTo.firstName} ${billTo.lastName}`,
+        BillToCompany: billTo.company,
+        BillToAddress: [
+            billTo.address,
+            billTo.city,
+            billTo.state,
+            billTo.zip,
+            billTo.country,
+        ].join(", "),
+        CardType: transactionResponse?.accountType,
+        CardNumberEnding: transactionResponse?.accountNumber,
+        CardExpiration: orderRequest.payment.creditCard.expirationDate,
         SubscriptionLevel: subscription?.result.plan.name,
+        SubscriptionPeriod:
+            orderedSubscription?.quantity === 1 ? "1 Year" : "2 Years",
+        SubscriptionPrice: formatCurrency(orderedSubscription?.unitPrice),
+        SubscriptionStartDate: subscription
+            ? formatDate(
+                  subscription.result.effective_start_date,
+                  dateConstants.DATE_FORMAT,
+              )
+            : undefined,
+        SubscriptionEndDate: subscription
+            ? formatDate(
+                  subscription.result.effective_end_date,
+                  dateConstants.DATE_FORMAT,
+              )
+            : undefined,
+        SubscriptionQuotas: subscription?.result.quotas.map((item) =>
+            formatQuota(item.quota, item.resource_type.unit),
+        ),
+        Addons: addons?.map((addon) => {
+            const orderedAddon = orderRequest.lineItems?.lineItem?.find(
+                (item) => item.id === addon.subscription_addon?.uuid,
+            );
+            return {
+                Name: addon.subscription_addon?.addon.name,
+                Quantity: orderedAddon?.quantity,
+                Price: formatCurrency(orderedAddon?.unitPrice),
+            };
+        }),
     };
 
     const body = {
@@ -314,7 +366,14 @@ export async function serviceAccountEmailReceipt(
             values: {
                 ...values,
                 SubscriptionDetails: JSON.stringify(
-                    { username, lineItems, subscription, addons },
+                    {
+                        username,
+                        poNumber,
+                        transactionId: transactionResponse?.transId,
+                        lineItems,
+                        subscription,
+                        addons,
+                    },
                     null,
                     2,
                 ),

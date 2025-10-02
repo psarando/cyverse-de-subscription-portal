@@ -43,5 +43,14 @@ export const formatFileSize = (size: number) => {
 
 export const formatUsage = (usage: number) => numeral(usage).format("0.00000");
 
-export const formatCurrency = (amount: number) =>
+export const formatCurrency = (amount?: number) =>
     numeral(amount).format("$0,0");
+
+export const formatQuota = (quota: number, resourceUnit: string) => {
+    // Only format data storage resources to human readable format
+    const resourceInBytes = resourceUnit.toLowerCase() === "bytes";
+
+    return resourceInBytes
+        ? formatFileSize(quota)
+        : `${quota} ${resourceUnit} `;
+};

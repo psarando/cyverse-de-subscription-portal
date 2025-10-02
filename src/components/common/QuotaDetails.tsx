@@ -1,26 +1,7 @@
 import { SubscriptionSummaryDetails } from "@/app/api/types";
-import { formatFileSize } from "@/utils/formatUtils";
+import { formatQuota } from "@/utils/formatUtils";
 
 import { Typography } from "@mui/material";
-
-export const FormattedQuota = ({
-    quota,
-    resourceUnit,
-}: {
-    quota: number;
-    resourceUnit: string;
-}) => {
-    // Only format data storage resources to human readable format
-    const resourceInBytes = resourceUnit.toLowerCase() === "bytes";
-
-    return (
-        <Typography>
-            {resourceInBytes
-                ? formatFileSize(quota)
-                : `${quota} ${resourceUnit} `}
-        </Typography>
-    );
-};
 
 const QuotaDetails = ({
     subscription,
@@ -32,11 +13,12 @@ const QuotaDetails = ({
             {subscription &&
                 subscription.quotas.length > 0 &&
                 subscription.quotas.map((item) => (
-                    <FormattedQuota
-                        key={item.id}
-                        quota={item.quota}
-                        resourceUnit={item.resource_type.description}
-                    />
+                    <Typography key={item.id}>
+                        {formatQuota(
+                            item.quota,
+                            item.resource_type.description,
+                        )}
+                    </Typography>
                 ))}
         </>
     );

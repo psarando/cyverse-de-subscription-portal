@@ -194,7 +194,7 @@ export type OrderUpdateResult = {
     orderDate?: Date | string;
     transactionResponse?: Pick<
         CreateTransactionResponse["transactionResponse"],
-        "transId" | "errors"
+        "transId" | "accountNumber" | "accountType" | "errors"
     >;
     error?: OrderUpdateError;
     subscription?: {
