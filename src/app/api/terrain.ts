@@ -86,7 +86,7 @@ export async function callTerrain(
     return NextResponse.json(data);
 }
 
-export async function getServiceAccountToken() {
+async function getServiceAccountToken() {
     if (
         !serviceAccountToken ||
         !serviceAccountToken.accessTokenExp ||
@@ -133,7 +133,7 @@ export async function getServiceAccountToken() {
     return serviceAccountToken?.access_token;
 }
 
-export async function serviceAccountCallTerrain(
+async function serviceAccountCallTerrain(
     method: string,
     url: string,
     body?: BodyInit,
