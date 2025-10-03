@@ -349,14 +349,13 @@ export async function serviceAccountEmailReceipt(
         values,
     };
 
-    serviceAccountSendEmail({ ...body, to: email });
+    serviceAccountSendEmail({
+        ...body,
+        to: email,
+        bcc: [serverRuntimeConfig.supportEmail],
+    });
 
-    if (success) {
-        serviceAccountSendEmail({
-            ...body,
-            to: serverRuntimeConfig.supportEmail,
-        });
-    } else {
+    if (!success) {
         serviceAccountSendEmail({
             ...body,
             to: serverRuntimeConfig.supportEmail,
