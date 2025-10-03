@@ -285,6 +285,7 @@ export async function serviceAccountEmailReceipt(
         transactionResponse,
         subscription,
         addons,
+        error,
     }: OrderUpdateResult,
 ) {
     const { amount, lineItems, billTo } = orderRequest;
@@ -368,6 +369,7 @@ export async function serviceAccountEmailReceipt(
                         poNumber,
                         transactionId: transactionResponse?.transId,
                         lineItems,
+                        error,
                         subscription,
                         addons,
                     },
