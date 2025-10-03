@@ -19,7 +19,7 @@ export default function Info({
     subscriptionEndDate,
 }: {
     cartInfo: CartInfo;
-    subscriptionEndDate?: number;
+    subscriptionEndDate?: string;
 }) {
     return (
         <React.Fragment>

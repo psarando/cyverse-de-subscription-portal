@@ -8,8 +8,8 @@ export type SubscriptionSummaryDetails = {
     plan: {
         name: string;
     };
-    effective_start_date: number;
-    effective_end_date: number;
+    effective_start_date: string;
+    effective_end_date: string;
     quotas: Array<{
         id: UUID;
         quota: number;

@@ -312,39 +312,37 @@ export async function serviceAccountEmailReceipt(
         CardType: transactionResponse?.accountType,
         CardNumberEnding: transactionResponse?.accountNumber,
         CardExpiration: orderRequest.payment.creditCard.expirationDate,
-        SubscriptionLevel: subscription?.result.plan.name,
+        SubscriptionLevel:
+            subscription?.result.plan.name ?? orderedSubscription?.name,
         SubscriptionPeriod:
             orderedSubscription?.quantity === 1 ? "1 Year" : "2 Years",
         SubscriptionPrice: formatCurrency(orderedSubscription?.unitPrice),
         SubscriptionStartDate: subscription
             ? formatDate(
-                  subscription.result.effective_start_date,
+                  new Date(subscription.result.effective_start_date),
                   dateConstants.DATE_FORMAT,
               )
             : undefined,
         SubscriptionEndDate: subscription
             ? formatDate(
-                  subscription.result.effective_end_date,
+                  new Date(subscription.result.effective_end_date),
                   dateConstants.DATE_FORMAT,
               )
             : undefined,
         SubscriptionQuotas: subscription?.result.quotas.map((item) =>
             formatQuota(item.quota, item.resource_type.unit),
         ),
-        Addons: addons?.map((addon) => {
-            const orderedAddon = orderRequest.lineItems?.lineItem?.find(
-                (item) => item.id === addon.subscription_addon?.uuid,
-            );
-            return {
-                Name: addon.subscription_addon?.addon.name,
-                Quantity: orderedAddon?.quantity,
-                Price: formatCurrency(orderedAddon?.unitPrice),
-            };
-        }),
+        Addons: orderRequest.lineItems?.lineItem
+            ?.filter((item) => item.itemId === LineItemIDEnum.ADDON)
+            ?.map((addon) => ({
+                Name: addon.name,
+                Quantity: addon.quantity,
+                Price: formatCurrency(addon.unitPrice),
+            })),
     };
 
     const body = {
-        from_addr: "support@cyverse.org",
+        from_addr: serverRuntimeConfig.supportEmail,
         from_name: "CyVerse Subscription Portal",
         subject: `CyVerse Subscription Order #${poNumber}`,
         template: "subscription_purchase_complete",

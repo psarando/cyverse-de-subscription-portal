@@ -21,7 +21,7 @@ export default function InfoMobile({
     subscriptionEndDate,
 }: {
     cartInfo: CartInfo;
-    subscriptionEndDate?: number;
+    subscriptionEndDate?: string;
 }) {
     const [open, setOpen] = React.useState(false);
 
