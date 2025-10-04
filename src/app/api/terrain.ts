@@ -1,11 +1,17 @@
 import { auth } from "@/auth";
 import constants from "@/constants";
-import { dateConstants, formatDate } from "@/utils/formatUtils";
+import {
+    dateConstants,
+    formatCurrency,
+    formatDate,
+    formatQuota,
+} from "@/utils/formatUtils";
 
 import {
+    LineItemIDEnum,
+    OrderRequest,
     OrderUpdateResult,
     SubscriptionSummaryDetails,
-    TransactionRequest,
 } from "./types";
 
 import { addSeconds, toDate } from "date-fns";
@@ -80,7 +86,7 @@ export async function callTerrain(
     return NextResponse.json(data);
 }
 
-export async function getServiceAccountToken() {
+async function getServiceAccountToken() {
     if (
         !serviceAccountToken ||
         !serviceAccountToken.accessTokenExp ||
@@ -127,7 +133,7 @@ export async function getServiceAccountToken() {
     return serviceAccountToken?.access_token;
 }
 
-export async function serviceAccountCallTerrain(
+async function serviceAccountCallTerrain(
     method: string,
     url: string,
     body?: BodyInit,
@@ -271,7 +277,7 @@ export async function serviceAccountUpdateAddons(
 export async function serviceAccountEmailReceipt(
     username: string,
     email: string,
-    lineItems: TransactionRequest["lineItems"] | undefined,
+    orderRequest: OrderRequest,
     {
         success,
         poNumber,
@@ -279,34 +285,78 @@ export async function serviceAccountEmailReceipt(
         transactionResponse,
         subscription,
         addons,
+        error,
     }: OrderUpdateResult,
 ) {
+    const { amount, lineItems, billTo } = orderRequest;
+    const orderedSubscription = orderRequest.lineItems?.lineItem?.find(
+        (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
+    );
+
     const values = {
+        Amount: formatCurrency(amount),
         PoNumber: poNumber,
         PurchaseTime: formatDate(
             new Date(orderDate as Date),
             dateConstants.ISO_8601,
         ),
         TransactionId: transactionResponse?.transId,
-        SubscriptionLevel: subscription?.result.plan.name,
+        BillToName: `${billTo.firstName} ${billTo.lastName}`,
+        BillToCompany: billTo.company,
+        BillToAddress: [
+            billTo.address,
+            billTo.city,
+            billTo.state,
+            billTo.zip,
+            billTo.country,
+        ].join(", "),
+        CardType: transactionResponse?.accountType,
+        CardNumberEnding: transactionResponse?.accountNumber,
+        CardExpiration: orderRequest.payment.creditCard.expirationDate,
+        SubscriptionLevel:
+            subscription?.result.plan.name ?? orderedSubscription?.name,
+        SubscriptionPeriod:
+            orderedSubscription?.quantity === 1 ? "1 Year" : "2 Years",
+        SubscriptionPrice: formatCurrency(orderedSubscription?.unitPrice),
+        SubscriptionStartDate: subscription
+            ? formatDate(
+                  new Date(subscription.result.effective_start_date),
+                  dateConstants.DATE_FORMAT,
+              )
+            : undefined,
+        SubscriptionEndDate: subscription
+            ? formatDate(
+                  new Date(subscription.result.effective_end_date),
+                  dateConstants.DATE_FORMAT,
+              )
+            : undefined,
+        SubscriptionQuotas: subscription?.result.quotas.map((item) =>
+            formatQuota(item.quota, item.resource_type.unit),
+        ),
+        Addons: orderRequest.lineItems?.lineItem
+            ?.filter((item) => item.itemId === LineItemIDEnum.ADDON)
+            ?.map((addon) => ({
+                Name: addon.name,
+                Quantity: addon.quantity,
+                Price: formatCurrency(addon.unitPrice),
+            })),
     };
 
     const body = {
-        from_addr: "support@cyverse.org",
+        from_addr: serverRuntimeConfig.supportEmail,
         from_name: "CyVerse Subscription Portal",
         subject: `CyVerse Subscription Order #${poNumber}`,
         template: "subscription_purchase_complete",
         values,
     };
 
-    serviceAccountSendEmail({ ...body, to: email });
+    serviceAccountSendEmail({
+        ...body,
+        to: email,
+        bcc: [serverRuntimeConfig.supportEmail],
+    });
 
-    if (success) {
-        serviceAccountSendEmail({
-            ...body,
-            to: serverRuntimeConfig.supportEmail,
-        });
-    } else {
+    if (!success) {
         serviceAccountSendEmail({
             ...body,
             to: serverRuntimeConfig.supportEmail,
@@ -314,7 +364,15 @@ export async function serviceAccountEmailReceipt(
             values: {
                 ...values,
                 SubscriptionDetails: JSON.stringify(
-                    { username, lineItems, subscription, addons },
+                    {
+                        username,
+                        poNumber,
+                        transactionId: transactionResponse?.transId,
+                        lineItems,
+                        error,
+                        subscription,
+                        addons,
+                    },
                     null,
                     2,
                 ),

@@ -27,7 +27,7 @@ export default function Review({
     orderError,
 }: {
     cartInfo: CartInfo;
-    subscriptionEndDate?: number;
+    subscriptionEndDate?: string;
     values: CheckoutFormValues;
     orderError: OrderError | null;
 }) {

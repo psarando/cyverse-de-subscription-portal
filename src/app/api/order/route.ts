@@ -403,7 +403,7 @@ export async function POST(request: NextRequest) {
     serviceAccountEmailReceipt(
         session.user?.username || "",
         session.user?.email || "",
-        lineItems,
+        orderRequest,
         responseJson,
     );
 

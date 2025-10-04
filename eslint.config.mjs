@@ -1,18 +1,21 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
+import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
 import pluginQuery from "@tanstack/eslint-plugin-query";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 const compat = new FlatCompat({
-    baseDirectory: __dirname,
+    // import.meta.dirname is available after Node.js v20.11.0
+    baseDirectory: import.meta.dirname,
+    recommendedConfig: js.configs.recommended,
 });
 
 const eslintConfig = [
     ...pluginQuery.configs["flat/recommended"],
-    ...compat.extends("next/core-web-vitals", "next/typescript", "prettier"),
+    ...compat.extends(
+        "eslint:recommended",
+        "next/core-web-vitals",
+        "next/typescript",
+        "prettier",
+    ),
 ];
 
 export default eslintConfig;

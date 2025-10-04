@@ -92,7 +92,7 @@ export function formatCheckoutFormValues(): CheckoutFormValues {
 
 export function formatCheckoutTransactionRequest(
     username: string,
-    subscriptionEndDate: number | undefined,
+    subscriptionEndDate: string | undefined,
     cartInfo: CartInfo,
     values: CheckoutFormValues,
 ): OrderRequest {
