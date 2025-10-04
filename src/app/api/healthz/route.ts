@@ -1,4 +1,5 @@
 import { healthCheck } from "@/db";
+import logger from "@/logging";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
             status = 200;
         }
     } catch (e) {
-        console.error("Database error", e);
+        logger.error("Database error", e);
     }
 
     return NextResponse.json({ databaseOK }, { status });
