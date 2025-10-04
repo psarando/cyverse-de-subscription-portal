@@ -3,6 +3,7 @@
  *
  * @author sriram, psarando
  */
+import logger from "@/logging";
 import { HttpError } from "@/app/api/serviceFacade";
 import SignInCard from "@/components/SignInCard";
 import ContactSupport from "@/components/common/ContactSupport";
@@ -83,7 +84,7 @@ const ParsedErrorCard = ({ errorObject }: { errorObject: HttpError }) => {
     try {
         errorData = JSON.parse(errorObject.response);
     } catch {
-        console.error({ errorResponse: errorObject.response });
+        logger.error({ errorResponse: errorObject.response });
     }
 
     return (

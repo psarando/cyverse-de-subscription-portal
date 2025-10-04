@@ -28,6 +28,7 @@ import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import logger from "@/logging";
 import {
     getPlanTypes,
     getResourceUsageSummary,
@@ -269,7 +270,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                                 });
                             }
                         } catch {
-                            console.error({
+                            logger.error({
                                 errorResponse: error.response,
                             });
                         }
