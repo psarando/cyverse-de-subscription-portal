@@ -13,7 +13,7 @@ export async function GET() {
             status = 200;
         }
     } catch (e) {
-        logger.error("Database error", e);
+        logger.error("Database error: %O", e);
     }
 
     return NextResponse.json({ databaseOK }, { status });
