@@ -1,3 +1,4 @@
+import logger from "@/logging";
 import { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
@@ -109,7 +110,7 @@ function loadConfig(phase: string) {
 
             // Log an error if a required configuration setting isn't defined.
             if (required && !defined) {
-                console.log(
+                logger.error(
                     `configuration error [${key}]: ${variable} is not defined`,
                 );
                 configurationError = true;

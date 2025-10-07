@@ -1,6 +1,7 @@
 /**
  * @author psarando
  */
+import logger from "@/logging";
 import {
     CreateTransactionResponse,
     LineItemIDEnum,
@@ -26,9 +27,9 @@ const db = new Client({
     idle_in_transaction_session_timeout: serverRuntimeConfig.dbTimeout,
 });
 
-await db
-    .connect()
-    .catch((e) => console.error("Could not connect to database.", e));
+await db.connect().catch((e) => {
+    logger.error("Could not connect to database: %O", e);
+});
 
 // Represents a row in the "purchases" table.
 type Purchase = {
@@ -177,13 +178,11 @@ export async function addPurchaseRecord(
 
         await db.query("COMMIT");
     } catch (e) {
-        await db
-            .query("ROLLBACK")
-            .catch((dbErr) =>
-                console.error("Could not rollback transaction.", dbErr),
-            );
+        await db.query("ROLLBACK").catch((dbErr) => {
+            logger.error("Could not rollback transaction: %O", dbErr);
+        });
 
-        console.error("Could not add purchase order.", e);
+        logger.error("Could not add purchase order: %O", e);
     }
 
     return { poNumber, purchaseId, orderDate };
@@ -351,7 +350,7 @@ export async function addTransactionResponse(
         const { transactionResponse, messages } = response;
 
         if (!transactionResponse) {
-            console.error(
+            logger.error(
                 "No transactionResponse found in CreateTransactionResponse.",
             );
             return responseId;
@@ -446,7 +445,7 @@ export async function addTransactionResponse(
             }
         }
     } catch (e) {
-        console.error("Error saving TransactionResponse to the database.", e);
+        logger.error("Error saving TransactionResponse to the database: %O", e);
     }
 
     return responseId;

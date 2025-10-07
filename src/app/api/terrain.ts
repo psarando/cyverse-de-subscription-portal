@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import constants from "@/constants";
+import logger from "@/logging";
 import {
     dateConstants,
     formatCurrency,
@@ -36,7 +37,7 @@ export async function parseErrorJson(response: Response, url: string) {
     try {
         errorJson = JSON.parse(text);
     } catch {
-        console.error("non-JSON error response", {
+        logger.error("non-JSON error response: %o", {
             status: response.status,
             url,
             text,
@@ -117,7 +118,7 @@ async function getServiceAccountToken() {
         } else {
             const errorJson = await parseErrorJson(tokenResponse, tokenUrl);
 
-            console.error("Could not get service account token.", {
+            logger.error("Could not get service account token: %o", {
                 errorJson,
             });
         }
@@ -197,7 +198,7 @@ export async function serviceAccountUpdateSubscription(
     if (!response.ok) {
         const error = await parseErrorJson(response, url);
 
-        console.error("Could not update user subscription.", { error });
+        logger.error("Could not update user subscription: %o", { error });
 
         return {
             success: false,
@@ -253,7 +254,7 @@ export async function serviceAccountUpdateAddons(
 
                 const error = await parseErrorJson(response, url);
 
-                console.error("Could not update user subscription addon.", {
+                logger.error("Could not update user subscription addon: %o", {
                     error,
                 });
 
@@ -387,20 +388,16 @@ async function serviceAccountSendEmail(body: object) {
     serviceAccountCallTerrain("POST", url, JSON.stringify(body))
         .then((response) => {
             if (!response.ok) {
-                parseErrorJson(response, url).then((error) =>
-                    console.error(
-                        "Could not send order receipt email.",
-                        JSON.stringify({ body }),
-                        JSON.stringify({ error }),
-                    ),
-                );
+                parseErrorJson(response, url).then((error) => {
+                    logger.error("Could not send order receipt email.");
+                    logger.error("%o", { body });
+                    logger.error("%O", error);
+                });
             }
         })
         .catch((error) => {
-            console.error(
-                "Could not send order receipt email.",
-                JSON.stringify({ body }),
-                error,
-            );
+            logger.error("Could not send order receipt email.");
+            logger.error("%o", { body });
+            logger.error("%O", error);
         });
 }

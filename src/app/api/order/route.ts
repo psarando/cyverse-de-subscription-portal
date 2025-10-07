@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import constants from "@/constants";
 import { addPurchaseRecord, addTransactionResponse } from "@/db";
+import logger from "@/logging";
 import {
     AddonsList,
     CreateTransactionResponse,
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     } catch (e) {
         const validationError = e as ValidationError;
 
-        console.error("Validation Error", e);
+        logger.error("Validation Error: %O", e);
 
         return NextResponse.json(
             {
@@ -259,7 +260,7 @@ export async function POST(request: NextRequest) {
 
         const addonsData: AddonsList = await addonsResponse.json();
         if (!addonsData.addons || addonsData.addons.length === 0) {
-            console.error("Could not lookup addons current pricing.", {
+            logger.error("Could not lookup addons current pricing: %o", {
                 addonsData,
             });
 
@@ -323,7 +324,7 @@ export async function POST(request: NextRequest) {
     try {
         authorizeResponseJson = JSON.parse(text);
     } catch {
-        console.error("non-JSON response", {
+        logger.error("non-JSON response: %o", {
             status,
             url: authorizeNetApiEndpoint,
             text,
@@ -363,6 +364,10 @@ export async function POST(request: NextRequest) {
             message: errorMessage || authorizeResponse.statusText,
             ...responseJson,
         };
+
+        if (!authorizeResponseJson?.transactionResponse) {
+            logger.error("Payment Error: %o", { username, responseJson });
+        }
 
         return NextResponse.json(responseJson, {
             status: !authorizeResponse.ok && status ? status : 500,
