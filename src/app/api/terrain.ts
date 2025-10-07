@@ -16,6 +16,8 @@ import {
 } from "./types";
 
 import { addSeconds, toDate } from "date-fns";
+import { Session } from "next-auth";
+
 import getConfig from "next/config";
 import { NextResponse } from "next/server";
 
@@ -276,8 +278,7 @@ export async function serviceAccountUpdateAddons(
 }
 
 export async function serviceAccountEmailReceipt(
-    username: string,
-    email: string,
+    user: Session["user"],
     orderRequest: OrderRequest,
     {
         success,
@@ -289,12 +290,14 @@ export async function serviceAccountEmailReceipt(
         error,
     }: OrderUpdateResult,
 ) {
+    const { username, name, email } = user!;
     const { amount, lineItems, billTo } = orderRequest;
     const orderedSubscription = orderRequest.lineItems?.lineItem?.find(
         (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
     );
 
     const values = {
+        user: name || username,
         Amount: formatCurrency(amount),
         PoNumber: poNumber,
         PurchaseTime: formatDate(

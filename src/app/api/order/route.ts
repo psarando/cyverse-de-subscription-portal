@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
             { status: 401 },
         );
     }
+    const user = session.user!;
 
     let orderRequest: OrderRequest;
     const requestJson = (await request.json()) || {};
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
                 ),
             },
             poNumber: 0, // placeholder
-            customer: { email: session.user?.email },
+            customer: { email: user.email },
             billTo: {
                 firstName,
                 lastName,
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
         {
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${session?.accessToken}`,
+                Authorization: `Bearer ${session.accessToken}`,
             },
         },
     );
@@ -405,12 +406,7 @@ export async function POST(request: NextRequest) {
         };
     }
 
-    serviceAccountEmailReceipt(
-        session.user?.username || "",
-        session.user?.email || "",
-        orderRequest,
-        responseJson,
-    );
+    serviceAccountEmailReceipt(user, orderRequest, responseJson);
 
     return NextResponse.json(responseJson);
 }
