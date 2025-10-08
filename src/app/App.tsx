@@ -8,7 +8,7 @@ import { SessionProvider } from "next-auth/react";
 
 const queryClient = new QueryClient({
     defaultOptions: {
-        queries: { refetchOnWindowFocus: false, retry: false },
+        queries: { refetchOnWindowFocus: false, retry: 3 },
     },
 });
 
