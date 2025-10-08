@@ -126,6 +126,10 @@ function EditSubscription({
                                     <Button
                                         type="submit"
                                         variant="contained"
+                                        disabled={
+                                            loadingPlanTypes ||
+                                            planTypes.length < 1
+                                        }
                                         onClick={() => handleSubmit()}
                                     >
                                         {cartInfo.subscription
@@ -138,6 +142,11 @@ function EditSubscription({
                         >
                             {loadingPlanTypes ? (
                                 <Skeleton variant="text" />
+                            ) : planTypes.length < 1 ? (
+                                <Typography color="error">
+                                    Plans could not be loaded. Please try again
+                                    later.
+                                </Typography>
                             ) : (
                                 <Field
                                     name="plan_name"
