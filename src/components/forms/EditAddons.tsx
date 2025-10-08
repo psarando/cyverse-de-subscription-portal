@@ -54,14 +54,12 @@ function EditAddons({
     });
 
     const subscriptionEndDate = subscription?.effective_end_date;
+    const addons = addonsQueryData?.addons;
 
     return (
         <Formik
             enableReinitialize={true}
-            initialValues={mapAddonsPropsToValues(
-                addonsQueryData?.addons,
-                cartInfo,
-            )}
+            initialValues={mapAddonsPropsToValues(addons, cartInfo)}
             validationSchema={validationSchema}
             onSubmit={(values) => {
                 const addons = values.addons?.filter(
@@ -111,6 +109,10 @@ function EditAddons({
                                         type="submit"
                                         variant="contained"
                                         onClick={() => handleSubmit()}
+                                        disabled={
+                                            loadingAddons ||
+                                            !(addons && addons.length > 0)
+                                        }
                                     >
                                         Add to Cart
                                     </Button>
@@ -119,6 +121,11 @@ function EditAddons({
                         >
                             {loadingAddons ? (
                                 <Skeleton variant="text" />
+                            ) : !(addons && addons.length > 0) ? (
+                                <Typography color="error">
+                                    Add-ons could not be loaded. Please try
+                                    again later.
+                                </Typography>
                             ) : (
                                 <>
                                     <FieldArray name="addons">
