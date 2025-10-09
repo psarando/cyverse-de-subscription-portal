@@ -53,7 +53,6 @@ function EditAddons({
         ),
     });
 
-    const subscriptionEndDate = subscription?.effective_end_date;
     const addons = addonsQueryData?.addons;
 
     return (
@@ -84,8 +83,11 @@ function EditAddons({
                     values.addons.forEach((addon) => {
                         if (addon.quantity > 0) {
                             subTotal +=
-                                addonProratedRate(subscriptionEndDate, addon) *
-                                addon.quantity;
+                                addonProratedRate(
+                                    subscription,
+                                    cartInfo.subscription?.periods,
+                                    addon,
+                                ) * addon.quantity;
                         }
                     });
                 }

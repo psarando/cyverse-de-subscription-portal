@@ -42,6 +42,7 @@ import {
     PlanType,
     ResourceUsageSummary,
     SubscriptionSubmission,
+    SubscriptionSummaryDetails,
 } from "@/app/api/types";
 import { CartInfo, useCartInfo } from "@/contexts/cart";
 import GridLoading from "@/components/common/GridLoading";
@@ -74,7 +75,7 @@ const steps = ["Billing address", "Payment details", "Review your order"];
 function getStepContent(
     step: number,
     checkoutCart: CartInfo,
-    subscriptionEndDate: string | undefined,
+    subscription: SubscriptionSummaryDetails | undefined,
     values: CheckoutFormValues,
     setFieldValue: FieldProps["form"]["setFieldValue"],
     orderError: OrderError | null,
@@ -88,7 +89,7 @@ function getStepContent(
             return (
                 <Review
                     cartInfo={checkoutCart}
-                    subscriptionEndDate={subscriptionEndDate}
+                    subscription={subscription}
                     values={values}
                     orderError={orderError}
                 />
@@ -127,7 +128,6 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
     });
 
     const currentSubscription = resourceUsageSummary?.subscription;
-    const subscriptionEndDate = currentSubscription?.effective_end_date;
 
     const {
         data: planTypesQueryData,
@@ -166,7 +166,11 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
         let addonsTotal = 0;
         addons.forEach((addon) => {
             addonsTotal +=
-                addonProratedRate(subscriptionEndDate, addon) * addon.quantity;
+                addonProratedRate(
+                    currentSubscription,
+                    cartInfo.subscription?.periods,
+                    addon,
+                ) * addon.quantity;
         });
 
         checkoutCart.totalPrice += addonsTotal;
@@ -192,7 +196,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
         submitOrder(
             formatCheckoutTransactionRequest(
                 session?.user?.username as string,
-                subscriptionEndDate,
+                currentSubscription,
                 checkoutCart,
                 // The schema's `cast` function will also trim string values.
                 CheckoutFormSchema.cast(values),
@@ -332,7 +336,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                     ) : (
                         <Info
                             cartInfo={checkoutCart}
-                            subscriptionEndDate={subscriptionEndDate}
+                            subscription={currentSubscription}
                         />
                     )}
                 </Box>
@@ -483,9 +487,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                                     </div>
                                     <InfoMobile
                                         cartInfo={checkoutCart}
-                                        subscriptionEndDate={
-                                            subscriptionEndDate
-                                        }
+                                        subscription={currentSubscription}
                                     />
                                 </CardContent>
                             </Card>
@@ -535,7 +537,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                                     {getStepContent(
                                         activeStep,
                                         checkoutCart,
-                                        subscriptionEndDate,
+                                        currentSubscription,
                                         values,
                                         setFieldValue,
                                         orderError,

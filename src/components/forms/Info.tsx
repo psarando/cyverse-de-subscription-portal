@@ -8,6 +8,7 @@
  */
 import React from "react";
 
+import { SubscriptionSummaryDetails } from "@/app/api/types";
 import { CartInfo } from "@/contexts/cart";
 import { formatCurrency } from "@/utils/formatUtils";
 import { addonProratedRate } from "@/utils/rates";
@@ -16,10 +17,10 @@ import { List, ListItem, ListItemText, Typography } from "@mui/material";
 
 export default function Info({
     cartInfo,
-    subscriptionEndDate,
+    subscription,
 }: {
     cartInfo: CartInfo;
-    subscriptionEndDate?: string;
+    subscription?: SubscriptionSummaryDetails;
 }) {
     return (
         <React.Fragment>
@@ -63,8 +64,11 @@ export default function Info({
                                 addon.addon_rates[0].rate,
                             )} prorated to the current subscription expiration date.`}
                             price={
-                                addonProratedRate(subscriptionEndDate, addon) *
-                                addon.quantity
+                                addonProratedRate(
+                                    subscription,
+                                    cartInfo.subscription?.periods,
+                                    addon,
+                                ) * addon.quantity
                             }
                         />
                     ))}

@@ -8,6 +8,7 @@
  */
 import React from "react";
 
+import { SubscriptionSummaryDetails } from "@/app/api/types";
 import { CartInfo } from "@/contexts/cart";
 
 import Info from "./Info";
@@ -18,10 +19,10 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 
 export default function InfoMobile({
     cartInfo,
-    subscriptionEndDate,
+    subscription,
 }: {
     cartInfo: CartInfo;
-    subscriptionEndDate?: string;
+    subscription?: SubscriptionSummaryDetails;
 }) {
     const [open, setOpen] = React.useState(false);
 
@@ -37,10 +38,7 @@ export default function InfoMobile({
             >
                 <CloseIcon />
             </IconButton>
-            <Info
-                cartInfo={cartInfo}
-                subscriptionEndDate={subscriptionEndDate}
-            />
+            <Info cartInfo={cartInfo} subscription={subscription} />
         </Box>
     );
 

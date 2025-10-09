@@ -7,7 +7,7 @@
 import React from "react";
 
 import constants from "@/constants";
-import { OrderError } from "@/app/api/types";
+import { OrderError, SubscriptionSummaryDetails } from "@/app/api/types";
 import { CartInfo } from "@/contexts/cart";
 import ExternalLink from "@/components/common/ExternalLink";
 
@@ -22,22 +22,19 @@ import { Box, Divider, Stack, Typography } from "@mui/material";
 
 export default function Review({
     cartInfo,
-    subscriptionEndDate,
+    subscription,
     values,
     orderError,
 }: {
     cartInfo: CartInfo;
-    subscriptionEndDate?: string;
+    subscription?: SubscriptionSummaryDetails;
     values: CheckoutFormValues;
     orderError: OrderError | null;
 }) {
     return (
         <Stack spacing={2}>
             <Box sx={{ display: { xs: "flex", md: "none" } }}>
-                <Info
-                    cartInfo={cartInfo}
-                    subscriptionEndDate={subscriptionEndDate}
-                />
+                <Info cartInfo={cartInfo} subscription={subscription} />
             </Box>
             <Divider sx={{ display: { xs: "flex", md: "none" } }} />
             <Stack

@@ -92,7 +92,7 @@ export function formatCheckoutFormValues(): CheckoutFormValues {
 
 export function formatCheckoutTransactionRequest(
     username: string,
-    subscriptionEndDate: string | undefined,
+    currentSubscription: SubscriptionSummaryDetails | undefined,
     cartInfo: CartInfo,
     values: CheckoutFormValues,
 ): OrderRequest {
@@ -131,7 +131,11 @@ export function formatCheckoutTransactionRequest(
                         255,
                     ),
                 quantity: addon.quantity,
-                unitPrice: addonProratedRate(subscriptionEndDate, addon),
+                unitPrice: addonProratedRate(
+                    currentSubscription,
+                    cartInfo.subscription?.periods,
+                    addon,
+                ),
             }),
         );
     }

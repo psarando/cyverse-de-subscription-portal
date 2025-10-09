@@ -277,7 +277,8 @@ export async function POST(request: NextRequest) {
         for (const addon of addons) {
             currentPricing.amount +=
                 addonProratedRate(
-                    subscriptionEndDate,
+                    currentSubscription,
+                    subscription?.quantity,
                     addonsData.addons.find((a) => a.uuid === addon.id),
                 ) * addon.quantity;
         }

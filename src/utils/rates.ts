@@ -1,14 +1,26 @@
 /**
  * @author psarando
  */
-import { AddonsType } from "@/app/api/types";
-import { DateArg, differenceInCalendarDays } from "date-fns";
+import constants from "@/constants";
+import {
+    AddonsType,
+    SubscriptionSubmission,
+    SubscriptionSummaryDetails,
+} from "@/app/api/types";
+import { addYears, differenceInCalendarDays } from "date-fns";
 
 export const addonProratedRate = (
-    subscriptionEndDate?: DateArg<Date>,
+    subscription?: SubscriptionSummaryDetails,
+    cartSubscriptionPeriods?: SubscriptionSubmission["periods"],
     addon?: AddonsType,
 ) => {
     let prorateDaysRemaining = 0;
+
+    const subscriptionEndDate =
+        subscription?.plan.name === constants.PLAN_NAME_BASIC &&
+        cartSubscriptionPeriods
+            ? addYears(new Date(), cartSubscriptionPeriods)
+            : subscription?.effective_end_date;
 
     if (subscriptionEndDate) {
         prorateDaysRemaining =
