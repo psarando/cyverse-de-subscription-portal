@@ -60,9 +60,17 @@ export default function Info({
                         <CartInfoListItem
                             key={addon.uuid}
                             name={`Add-on ${addon.name}`}
-                            desc={`${addon.quantity} x ${formatCurrency(
-                                addon.addon_rates[0].rate,
-                            )} prorated to the current subscription expiration date.`}
+                            desc={[
+                                addon.quantity,
+                                "x",
+                                formatCurrency(addon.addon_rates[0].rate),
+                                !(
+                                    addon.resource_type.consumable ||
+                                    addon.resource_type.name === "cpu.hours"
+                                )
+                                    ? "prorated to the subscription expiration date."
+                                    : null,
+                            ].join(" ")}
                             price={
                                 addonProratedRate(
                                     subscription,
