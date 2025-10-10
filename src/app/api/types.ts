@@ -47,6 +47,7 @@ export type ResourceUsageSummary = {
 type ResourceType = {
     name: string;
     unit: string;
+    consumable: boolean;
 };
 
 export type PlanType = {

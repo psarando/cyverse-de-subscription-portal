@@ -168,18 +168,19 @@ function EditAddons({
 
 function AddonFormField({ addon, name }: { addon: AddonsType; name: string }) {
     const addonRate = formatCurrency(addon.addon_rates[0].rate);
-    const resourceInBytes = addon.resource_type.unit === "bytes";
 
-    let helperText = `${addonRate} USD* per ${addon.name}`;
-    helperText += resourceInBytes
-        ? " of data storage for 1 year."
-        : ", to be used before the current subscription ends.";
+    // There is currently a bug where the backend is returning `cpu.hours`
+    // types as not consumable.
+    const prorateMark = addon.resource_type.name !== "cpu.hours" ? "*" : "";
+
+    const label = `${addon.name} Add-on (${addonRate} USD${prorateMark})`;
+    const helperText = `${addonRate} USD${prorateMark} per ${addon.description}`;
 
     return (
         <Field
             name={name}
             component={FormIntegerField}
-            label={`${addon.name} Add-on (${addonRate} USD*)`}
+            label={label}
             helperText={helperText}
         />
     );
