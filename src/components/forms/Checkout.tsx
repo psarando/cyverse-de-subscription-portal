@@ -22,6 +22,7 @@ import {
     Step,
     StepLabel,
     Stepper,
+    Toolbar,
     Typography,
 } from "@mui/material";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
@@ -45,6 +46,7 @@ import {
     SubscriptionSummaryDetails,
 } from "@/app/api/types";
 import { CartInfo, useCartInfo } from "@/contexts/cart";
+import BackButton from "@/components/common/BackButton";
 import GridLoading from "@/components/common/GridLoading";
 import {
     ERROR,
@@ -290,112 +292,117 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
 
     return resourceUsageError || planTypesQueryError ? (
         <Box maxWidth="sm">
+            <BackButton />
             <ErrorHandler
                 errorObject={resourceUsageError || planTypesQueryError}
             />
         </Box>
     ) : (
-        <Grid
-            container
-            sx={{
-                height: {
-                    xs: "100%",
-                    // The AppBar height is 64px.
-                    sm: "calc(100dvh - var(--template-frame-height, 64px))",
-                },
-                mt: {
-                    xs: 4,
-                    sm: 0,
-                },
-            }}
+        <Formik
+            enableReinitialize
+            initialValues={formatCheckoutFormValues()}
+            validationSchema={CheckoutFormSchema}
+            onSubmit={onSubmit}
         >
-            <Grid
-                size={{ xs: 12, sm: 5, lg: 4 }}
-                sx={{
-                    display: { xs: "none", md: "flex" },
-                    flexDirection: "column",
-                    backgroundColor: "background.paper",
-                    borderRight: { sm: "none", md: "1px solid" },
-                    borderColor: { sm: "none", md: "divider" },
-                    alignItems: "start",
-                    px: 10,
-                    gap: 4,
-                }}
-            >
-                <Box
-                    sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        flexGrow: 1,
-                        width: "100%",
-                        maxWidth: 500,
-                    }}
-                >
-                    {loadingResourceUsage || loadingPlanTypes ? (
-                        <GridLoading />
-                    ) : (
-                        <Info
-                            cartInfo={checkoutCart}
-                            subscription={currentSubscription}
-                        />
-                    )}
-                </Box>
-            </Grid>
-            <Formik
-                enableReinitialize
-                initialValues={formatCheckoutFormValues()}
-                validationSchema={CheckoutFormSchema}
-                onSubmit={onSubmit}
-            >
-                {({
-                    handleSubmit,
-                    setFieldValue,
-                    isSubmitting,
-                    values,
-                    errors,
-                    touched,
-                }) => {
-                    const hasStepError = (stepIndex: number) => {
-                        let fieldNames: string[] = [];
+            {({
+                handleSubmit,
+                setFieldValue,
+                isSubmitting,
+                values,
+                errors,
+                touched,
+                dirty,
+            }) => {
+                const hasStepError = (stepIndex: number) => {
+                    let fieldNames: string[] = [];
 
-                        if (stepIndex === 0) {
-                            fieldNames = [
-                                "billTo",
-                                "billTo.firstName",
-                                "billTo.lastName",
-                                "billTo.company",
-                                "billTo.address",
-                                "billTo.city",
-                                "billTo.state",
-                                "billTo.zip",
-                                "billTo.country",
-                            ];
-                        } else if (stepIndex === 1) {
-                            fieldNames = [
-                                "payment.creditCard.cardNumber",
-                                "payment.creditCard.expirationDate",
-                                "payment.creditCard.cardCode",
-                            ];
-                        } else if (stepIndex === 2) {
-                            fieldNames = ["termsAcknowledged"];
-                        }
+                    if (stepIndex === 0) {
+                        fieldNames = [
+                            "billTo",
+                            "billTo.firstName",
+                            "billTo.lastName",
+                            "billTo.company",
+                            "billTo.address",
+                            "billTo.city",
+                            "billTo.state",
+                            "billTo.zip",
+                            "billTo.country",
+                        ];
+                    } else if (stepIndex === 1) {
+                        fieldNames = [
+                            "payment.creditCard.cardNumber",
+                            "payment.creditCard.expirationDate",
+                            "payment.creditCard.cardCode",
+                        ];
+                    } else if (stepIndex === 2) {
+                        fieldNames = ["termsAcknowledged"];
+                    }
 
-                        return !!fieldNames.find((fieldName) => {
-                            const fieldError = getFormError(
-                                fieldName,
-                                touched,
-                                errors,
-                            );
+                    return !!fieldNames.find((fieldName) => {
+                        const fieldError = getFormError(
+                            fieldName,
+                            touched,
+                            errors,
+                        );
 
-                            // Once `billTo` has a field with an error,
-                            // it becomes an object, regardless if those fields
-                            // have been touched yet, so only look for actual
-                            // error messages.
-                            return typeof fieldError === "string";
-                        });
-                    };
+                        // Once `billTo` has a field with an error,
+                        // it becomes an object, regardless if those fields
+                        // have been touched yet, so only look for actual
+                        // error messages.
+                        return typeof fieldError === "string";
+                    });
+                };
 
-                    return (
+                return (
+                    <Grid
+                        container
+                        sx={{
+                            height: {
+                                xs: "100%",
+                                // The AppBar height is 64px.
+                                sm: "calc(100dvh - var(--template-frame-height, 64px))",
+                            },
+                            mt: {
+                                xs: 4,
+                                sm: 0,
+                            },
+                        }}
+                    >
+                        <Toolbar sx={{ width: "100%" }}>
+                            <BackButton dirty={dirty} />
+                        </Toolbar>
+                        <Grid
+                            size={{ xs: 12, sm: 5, lg: 4 }}
+                            sx={{
+                                display: { xs: "none", md: "flex" },
+                                flexDirection: "column",
+                                backgroundColor: "background.paper",
+                                borderRight: { sm: "none", md: "1px solid" },
+                                borderColor: { sm: "none", md: "divider" },
+                                alignItems: "start",
+                                px: 10,
+                                gap: 4,
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    flexGrow: 1,
+                                    width: "100%",
+                                    maxWidth: 500,
+                                }}
+                            >
+                                {loadingResourceUsage || loadingPlanTypes ? (
+                                    <GridLoading />
+                                ) : (
+                                    <Info
+                                        cartInfo={checkoutCart}
+                                        subscription={currentSubscription}
+                                    />
+                                )}
+                            </Box>
+                        </Grid>
                         <Grid
                             size={{ sm: 12, md: 7, lg: 8 }}
                             sx={{
@@ -629,10 +636,10 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                                 </React.Fragment>
                             </Box>
                         </Grid>
-                    );
-                }}
-            </Formik>
-        </Grid>
+                    </Grid>
+                );
+            }}
+        </Formik>
     );
 }
 
