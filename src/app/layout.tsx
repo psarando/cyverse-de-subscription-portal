@@ -1,6 +1,15 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { AppBar, Box, Stack, Toolbar, Tooltip } from "@mui/material";
+import Link from "next/link";
+import {
+    AppBar,
+    Box,
+    Grid,
+    Stack,
+    Toolbar,
+    Tooltip,
+    Typography,
+} from "@mui/material";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import { Roboto } from "next/font/google";
 import { ThemeProvider } from "@mui/material/styles";
@@ -42,15 +51,14 @@ export default async function RootLayout({
                     <ThemeProvider theme={theme}>
                         <App>
                             <Box>
-                                <AppBar position="static">
-                                    <Toolbar>
-                                        <Tooltip title="CyVerse Home Page">
-                                            <ExternalLink
-                                                href={
-                                                    constants.CYVERSE_HOME_URL
-                                                }
-                                                rel="noopener"
-                                            >
+                                <AppBar
+                                    position="static"
+                                    variant="outlined"
+                                    elevation={0}
+                                >
+                                    <Toolbar sx={{ mt: 1 }}>
+                                        <Tooltip title="CyVerse Subscription Portal">
+                                            <Link href="/">
                                                 <Image
                                                     src="/cyverse-logo-white.svg"
                                                     alt="CyVerse logo"
@@ -58,13 +66,21 @@ export default async function RootLayout({
                                                     height={40}
                                                     priority
                                                 />
-                                            </ExternalLink>
+                                                <Typography
+                                                    sx={{
+                                                        pl: 7,
+                                                    }}
+                                                >
+                                                    Subscription Portal
+                                                </Typography>
+                                            </Link>
                                         </Tooltip>
                                         <Box sx={{ flexGrow: 1 }} />
                                         <Cart />
                                         <AccountAvatar />
                                     </Toolbar>
                                 </AppBar>
+
                                 <main>
                                     <Stack
                                         alignItems="center"
@@ -74,6 +90,49 @@ export default async function RootLayout({
                                         {session ? children : <SignInCard />}
                                     </Stack>
                                 </main>
+
+                                <Grid
+                                    container
+                                    component={"footer"}
+                                    spacing={2}
+                                    sx={{ p: 2 }}
+                                    direction={"row"}
+                                >
+                                    <Tooltip
+                                        title="CyVerse Home Page"
+                                        placement="bottom-start"
+                                    >
+                                        <ExternalLink
+                                            href={constants.CYVERSE_HOME_URL}
+                                            rel="noopener"
+                                        >
+                                            <Image
+                                                src="/cyverse_logo_2.png"
+                                                alt="CyVerse logo"
+                                                width={200}
+                                                height={40}
+                                                priority
+                                            />
+                                        </ExternalLink>
+                                    </Tooltip>
+
+                                    <Tooltip
+                                        title="Discovery Environment Home"
+                                        placement="bottom-start"
+                                    >
+                                        <ExternalLink
+                                            href={constants.DE_LINK}
+                                            rel="noopener"
+                                        >
+                                            <Image
+                                                src="/de.png"
+                                                alt="CyVerse Discovery Environment"
+                                                width={190}
+                                                height={40}
+                                            />
+                                        </ExternalLink>
+                                    </Tooltip>
+                                </Grid>
                             </Box>
                         </App>
                     </ThemeProvider>

@@ -358,13 +358,13 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                         container
                         sx={{
                             height: {
-                                xs: "100%",
+                                sm: "100%",
                                 // The AppBar height is 64px.
-                                sm: "calc(100dvh - var(--template-frame-height, 64px))",
+                                md: "calc(100dvh - var(--template-frame-height, 64px))",
                             },
                             mt: {
-                                xs: 4,
-                                sm: 0,
+                                sm: 4,
+                                md: 0,
                             },
                         }}
                     >
