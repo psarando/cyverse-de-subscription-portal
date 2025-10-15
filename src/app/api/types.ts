@@ -76,6 +76,17 @@ export type AddonsList = {
     addons: Array<AddonsType>;
 };
 
+export type OrderSummary = {
+    id: UUID;
+    po_number: number;
+    amount: number;
+    order_date: string;
+};
+
+export type OrdersList = {
+    orders: Array<OrderSummary>;
+};
+
 export type SubscriptionSubmission = {
     username: string;
     plan_name: string;
