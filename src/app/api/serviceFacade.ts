@@ -85,3 +85,12 @@ export const ADDONS_QUERY_KEY = "fetchAddons";
 export function postOrder(order: OrderRequest) {
     return post("/api/order", order);
 }
+
+/**
+ * Fetch the user's orders.
+ */
+export function getOrders() {
+    return get("/api/orders");
+}
+
+export const ORDERS_QUERY_KEY = "fetchOrders";
