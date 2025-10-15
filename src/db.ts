@@ -31,6 +31,11 @@ await db.connect().catch((e) => {
     logger.error("Could not connect to database: %O", e);
 });
 
+export enum OrderDir {
+    ASC = "ASC",
+    DESC = "DESC",
+}
+
 // Represents a row in the "purchases" table.
 type Purchase = {
     id: UUID;
@@ -41,6 +46,11 @@ type Purchase = {
     billing_information_id: UUID;
     order_date: Date; // timestampz, returned as JS Date
 };
+
+export enum PurchaseSortField {
+    ORDER_DATE = "order_date",
+    AMOUNT = "amount",
+}
 
 // Represents a row in the "payments" table.
 type Payment = {
@@ -449,4 +459,20 @@ export async function addTransactionResponse(
     }
 
     return responseId;
+}
+
+export async function getPurchasesByUsername(
+    username: string,
+    orderBy: PurchaseSortField = PurchaseSortField.ORDER_DATE,
+    orderDir: OrderDir = OrderDir.DESC,
+) {
+    const { rows } = await db.query<Purchase>(
+        `SELECT *
+        FROM purchases
+        WHERE username = $1
+        ORDER BY ${orderBy} ${orderDir}`,
+        [username],
+    );
+
+    return rows;
 }
