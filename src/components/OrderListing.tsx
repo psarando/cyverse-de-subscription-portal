@@ -3,8 +3,10 @@
 /**
  * @author psarando
  */
+import React from "react";
+
 import { getOrders, ORDERS_QUERY_KEY } from "@/app/api/serviceFacade";
-import { OrdersList } from "@/app/api/types";
+import { OrderDir, OrdersList, PurchaseSortField } from "@/app/api/types";
 
 import ErrorTypographyWithDialog from "@/components/common/error/ErrorTypographyWithDialog";
 import DETableHead, {
@@ -30,16 +32,40 @@ import {
 } from "@mui/material";
 
 const ORDERS_TABLE_COLUMNS: DETableHeadColumnData[] = [
-    { key: "po_number", name: "PO Number", numeric: true, align: "left" },
-    { key: "amount", name: "Amount" },
-    { key: "order_date", name: "Order Date" },
+    {
+        key: "po_number",
+        name: "PO Number",
+        numeric: true,
+        align: "left",
+        enableSorting: true,
+    },
+    { key: "amount", name: "Amount", enableSorting: true },
+    { key: "order_date", name: "Order Date", enableSorting: true },
 ];
 
 function OrderListing() {
+    const [orderBy, setOrderBy] = React.useState<PurchaseSortField>(
+        PurchaseSortField.PO_NUMBER,
+    );
+    const [orderDir, setOrderDir] = React.useState<OrderDir>(OrderDir.DESC);
+
     const { isFetching, data, error } = useQuery<OrdersList>({
-        queryKey: [ORDERS_QUERY_KEY],
-        queryFn: getOrders,
+        queryKey: [ORDERS_QUERY_KEY, orderBy, orderDir],
+        queryFn: () => getOrders({ orderBy, orderDir }),
     });
+
+    const onRequestSort = (
+        event: React.MouseEvent<unknown>,
+        property?: string,
+    ): void => {
+        if (orderBy === property) {
+            setOrderDir(
+                orderDir === OrderDir.ASC ? OrderDir.DESC : OrderDir.ASC,
+            );
+        } else {
+            setOrderBy(property as PurchaseSortField);
+        }
+    };
 
     return (
         <Card sx={{ minWidth: { md: 640 } }}>
@@ -53,7 +79,12 @@ function OrderListing() {
                 ) : (
                     <TableContainer sx={{ maxHeight: 240 }}>
                         <Table stickyHeader>
-                            <DETableHead columnData={ORDERS_TABLE_COLUMNS} />
+                            <DETableHead
+                                columnData={ORDERS_TABLE_COLUMNS}
+                                order={orderDir}
+                                orderBy={orderBy}
+                                onRequestSort={onRequestSort}
+                            />
                             {isFetching ? (
                                 <TableLoading
                                     numRows={3}

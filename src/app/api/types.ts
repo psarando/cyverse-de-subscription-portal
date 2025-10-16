@@ -1,5 +1,10 @@
 import { UUID } from "crypto";
 
+export enum OrderDir {
+    ASC = "asc",
+    DESC = "desc",
+}
+
 export type SubscriptionSummaryDetails = {
     id: UUID;
     users: {
@@ -86,6 +91,12 @@ export type OrderSummary = {
 export type OrdersList = {
     orders: Array<OrderSummary>;
 };
+
+export enum PurchaseSortField {
+    AMOUNT = "amount",
+    ORDER_DATE = "order_date",
+    PO_NUMBER = "po_number",
+}
 
 export type SubscriptionSubmission = {
     username: string;
