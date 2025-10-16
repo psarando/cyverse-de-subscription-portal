@@ -3,6 +3,7 @@ const constants = {
     CYVERSE_ABOUT_URL: "https://cyverse.org/about",
     CYVERSE_POLICY_URL: "https://cyverse.org/policies",
     CYVERSE_SUPPORT_URL: "https://cyverse.org/get-help",
+    DE_LINK: "https://de.cyverse.org",
     PLAN_NAME_BASIC: "Basic",
     SUBSCRIBE_URL: "https://cyverse.org/subscribe",
     USER_PORTAL_URL: "https://user.cyverse.org",
