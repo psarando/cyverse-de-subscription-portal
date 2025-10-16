@@ -32,15 +32,9 @@ import {
 } from "@mui/material";
 
 const ORDERS_TABLE_COLUMNS: DETableHeadColumnData[] = [
-    {
-        key: "po_number",
-        name: "PO Number",
-        numeric: true,
-        align: "left",
-        enableSorting: true,
-    },
-    { key: "amount", name: "Amount", enableSorting: true },
+    { key: "po_number", name: "PO Number", enableSorting: true },
     { key: "order_date", name: "Order Date", enableSorting: true },
+    { key: "amount", name: "Amount", align: "right", enableSorting: true },
 ];
 
 function OrderListing() {
@@ -115,17 +109,17 @@ function OrderListing() {
                                                     </TableCell>
                                                     <TableCell>
                                                         <Typography>
-                                                            {amount}
-                                                        </Typography>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Typography>
                                                             {formatDate(
                                                                 new Date(
                                                                     order_date,
                                                                 ),
                                                                 dateConstants.DATE_FORMAT,
                                                             )}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell align="right">
+                                                        <Typography>
+                                                            {amount}
                                                         </Typography>
                                                     </TableCell>
                                                 </DERow>
