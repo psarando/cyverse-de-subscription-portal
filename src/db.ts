@@ -9,6 +9,7 @@ import {
     OrderRequest,
     PurchaseSortField,
 } from "@/app/api/types";
+import { formatDate } from "@/utils/formatUtils";
 
 import { UUID } from "crypto";
 import getConfig from "next/config";
@@ -543,7 +544,7 @@ export async function getUserPurchase(username: string, poNumber: number) {
         order_date,
         payment: {
             credit_card_number,
-            expiration_date,
+            expiration_date: formatDate(expiration_date, "yyyy-MM"),
         },
         billing: {
             first_name,
