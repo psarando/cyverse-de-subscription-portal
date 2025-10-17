@@ -459,7 +459,7 @@ export async function getPurchasesByUsername(
     orderDir?: OrderDir,
 ) {
     const { rows } = await db.query<Purchase>(
-        `SELECT *
+        `SELECT id, po_number, amount, order_date
         FROM purchases
         WHERE username = $1
         ORDER BY ${orderField ?? PurchaseSortField.ORDER_DATE} ${orderDir ?? OrderDir.DESC}`,
