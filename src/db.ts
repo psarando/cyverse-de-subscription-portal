@@ -474,52 +474,99 @@ export async function getUserPurchase(username: string, poNumber: number) {
         return null;
     }
 
-    const { rows } = await db.query<Purchase>(
-        `SELECT id,
+    const { rows } = await db.query<
+        Purchase &
+            Payment &
+            BillingInformation &
+            TransactionResponse & { transaction_response_id: UUID }
+    >(
+        `SELECT purchases.id,
                 po_number,
                 amount,
                 order_date,
-                payment_id,
-                billing_information_id
-        FROM purchases
-        WHERE po_number = $1 AND username = $2`,
-        [poNumber, username],
-    );
-
-    return rows && rows.length > 0 ? rows[0] : null;
-}
-
-export async function getPaymentInfo(paymentId: UUID) {
-    const { rows } = await db.query<Payment>(
-        `SELECT credit_card_number,
-                expiration_date
-        FROM payments
-        WHERE id = $1`,
-        [paymentId],
-    );
-
-    return rows && rows.length > 0 ? rows[0] : null;
-}
-
-export async function getBillingInfo(billingInfoId: UUID) {
-    const { rows } = await db.query<BillingInformation>(
-        `SELECT first_name,
+                credit_card_number,
+                expiration_date,
+                first_name,
                 last_name,
                 company,
                 address,
                 city,
                 state,
                 zip,
-                country
-        FROM billing_information
-        WHERE id = $1`,
-        [billingInfoId],
+                country,
+                transaction_responses.id AS transaction_response_id,
+                transaction_id,
+                account_number,
+                account_type
+        FROM purchases
+        JOIN payments ON payment_id = payments.id
+        JOIN billing_information ON billing_information_id = billing_information.id
+        JOIN transaction_responses ON transaction_responses.purchase_id = purchases.id
+        WHERE po_number = $1 AND username = $2`,
+        [poNumber, username],
     );
 
-    return rows && rows.length > 0 ? rows[0] : null;
+    if (!rows || rows.length < 1) {
+        return null;
+    }
+
+    const {
+        id,
+        po_number,
+        amount,
+        order_date,
+        credit_card_number,
+        expiration_date,
+        first_name,
+        last_name,
+        company,
+        address,
+        city,
+        state,
+        zip,
+        country,
+        transaction_response_id,
+        transaction_id,
+        account_number,
+        account_type,
+    } = rows[0];
+
+    const [line_items, response_messages, error_messages] = await Promise.all([
+        getLineItems(id),
+        getTransactionResponseMessages(transaction_response_id),
+        getTransactionErrorMessages(transaction_response_id),
+    ]);
+
+    return {
+        po_number,
+        amount,
+        order_date,
+        payment: {
+            credit_card_number,
+            expiration_date,
+        },
+        billing: {
+            first_name,
+            last_name,
+            company,
+            address,
+            city,
+            state,
+            zip,
+            country,
+        },
+        line_items,
+        transaction_response: {
+            transaction_id,
+            account_number,
+            account_type,
+            response_messages,
+            error_messages,
+        },
+    };
 }
 
-export async function getLineItems(purchaseId: string) {
+async function getLineItems(purchaseId: UUID) {
     const { rows } = await db.query<LineItem>(
         `SELECT id,
                 item_type,
@@ -536,23 +583,11 @@ export async function getLineItems(purchaseId: string) {
     return rows;
 }
 
-export async function getTransactionResponse(purchaseId: string) {
-    const { rows } = await db.query<TransactionResponse>(
-        `SELECT id,
-                transaction_id,
-                account_number,
-                account_type
-        FROM transaction_responses
-        WHERE purchase_id = $1`,
-        [purchaseId],
-    );
+async function getTransactionErrorMessages(transactionResponseId: UUID) {
+    if (!transactionResponseId) {
+        return [];
+    }
 
-    return rows && rows.length > 0 ? rows[0] : null;
-}
-
-export async function getTransactionErrorMessages(
-    transactionResponseId: string,
-) {
     const { rows } = await db.query<TransactionErrorMessage>(
         `SELECT id, transaction_response_id, error_code, error_text
         FROM transaction_error_messages
@@ -563,9 +598,11 @@ export async function getTransactionErrorMessages(
     return rows;
 }
 
-export async function getTransactionResponseMessages(
-    transactionResponseId: string,
-) {
+async function getTransactionResponseMessages(transactionResponseId: UUID) {
+    if (!transactionResponseId) {
+        return [];
+    }
+
     const { rows } = await db.query<TransactionResponseMessage>(
         `SELECT id, transaction_response_id, code, description
         FROM transaction_response_messages
