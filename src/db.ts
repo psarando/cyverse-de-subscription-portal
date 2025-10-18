@@ -5,6 +5,7 @@ import logger from "@/logging";
 import {
     CreateTransactionResponse,
     LineItemIDEnum,
+    OrderDetails,
     OrderDir,
     OrderRequest,
     PurchaseSortField,
@@ -482,7 +483,6 @@ export async function getUserPurchase(username: string, poNumber: number) {
             TransactionResponse & { transaction_response_id: UUID }
     >(
         `SELECT purchases.id,
-                po_number,
                 amount,
                 order_date,
                 credit_card_number,
@@ -513,7 +513,6 @@ export async function getUserPurchase(username: string, poNumber: number) {
 
     const {
         id,
-        po_number,
         amount,
         order_date,
         credit_card_number,
@@ -539,16 +538,18 @@ export async function getUserPurchase(username: string, poNumber: number) {
     ]);
 
     return {
-        po_number,
+        poNumber,
         amount,
-        order_date,
+        orderDate: order_date,
         payment: {
-            credit_card_number,
-            expiration_date: formatDate(expiration_date, "yyyy-MM"),
+            creditCard: {
+                cardNumber: credit_card_number,
+                expirationDate: formatDate(expiration_date, "yyyy-MM"),
+            },
         },
-        billing: {
-            first_name,
-            last_name,
+        billTo: {
+            firstName: first_name,
+            lastName: last_name,
             company,
             address,
             city,
@@ -556,15 +557,29 @@ export async function getUserPurchase(username: string, poNumber: number) {
             zip,
             country,
         },
-        line_items,
-        transaction_response: {
-            transaction_id,
-            account_number,
-            account_type,
-            response_messages,
-            error_messages,
+        lineItems: line_items.map(
+            ({ id, item_type, item_name, quantity, unit_price }) => ({
+                id,
+                itemId: item_type as LineItemIDEnum,
+                name: item_name,
+                quantity,
+                unitPrice: unit_price,
+            }),
+        ),
+        transactionResponse: {
+            transId: transaction_id,
+            accountNumber: account_number,
+            accountType: account_type,
+            messages: response_messages?.map(({ code, description }) => ({
+                code,
+                text: description,
+            })),
+            errors: error_messages?.map(({ error_code, error_text }) => ({
+                errorCode: error_code,
+                errorText: error_text,
+            })),
         },
-    };
+    } as OrderDetails;
 }
 
 async function getLineItems(purchaseId: UUID) {
