@@ -31,6 +31,8 @@ import {
     Typography,
 } from "@mui/material";
 
+import Link from "next/link";
+
 const ORDERS_TABLE_COLUMNS: DETableHeadColumnData[] = [
     { key: "po_number", name: "PO Number", enableSorting: true },
     { key: "order_date", name: "Order Date", enableSorting: true },
@@ -104,7 +106,11 @@ function OrderListing() {
                                                 <DERow key={id}>
                                                     <TableCell>
                                                         <Typography>
-                                                            {po_number}
+                                                            <Link
+                                                                href={`/orders/${po_number}`}
+                                                            >
+                                                                {po_number}
+                                                            </Link>
                                                         </Typography>
                                                     </TableCell>
                                                     <TableCell>

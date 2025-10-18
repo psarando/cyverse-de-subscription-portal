@@ -113,3 +113,12 @@ export function getOrders(params?: {
 }
 
 export const ORDERS_QUERY_KEY = "fetchOrders";
+
+/**
+ * Fetch order details.
+ */
+export function getOrderDetails(poNumber: number) {
+    return get(`/api/orders/${poNumber}`);
+}
+
+export const ORDER_DETAILS_QUERY_KEY = "fetchOrderDetails";
