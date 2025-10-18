@@ -31,6 +31,8 @@ import {
     Typography,
 } from "@mui/material";
 
+import { useRouter } from "next/navigation";
+
 const ORDERS_TABLE_COLUMNS: DETableHeadColumnData[] = [
     { key: "po_number", name: "PO Number", enableSorting: true },
     { key: "order_date", name: "Order Date", enableSorting: true },
@@ -38,6 +40,8 @@ const ORDERS_TABLE_COLUMNS: DETableHeadColumnData[] = [
 ];
 
 function OrderListing() {
+    const router = useRouter();
+
     const [orderBy, setOrderBy] = React.useState<PurchaseSortField>(
         PurchaseSortField.PO_NUMBER,
     );
@@ -101,7 +105,16 @@ function OrderListing() {
                                                 amount,
                                                 order_date,
                                             }) => (
-                                                <DERow key={id}>
+                                                <DERow
+                                                    key={id}
+                                                    hover
+                                                    sx={{ cursor: "pointer" }}
+                                                    onClick={() =>
+                                                        router.push(
+                                                            `/orders/${po_number}`,
+                                                        )
+                                                    }
+                                                >
                                                     <TableCell>
                                                         <Typography>
                                                             {po_number}
