@@ -502,7 +502,7 @@ export async function getUserPurchase(username: string, poNumber: number) {
         FROM purchases
         JOIN payments ON payment_id = payments.id
         JOIN billing_information ON billing_information_id = billing_information.id
-        JOIN transaction_responses ON transaction_responses.purchase_id = purchases.id
+        LEFT JOIN transaction_responses ON transaction_responses.purchase_id = purchases.id
         WHERE po_number = $1 AND username = $2`,
         [poNumber, username],
     );
