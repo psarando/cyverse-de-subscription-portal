@@ -29,13 +29,15 @@ function OrderDetails({ poNumber }: { poNumber: number }) {
     const { amount, orderDate, billTo, payment, transactionResponse } =
         data ?? {};
 
+    const errorMsgs = transactionResponse?.errors || [];
+
     return error ? (
         <ErrorTypographyWithDialog
             errorMessage="Could not load order details."
             errorObject={error}
         />
     ) : isFetching ? (
-        <GridLoading rows={4} />
+        <GridLoading rows={8} />
     ) : (
         data && (
             <Grid container spacing={1}>
@@ -51,13 +53,11 @@ function OrderDetails({ poNumber }: { poNumber: number }) {
                     </GridLabelValue>
                 )}
 
-                {transactionResponse?.transId && (
-                    <GridLabelValue label="Transaction ID">
-                        <Typography>{transactionResponse.transId}</Typography>
-                    </GridLabelValue>
-                )}
+                <GridLabelValue label="Transaction ID">
+                    <Typography>{transactionResponse?.transId}</Typography>
+                </GridLabelValue>
 
-                <GridLabelValue label="Billed To">
+                <GridLabelValue label="Billing Info">
                     <Typography>{`${billTo?.firstName} ${billTo?.lastName}`}</Typography>
                     {billTo?.company && (
                         <Typography>{billTo.company}</Typography>
@@ -74,9 +74,9 @@ function OrderDetails({ poNumber }: { poNumber: number }) {
                 </GridLabelValue>
 
                 {payment?.creditCard && (
-                    <GridLabelValue label="Payment Details">
+                    <GridLabelValue label="Payment Method">
                         <Typography>
-                            Payed with {transactionResponse?.accountType} ending
+                            {transactionResponse?.accountType || "Card"} ending
                             in{" "}
                             {transactionResponse?.accountNumber ||
                                 payment?.creditCard.cardNumber}
@@ -106,6 +106,38 @@ function OrderDetails({ poNumber }: { poNumber: number }) {
                 <GridLabelValue label="Total">
                     <Typography>{amount}</Typography>
                 </GridLabelValue>
+
+                {errorMsgs.length > 0 ? (
+                    <GridLabelValue label="Errors" color="error">
+                        {errorMsgs.map((error) => (
+                            <Typography key={error.errorText} color="error">
+                                {error.errorText}
+                            </Typography>
+                        ))}
+                    </GridLabelValue>
+                ) : (
+                    <GridLabelValue label="Transaction Status">
+                        {!transactionResponse?.messages ||
+                        transactionResponse.messages.length < 1 ? (
+                            <Typography color="error">
+                                The transaction could not be processed.
+                            </Typography>
+                        ) : (
+                            transactionResponse.messages.map((msg) => (
+                                <Typography
+                                    key={msg.text}
+                                    color={
+                                        msg.code.startsWith("E")
+                                            ? "error"
+                                            : "success"
+                                    }
+                                >
+                                    {msg.text}
+                                </Typography>
+                            ))
+                        )}
+                    </GridLabelValue>
+                )}
             </Grid>
         )
     );
