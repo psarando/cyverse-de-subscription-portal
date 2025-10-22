@@ -467,14 +467,11 @@ export async function getPurchasesByUsername(
 ) {
     const { rows } = await db.query<PurchaseListingItem>(
         `SELECT id, po_number, amount, order_date,
-        COALESCE(
-            (SELECT 1 FROM purchases p2 WHERE p2.id = p1.id AND NOT EXISTS
-                (SELECT * FROM transaction_responses
-                    WHERE purchase_id = p2.id)),
-            (SELECT COUNT(e.id) FROM transaction_responses
-                LEFT JOIN transaction_error_messages e
-                ON e.transaction_response_id = transaction_responses.id
-                WHERE transaction_responses.purchase_id = p1.id)
+        (
+            SELECT COUNT(*) FROM purchases p2
+            LEFT JOIN transaction_responses tr ON tr.purchase_id = p2.id
+            LEFT JOIN transaction_error_messages e ON e.transaction_response_id = tr.id
+            WHERE p2.id = p1.id AND (tr.id IS NULL OR e.id IS NOT NULL)
         ) AS err_count
         FROM purchases p1
         WHERE username = $1
