@@ -21,5 +21,10 @@ export async function GET(request: NextRequest) {
 
     const orders = await getPurchasesByUsername(username, orderBy, orderDir);
 
-    return NextResponse.json({ orders });
+    return NextResponse.json({
+        orders: orders?.map((order) => ({
+            ...order,
+            err_count: parseInt(order.err_count),
+        })),
+    });
 }

@@ -46,6 +46,11 @@ type Purchase = {
     order_date: Date; // timestampz, returned as JS Date
 };
 
+type PurchaseListingItem = Pick<
+    Purchase,
+    "id" | "po_number" | "amount" | "order_date"
+> & { err_count: string };
+
 // Represents a row in the "payments" table.
 type Payment = {
     id: UUID;
@@ -460,7 +465,7 @@ export async function getPurchasesByUsername(
     orderField?: PurchaseSortField,
     orderDir?: OrderDir,
 ) {
-    const { rows } = await db.query<Purchase>(
+    const { rows } = await db.query<PurchaseListingItem>(
         `SELECT id, po_number, amount, order_date,
         COALESCE(
             (SELECT 1 FROM purchases p2 WHERE p2.id = p1.id AND NOT EXISTS
