@@ -86,6 +86,7 @@ export type OrderSummary = {
     po_number: number;
     amount: number;
     order_date: string;
+    err_count: number;
 };
 
 export type OrdersList = {

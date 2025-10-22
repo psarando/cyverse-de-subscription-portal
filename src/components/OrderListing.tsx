@@ -104,6 +104,7 @@ function OrderListing() {
                                                 po_number,
                                                 amount,
                                                 order_date,
+                                                err_count,
                                             }) => (
                                                 <DERow
                                                     key={id}
@@ -131,7 +132,17 @@ function OrderListing() {
                                                         </Typography>
                                                     </TableCell>
                                                     <TableCell align="right">
-                                                        <Typography>
+                                                        <Typography
+                                                            sx={
+                                                                err_count
+                                                                    ? {
+                                                                          color: "error.main",
+                                                                          textDecoration:
+                                                                              "line-through",
+                                                                      }
+                                                                    : null
+                                                            }
+                                                        >
                                                             {amount}
                                                         </Typography>
                                                     </TableCell>
