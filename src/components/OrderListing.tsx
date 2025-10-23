@@ -6,7 +6,12 @@
 import React from "react";
 
 import { getOrders, ORDERS_QUERY_KEY } from "@/app/api/serviceFacade";
-import { OrderDir, OrdersList, PurchaseSortField } from "@/app/api/types";
+import {
+    OrderDir,
+    OrdersList,
+    OrderSummary,
+    PurchaseSortField,
+} from "@/app/api/types";
 
 import ErrorTypographyWithDialog from "@/components/common/error/ErrorTypographyWithDialog";
 import DETableHead, {
@@ -40,8 +45,6 @@ const ORDERS_TABLE_COLUMNS: DETableHeadColumnData[] = [
 ];
 
 function OrderListing() {
-    const router = useRouter();
-
     const [orderBy, setOrderBy] = React.useState<PurchaseSortField>(
         PurchaseSortField.PO_NUMBER,
     );
@@ -98,57 +101,12 @@ function OrderListing() {
                                             }
                                         />
                                     ) : (
-                                        data.orders.map(
-                                            ({
-                                                id,
-                                                po_number,
-                                                amount,
-                                                order_date,
-                                                err_count,
-                                            }) => (
-                                                <DERow
-                                                    key={id}
-                                                    hover
-                                                    sx={{ cursor: "pointer" }}
-                                                    onClick={() =>
-                                                        router.push(
-                                                            `/orders/${po_number}`,
-                                                        )
-                                                    }
-                                                >
-                                                    <TableCell>
-                                                        <Typography>
-                                                            {po_number}
-                                                        </Typography>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Typography>
-                                                            {formatDate(
-                                                                new Date(
-                                                                    order_date,
-                                                                ),
-                                                                dateConstants.DATE_FORMAT,
-                                                            )}
-                                                        </Typography>
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        <Typography
-                                                            sx={
-                                                                err_count
-                                                                    ? {
-                                                                          color: "error.main",
-                                                                          textDecoration:
-                                                                              "line-through",
-                                                                      }
-                                                                    : null
-                                                            }
-                                                        >
-                                                            {amount}
-                                                        </Typography>
-                                                    </TableCell>
-                                                </DERow>
-                                            ),
-                                        )
+                                        data.orders.map((order) => (
+                                            <OrderRow
+                                                key={order.id}
+                                                order={order}
+                                            />
+                                        ))
                                     )}
                                 </TableBody>
                             )}
@@ -157,6 +115,45 @@ function OrderListing() {
                 )}
             </CardContent>
         </Card>
+    );
+}
+
+function OrderRow({ order }: { order: OrderSummary }) {
+    const router = useRouter();
+    const { po_number, order_date, amount, err_count } = order;
+
+    return (
+        <DERow
+            hover
+            sx={{ cursor: "pointer" }}
+            onClick={() => router.push(`/orders/${po_number}`)}
+        >
+            <TableCell>
+                <Typography>{po_number}</Typography>
+            </TableCell>
+            <TableCell>
+                <Typography>
+                    {formatDate(
+                        new Date(order_date),
+                        dateConstants.DATE_FORMAT,
+                    )}
+                </Typography>
+            </TableCell>
+            <TableCell align="right">
+                <Typography
+                    sx={
+                        err_count
+                            ? {
+                                  color: "error.main",
+                                  textDecoration: "line-through",
+                              }
+                            : null
+                    }
+                >
+                    {amount}
+                </Typography>
+            </TableCell>
+        </DERow>
     );
 }
 
