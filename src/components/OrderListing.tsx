@@ -66,7 +66,7 @@ function OrderListing() {
     };
 
     return (
-        <Card sx={{ minWidth: { md: 640 } }}>
+        <Card sx={{ minWidth: { md: 480 } }}>
             <CardHeader title={<Typography>Order History</Typography>} />
             <CardContent>
                 {error ? (
@@ -75,7 +75,7 @@ function OrderListing() {
                         errorObject={error}
                     />
                 ) : (
-                    <TableContainer sx={{ maxHeight: 240 }}>
+                    <TableContainer sx={{ maxHeight: 640 }}>
                         <Table stickyHeader>
                             <DETableHead
                                 columnData={ORDERS_TABLE_COLUMNS}
@@ -85,7 +85,7 @@ function OrderListing() {
                             />
                             {isFetching ? (
                                 <TableLoading
-                                    numRows={3}
+                                    numRows={10}
                                     numColumns={ORDERS_TABLE_COLUMNS.length}
                                 />
                             ) : (
