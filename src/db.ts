@@ -5,8 +5,12 @@ import logger from "@/logging";
 import {
     CreateTransactionResponse,
     LineItemIDEnum,
+    OrderDetails,
+    OrderDir,
     OrderRequest,
+    PurchaseSortField,
 } from "@/app/api/types";
+import { formatDate } from "@/utils/formatUtils";
 
 import { UUID } from "crypto";
 import getConfig from "next/config";
@@ -41,6 +45,11 @@ type Purchase = {
     billing_information_id: UUID;
     order_date: Date; // timestampz, returned as JS Date
 };
+
+type PurchaseListingItem = Pick<
+    Purchase,
+    "id" | "po_number" | "amount" | "order_date"
+> & { err_count: string };
 
 // Represents a row in the "payments" table.
 type Payment = {
@@ -449,4 +458,184 @@ export async function addTransactionResponse(
     }
 
     return responseId;
+}
+
+export async function getPurchasesByUsername(
+    username: string,
+    orderField?: PurchaseSortField,
+    orderDir?: OrderDir,
+) {
+    const { rows } = await db.query<PurchaseListingItem>(
+        `SELECT id, po_number, amount, order_date,
+        (
+            SELECT COUNT(*) FROM purchases p2
+            LEFT JOIN transaction_responses tr ON tr.purchase_id = p2.id
+            LEFT JOIN transaction_error_messages e ON e.transaction_response_id = tr.id
+            WHERE p2.id = p1.id AND (tr.id IS NULL OR e.id IS NOT NULL)
+        ) AS err_count
+        FROM purchases p1
+        WHERE username = $1
+        ORDER BY ${orderField ?? PurchaseSortField.ORDER_DATE} ${orderDir ?? OrderDir.DESC}`,
+        [username],
+    );
+
+    return rows;
+}
+
+export async function getUserPurchase(username: string, poNumber: number) {
+    if (!username || !poNumber) {
+        return null;
+    }
+
+    const { rows } = await db.query<
+        Purchase &
+            Payment &
+            BillingInformation &
+            TransactionResponse & { transaction_response_id: UUID }
+    >(
+        `SELECT purchases.id,
+                amount,
+                order_date,
+                credit_card_number,
+                expiration_date,
+                first_name,
+                last_name,
+                company,
+                address,
+                city,
+                state,
+                zip,
+                country,
+                transaction_responses.id AS transaction_response_id,
+                transaction_id,
+                account_number,
+                account_type
+        FROM purchases
+        JOIN payments ON payment_id = payments.id
+        JOIN billing_information ON billing_information_id = billing_information.id
+        LEFT JOIN transaction_responses ON transaction_responses.purchase_id = purchases.id
+        WHERE po_number = $1 AND username = $2`,
+        [poNumber, username],
+    );
+
+    if (!rows || rows.length < 1) {
+        return null;
+    }
+
+    const {
+        id,
+        amount,
+        order_date,
+        credit_card_number,
+        expiration_date,
+        first_name,
+        last_name,
+        company,
+        address,
+        city,
+        state,
+        zip,
+        country,
+        transaction_response_id,
+        transaction_id,
+        account_number,
+        account_type,
+    } = rows[0];
+
+    const [line_items, response_messages, error_messages] = await Promise.all([
+        getLineItems(id),
+        getTransactionResponseMessages(transaction_response_id),
+        getTransactionErrorMessages(transaction_response_id),
+    ]);
+
+    return {
+        poNumber,
+        amount,
+        orderDate: order_date,
+        payment: {
+            creditCard: {
+                cardNumber: credit_card_number,
+                expirationDate: formatDate(expiration_date, "yyyy-MM"),
+            },
+        },
+        billTo: {
+            firstName: first_name,
+            lastName: last_name,
+            company,
+            address,
+            city,
+            state,
+            zip,
+            country,
+        },
+        lineItems: line_items.map(
+            ({ id, item_type, item_name, quantity, unit_price }) => ({
+                id,
+                itemId: item_type as LineItemIDEnum,
+                name: item_name,
+                quantity,
+                unitPrice: unit_price,
+            }),
+        ),
+        transactionResponse: {
+            transId: transaction_id,
+            accountNumber: account_number,
+            accountType: account_type,
+            messages: response_messages?.map(({ code, description }) => ({
+                code,
+                text: description,
+            })),
+            errors: error_messages?.map(({ error_code, error_text }) => ({
+                errorCode: error_code,
+                errorText: error_text,
+            })),
+        },
+    } as OrderDetails;
+}
+
+async function getLineItems(purchaseId: UUID) {
+    const { rows } = await db.query<LineItem>(
+        `SELECT id,
+                item_type,
+                item_id,
+                item_name,
+                item_description,
+                quantity,
+                unit_price
+        FROM line_items
+        WHERE purchase_id = $1`,
+        [purchaseId],
+    );
+
+    return rows;
+}
+
+async function getTransactionErrorMessages(transactionResponseId: UUID) {
+    if (!transactionResponseId) {
+        return [];
+    }
+
+    const { rows } = await db.query<TransactionErrorMessage>(
+        `SELECT id, transaction_response_id, error_code, error_text
+        FROM transaction_error_messages
+        WHERE transaction_response_id = $1`,
+        [transactionResponseId],
+    );
+
+    return rows;
+}
+
+async function getTransactionResponseMessages(transactionResponseId: UUID) {
+    if (!transactionResponseId) {
+        return [];
+    }
+
+    const { rows } = await db.query<TransactionResponseMessage>(
+        `SELECT id, transaction_response_id, code, description
+        FROM transaction_response_messages
+        WHERE transaction_response_id = $1`,
+        [transactionResponseId],
+    );
+
+    return rows;
 }

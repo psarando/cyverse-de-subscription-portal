@@ -1,5 +1,10 @@
 import { UUID } from "crypto";
 
+export enum OrderDir {
+    ASC = "asc",
+    DESC = "desc",
+}
+
 export type SubscriptionSummaryDetails = {
     id: UUID;
     users: {
@@ -76,6 +81,24 @@ export type AddonsList = {
     addons: Array<AddonsType>;
 };
 
+export type OrderSummary = {
+    id: UUID;
+    po_number: number;
+    amount: number;
+    order_date: string;
+    err_count: number;
+};
+
+export type OrdersList = {
+    orders: Array<OrderSummary>;
+};
+
+export enum PurchaseSortField {
+    AMOUNT = "amount",
+    ORDER_DATE = "order_date",
+    PO_NUMBER = "po_number",
+}
+
 export type SubscriptionSubmission = {
     username: string;
     plan_name: string;
@@ -91,6 +114,25 @@ export enum LineItemIDEnum {
     ADDON = "addon",
 }
 
+type LineItem = {
+    /**
+     * The ID of the subscription or add-on from QMS,
+     * not submitted to Authorize.net.
+     */
+    id?: UUID;
+    /**
+     * The item type ("subscription" or "addon").
+     */
+    itemId: LineItemIDEnum;
+    /**
+     * The plan name or add-on name.
+     */
+    name: string;
+    description?: string;
+    quantity: number;
+    unitPrice: number;
+};
+
 export type TransactionRequest = {
     transactionType: string;
     amount: number;
@@ -103,24 +145,7 @@ export type TransactionRequest = {
         };
     };
     lineItems?: {
-        lineItem?: Array<{
-            /**
-             * The ID of the subscription or add-on from QMS,
-             * not submitted to Authorize.net.
-             */
-            id?: UUID;
-            /**
-             * The item type ("subscription" or "addon").
-             */
-            itemId: LineItemIDEnum;
-            /**
-             * The plan name or add-on name.
-             */
-            name: string;
-            description?: string;
-            quantity: number;
-            unitPrice: number;
-        }>;
+        lineItem?: Array<LineItem>;
     };
     poNumber?: number;
     customer?: {
@@ -129,7 +154,7 @@ export type TransactionRequest = {
     billTo: {
         firstName: string;
         lastName: string;
-        company?: string;
+        company?: string | null;
         address: string;
         city: string;
         state: string;
@@ -185,18 +210,42 @@ export type OrderUpdateError = {
     response?: object;
 };
 
+type OrderDetailTransactionResponse = Pick<
+    CreateTransactionResponse["transactionResponse"],
+    "transId" | "accountNumber" | "accountType" | "errors"
+>;
+
+export type OrderDetails = Pick<TransactionRequest, "billTo"> & {
+    poNumber: number;
+    /**
+     * Amount is returned as a formatted currency string from the db.
+     */
+    amount: string;
+    /**
+     * Date when read from the db, or string from order endpoints.
+     */
+    orderDate: Date | string;
+    payment: {
+        creditCard: Pick<
+            TransactionRequest["payment"]["creditCard"],
+            "cardNumber" | "expirationDate"
+        >;
+    };
+    /**
+     * unitPrice is returned as a formatted currency string from the db.
+     */
+    lineItems?: Array<Omit<LineItem, "unitPrice"> & { unitPrice: string }>;
+    transactionResponse: OrderDetailTransactionResponse & {
+        messages: Array<CreateTransactionResponseMessage>;
+    };
+};
+
 export type OrderUpdateResult = {
     success: boolean;
     message?: string | object;
     poNumber?: number;
-    /**
-     * Date when read from the db, or string from the /api/order endpoint.
-     */
-    orderDate?: Date | string;
-    transactionResponse?: Pick<
-        CreateTransactionResponse["transactionResponse"],
-        "transId" | "accountNumber" | "accountType" | "errors"
-    >;
+    orderDate?: OrderDetails["orderDate"];
+    transactionResponse?: OrderDetailTransactionResponse;
     error?: OrderUpdateError;
     subscription?: {
         status: string;

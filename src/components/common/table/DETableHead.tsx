@@ -17,7 +17,7 @@ import {
     Tooltip,
 } from "@mui/material";
 
-type DETableHeadColumnData = {
+export type DETableHeadColumnData = {
     key?: string;
     name?: string;
     align?: TableCellProps["align"];

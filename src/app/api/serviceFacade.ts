@@ -1,4 +1,4 @@
-import { OrderRequest } from "./types";
+import { OrderDir, OrderRequest, PurchaseSortField } from "./types";
 
 export class HttpError extends Error {
     status: number;
@@ -85,3 +85,40 @@ export const ADDONS_QUERY_KEY = "fetchAddons";
 export function postOrder(order: OrderRequest) {
     return post("/api/order", order);
 }
+
+/**
+ * Fetch the user's orders.
+ */
+export function getOrders(params?: {
+    orderBy: PurchaseSortField;
+    orderDir: OrderDir;
+}) {
+    let url = "/api/orders";
+
+    const { orderBy, orderDir } = params ?? {};
+    if (orderBy || orderDir) {
+        const queryParams = new URLSearchParams();
+
+        if (orderBy) {
+            queryParams.append("orderBy", orderBy);
+        }
+        if (orderDir) {
+            queryParams.append("orderDir", orderDir);
+        }
+
+        url = `${url}?${queryParams}`;
+    }
+
+    return get(url);
+}
+
+export const ORDERS_QUERY_KEY = "fetchOrders";
+
+/**
+ * Fetch order details.
+ */
+export function getOrderDetails(poNumber: number) {
+    return get(`/api/orders/${poNumber}`);
+}
+
+export const ORDER_DETAILS_QUERY_KEY = "fetchOrderDetails";
