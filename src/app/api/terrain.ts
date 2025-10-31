@@ -9,10 +9,12 @@ import {
 } from "@/utils/formatUtils";
 
 import {
+    AddonsUpdateResult,
     LineItemIDEnum,
     OrderRequest,
     OrderUpdateResult,
     SubscriptionSummaryDetails,
+    SubscriptionUpdateResult,
 } from "./types";
 
 import { addSeconds, toDate } from "date-fns";
@@ -280,18 +282,13 @@ export async function serviceAccountUpdateAddons(
 export async function serviceAccountEmailReceipt(
     user: Session["user"],
     orderRequest: OrderRequest,
-    {
-        success,
-        poNumber,
-        orderDate,
-        transactionResponse,
-        subscription,
-        addons,
-        error,
-    }: OrderUpdateResult,
+    { poNumber, orderDate, transactionResponse, error }: OrderUpdateResult,
+    success: boolean,
+    subscription: SubscriptionUpdateResult,
+    addons: AddonsUpdateResult,
 ) {
     const { username, name, email } = user!;
-    const { amount, lineItems, billTo } = orderRequest;
+    const { amount, lineItems } = orderRequest;
     const orderedSubscription = orderRequest.lineItems?.lineItem?.find(
         (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
     );
@@ -305,18 +302,6 @@ export async function serviceAccountEmailReceipt(
             dateConstants.ISO_8601,
         ),
         TransactionId: transactionResponse?.transId,
-        BillToName: `${billTo.firstName} ${billTo.lastName}`,
-        BillToCompany: billTo.company,
-        BillToAddress: [
-            billTo.address,
-            billTo.city,
-            billTo.state,
-            billTo.zip,
-            billTo.country,
-        ].join(", "),
-        CardType: transactionResponse?.accountType,
-        CardNumberEnding: transactionResponse?.accountNumber,
-        CardExpiration: orderRequest.payment.creditCard.expirationDate,
         SubscriptionLevel:
             subscription?.result.plan.name ?? orderedSubscription?.name,
         SubscriptionPeriod:
