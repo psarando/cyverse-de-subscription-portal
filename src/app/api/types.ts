@@ -144,6 +144,7 @@ export type TransactionRequest = {
             cardCode: string;
         };
     };
+    order?: { description?: string };
     lineItems?: {
         lineItem?: Array<LineItem>;
     };
