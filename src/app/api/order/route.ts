@@ -244,6 +244,14 @@ export async function POST(request: NextRequest) {
             transactionType: "authCaptureTransaction",
             amount,
             currencyCode,
+            order: {
+                description: lineItems?.lineItem
+                    ?.map(
+                        ({ itemId, name, quantity }) =>
+                            `${quantity} x ${name} ${itemId}`,
+                    )
+                    .join(";\n"),
+            },
             lineItems: {
                 lineItem: lineItems?.lineItem?.map(
                     ({ itemId, name, description, quantity, unitPrice }) => ({
