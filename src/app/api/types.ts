@@ -137,7 +137,7 @@ export type TransactionRequest = {
     transactionType: string;
     amount: number;
     currencyCode: string;
-    payment: {
+    payment?: {
         creditCard: {
             cardNumber: string;
             expirationDate: string;
@@ -151,7 +151,7 @@ export type TransactionRequest = {
     customer?: {
         email: string;
     };
-    billTo: {
+    billTo?: {
         firstName: string;
         lastName: string;
         company?: string | null;
@@ -170,7 +170,17 @@ export type TransactionRequest = {
     };
 };
 
-type CreateTransactionResponseMessage = { code: string; text: string };
+type AuthzNetResponseMessage = { code: string; text: string };
+type AuthzNetResponseMessages = {
+    resultCode: string;
+    message: Array<AuthzNetResponseMessage>;
+};
+
+export type HostedPaymentSettings = TransactionRequest["transactionSettings"];
+export type GetHostedPaymentPageResponse = {
+    token?: string;
+    messages: AuthzNetResponseMessages;
+};
 
 export type CreateTransactionResponse = {
     transactionResponse: {
@@ -189,10 +199,7 @@ export type CreateTransactionResponse = {
         networkTransId?: string | null;
         errors?: Array<{ errorCode: string; errorText: string }>;
     };
-    messages?: {
-        resultCode: string;
-        message: Array<CreateTransactionResponseMessage>;
-    };
+    messages?: AuthzNetResponseMessages;
 };
 
 export type OrderRequest = Pick<
@@ -225,9 +232,9 @@ export type OrderDetails = Pick<TransactionRequest, "billTo"> & {
      * Date when read from the db, or string from order endpoints.
      */
     orderDate: Date | string;
-    payment: {
+    payment?: {
         creditCard: Pick<
-            TransactionRequest["payment"]["creditCard"],
+            Required<TransactionRequest>["payment"]["creditCard"],
             "cardNumber" | "expirationDate"
         >;
     };
@@ -236,30 +243,34 @@ export type OrderDetails = Pick<TransactionRequest, "billTo"> & {
      */
     lineItems?: Array<Omit<LineItem, "unitPrice"> & { unitPrice: string }>;
     transactionResponse: OrderDetailTransactionResponse & {
-        messages: Array<CreateTransactionResponseMessage>;
+        messages?: Array<AuthzNetResponseMessage>;
     };
 };
 
 export type OrderUpdateResult = {
-    success: boolean;
     message?: string | object;
     poNumber?: number;
     orderDate?: OrderDetails["orderDate"];
+    token?: string;
     transactionResponse?: OrderDetailTransactionResponse;
     error?: OrderUpdateError;
-    subscription?: {
-        status: string;
-        result: Pick<
-            SubscriptionSummaryDetails,
-            "effective_start_date" | "effective_end_date" | "plan"
-        > & {
-            quotas: Array<{
-                id: UUID;
-                quota: number;
-                resource_type: ResourceType;
-            }>;
-        };
+};
+
+export type SubscriptionUpdateResult = {
+    status: string;
+    result: Pick<
+        SubscriptionSummaryDetails,
+        "effective_start_date" | "effective_end_date" | "plan"
+    > & {
+        quotas: Array<{
+            id: UUID;
+            quota: number;
+            resource_type: ResourceType;
+        }>;
     };
+};
+
+export type AddonsUpdateResult = {
     addons?: Array<{
         error?: OrderUpdateError;
         subscription_addon?: {
@@ -287,7 +298,7 @@ export type OrderError = TerrainError & {
         CreateTransactionResponse["transactionResponse"],
         "errors"
     >;
-    messages?: Array<CreateTransactionResponseMessage>;
+    messages?: Array<AuthzNetResponseMessage>;
     currentPricing?: {
         amount: number;
         subscription?: { name: string; rate: number };

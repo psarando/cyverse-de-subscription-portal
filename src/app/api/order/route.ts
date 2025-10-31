@@ -1,10 +1,11 @@
 import { auth } from "@/auth";
 import constants from "@/constants";
-import { addPurchaseRecord, addTransactionResponse } from "@/db";
+import { addPurchaseRecord } from "@/db";
 import logger from "@/logging";
 import {
     AddonsList,
-    CreateTransactionResponse,
+    GetHostedPaymentPageResponse,
+    HostedPaymentSettings,
     LineItemIDEnum,
     OrderError,
     OrderRequest,
@@ -14,22 +15,28 @@ import {
     TransactionRequest,
 } from "@/app/api/types";
 import {
-    serviceAccountEmailReceipt,
     serviceAccountFetchAddons,
-    serviceAccountUpdateAddons,
-    serviceAccountUpdateSubscription,
     terrainErrorResponse,
 } from "@/app/api/terrain";
 import { addonProratedRate } from "@/utils/rates";
 import { OrderRequestSchema } from "@/validation";
 
 import { differenceInCalendarDays } from "date-fns";
-import { UUID } from "crypto";
 import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
 import { ValidationError } from "yup";
 
 const { publicRuntimeConfig, serverRuntimeConfig } = getConfig();
+
+type HostedPaymentPageRequest = {
+    merchantAuthentication: {
+        name: string;
+        transactionKey: string;
+    };
+    refId: string | number;
+    transactionRequest: TransactionRequest;
+    hostedPaymentSettings: HostedPaymentSettings;
+};
 
 export async function POST(request: NextRequest) {
     const {
@@ -37,7 +44,7 @@ export async function POST(request: NextRequest) {
         authorizeNetTransactionKey,
         authorizeNetApiEndpoint,
     } = serverRuntimeConfig;
-    const { terrainBaseUrl } = publicRuntimeConfig;
+    const { subscriptionPortalBaseUrl, terrainBaseUrl } = publicRuntimeConfig;
 
     if (!authorizeNetApiEndpoint) {
         return NextResponse.json(
@@ -78,93 +85,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const customerIP =
-        request.headers.get("X-Forwarded-For")?.split(":")?.slice(-1)?.at(0) ||
-        "0.0.0.0";
-
-    // The Transaction Request fields must be strictly ordered,
-    // since Authorize.net API endpoints convert JSON to XML internally.
-    // Also, the schema's `validate` function may not keep the keys in order
-    // if it needs to trim whitespace from string values.
-    const {
-        amount,
-        currencyCode,
-        payment: {
-            creditCard: { cardNumber, expirationDate, cardCode },
-        },
-        lineItems,
-        billTo: {
-            firstName,
-            lastName,
-            company,
-            address,
-            city,
-            state,
-            zip,
-            country,
-        },
-    } = orderRequest;
-
-    const createTransactionRequest = {
-        merchantAuthentication: {
-            name: authorizeNetLoginId,
-            transactionKey: authorizeNetTransactionKey,
-        },
-        transactionRequest: {
-            transactionType: "authCaptureTransaction",
-            amount,
-            currencyCode,
-            payment: { creditCard: { cardNumber, expirationDate, cardCode } },
-            lineItems: {
-                lineItem: lineItems?.lineItem?.map(
-                    ({ itemId, name, description, quantity, unitPrice }) => ({
-                        itemId,
-                        name,
-                        description,
-                        quantity,
-                        unitPrice,
-                    }),
-                ),
-            },
-            poNumber: 0, // placeholder
-            customer: { email: user.email },
-            billTo: {
-                firstName,
-                lastName,
-                company,
-                address,
-                city,
-                state,
-                zip,
-                country,
-            },
-            customerIP,
-            transactionSettings: {
-                setting: [
-                    {
-                        settingName: "testRequest",
-                        settingValue:
-                            serverRuntimeConfig.authorizeNetTestRequests !==
-                            "false",
-                    },
-                    {
-                        settingName: "emailCustomer",
-                        settingValue: true,
-                    },
-                    {
-                        settingName: "headerEmailReceipt",
-                        settingValue:
-                            "Thank you for your purchase with CyVerse! We greatly appreciate your business.",
-                    },
-                    {
-                        settingName: "footerEmailReceipt",
-                        settingValue:
-                            "Please feel free to contact us at support@cyverse.org if you have any questions or encounter any problems.",
-                    },
-                ],
-            },
-        } as TransactionRequest,
-    };
+    const { amount, currencyCode, lineItems } = orderRequest;
 
     const currentPricing: OrderError["currentPricing"] = { amount: 0 };
 
@@ -297,9 +218,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the purchase order in the database.
-    const { poNumber, purchaseId, orderDate } = await addPurchaseRecord(
+    const { poNumber, orderDate } = await addPurchaseRecord(
         username,
-        customerIP,
         orderRequest,
     );
 
@@ -310,19 +230,104 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    createTransactionRequest.transactionRequest.poNumber = poNumber;
+    // The Transaction Request fields must be strictly ordered,
+    // since Authorize.net API endpoints convert JSON to XML internally.
+    // Also, the schema's `validate` function may not keep the keys in order
+    // if it needs to trim whitespace from string values.
+    const getHostedPaymentPageRequest: HostedPaymentPageRequest = {
+        merchantAuthentication: {
+            name: authorizeNetLoginId,
+            transactionKey: authorizeNetTransactionKey,
+        },
+        refId: poNumber,
+        transactionRequest: {
+            transactionType: "authCaptureTransaction",
+            amount,
+            currencyCode,
+            lineItems: {
+                lineItem: lineItems?.lineItem?.map(
+                    ({ itemId, name, description, quantity, unitPrice }) => ({
+                        itemId,
+                        name,
+                        description,
+                        quantity,
+                        unitPrice,
+                    }),
+                ),
+            },
+            poNumber,
+            customer: { email: user.email! },
+            transactionSettings: {
+                setting: [
+                    {
+                        settingName: "testRequest",
+                        settingValue:
+                            serverRuntimeConfig.authorizeNetTestRequests !==
+                            "false",
+                    },
+                    {
+                        settingName: "emailCustomer",
+                        settingValue: "true",
+                    },
+                    {
+                        settingName: "headerEmailReceipt",
+                        settingValue:
+                            "Thank you for your purchase with CyVerse! We greatly appreciate your business.",
+                    },
+                    {
+                        settingName: "footerEmailReceipt",
+                        settingValue:
+                            "Please feel free to contact us at support@cyverse.org if you have any questions or encounter any problems.",
+                    },
+                ],
+            },
+        },
+        hostedPaymentSettings: {
+            setting: [
+                {
+                    settingName: "hostedPaymentReturnOptions",
+                    settingValue: JSON.stringify({
+                        showReceipt: true,
+                        url: `${subscriptionPortalBaseUrl}/orders/${poNumber}`,
+                        cancelUrl: subscriptionPortalBaseUrl,
+                    }),
+                },
+                {
+                    settingName: "hostedPaymentPaymentOptions",
+                    settingValue: JSON.stringify({
+                        cardCodeRequired: true,
+                        showCreditCard: true,
+                        showBankAccount: false,
+                    }),
+                },
+                {
+                    settingName: "hostedPaymentBillingAddressOptions",
+                    settingValue: JSON.stringify({
+                        required: true,
+                    }),
+                },
+                {
+                    settingName: "hostedPaymentOrderOptions",
+                    settingValue: JSON.stringify({
+                        show: true,
+                        merchantName: "CyVerse",
+                    }),
+                },
+            ],
+        },
+    };
 
     // Submit the order payment.
     const authorizeResponse = await fetch(authorizeNetApiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ createTransactionRequest }),
+        body: JSON.stringify({ getHostedPaymentPageRequest }),
     });
 
     const status = authorizeResponse.status;
     const text = await authorizeResponse.text();
 
-    let authorizeResponseJson: CreateTransactionResponse | undefined;
+    let authorizeResponseJson: GetHostedPaymentPageResponse | undefined;
     try {
         authorizeResponseJson = JSON.parse(text);
     } catch {
@@ -334,30 +339,17 @@ export async function POST(request: NextRequest) {
     }
 
     let responseJson: OrderUpdateResult = {
-        success: false,
         poNumber,
         orderDate,
         ...authorizeResponseJson,
     };
 
-    if (authorizeResponseJson) {
-        addTransactionResponse(purchaseId as UUID, authorizeResponseJson);
-    }
-
-    // Check for payment errors.
-    const transactionErrors =
-        authorizeResponseJson?.transactionResponse?.errors;
+    // Check for AuthzNet API errors.
     const transactionMessages = authorizeResponseJson?.messages;
-    if (
-        !authorizeResponse.ok ||
-        transactionMessages?.resultCode === "Error" ||
-        (transactionErrors && transactionErrors?.length > 0)
-    ) {
+    if (!authorizeResponse.ok || transactionMessages?.resultCode === "Error") {
         let errorMessage;
 
-        if (transactionErrors && transactionErrors.length > 0) {
-            errorMessage = transactionErrors;
-        } else if (transactionMessages?.resultCode === "Error") {
+        if (transactionMessages?.resultCode === "Error") {
             errorMessage = transactionMessages;
         }
 
@@ -367,47 +359,10 @@ export async function POST(request: NextRequest) {
             ...responseJson,
         };
 
-        if (!authorizeResponseJson?.transactionResponse) {
-            logger.error("Payment Error: %o", { username, responseJson });
-        }
-
         return NextResponse.json(responseJson, {
             status: !authorizeResponse.ok && status ? status : 500,
         });
     }
-
-    // The payment was successful, so update the user's subscription and addons,
-    // but only return a success response from here,
-    // so the user knows their payment went through.
-    responseJson.success = true;
-    if (subscription && currentSubscription) {
-        const subscriptionUpdateResult = await serviceAccountUpdateSubscription(
-            currentSubscription,
-            subscription.name,
-            subscription.quantity,
-        );
-
-        responseJson = {
-            ...responseJson,
-            ...subscriptionUpdateResult,
-            success: responseJson.success && subscriptionUpdateResult.success,
-        };
-    }
-
-    if (addons && addons.length > 0 && currentSubscription) {
-        const addonsUpdateResult = await serviceAccountUpdateAddons(
-            currentSubscription.id,
-            addons,
-        );
-
-        responseJson = {
-            ...responseJson,
-            ...addonsUpdateResult,
-            success: responseJson.success && addonsUpdateResult.success,
-        };
-    }
-
-    serviceAccountEmailReceipt(user, orderRequest, responseJson);
 
     return NextResponse.json(responseJson);
 }

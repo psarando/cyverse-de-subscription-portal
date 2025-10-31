@@ -3,7 +3,15 @@ import { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 // appConfiguration defines the supported configuration settings for the application.
-const appConfiguration = {
+const appConfiguration: Record<
+    string,
+    {
+        variable: string;
+        required: boolean;
+        isPublic: boolean;
+        defaultValue?: string;
+    }
+> = {
     authorizeNetLoginId: {
         variable: "SP_AUTHORIZE_NET_LOGIN_ID",
         required: true,
@@ -39,6 +47,11 @@ const appConfiguration = {
         variable: "SP_KEYCLOAK_CLIENT_SECRET",
         required: true,
         isPublic: false,
+    },
+    subscriptionPortalBaseUrl: {
+        variable: "SP_BASE_URL",
+        required: true,
+        isPublic: true,
     },
     terrainBaseUrl: {
         variable: "SP_TERRAIN_BASE_URL",
@@ -83,15 +96,7 @@ const appConfiguration = {
         isPublic: false,
         defaultValue: "20000", // 20 seconds, in milliseconds
     },
-} as Record<
-    string,
-    {
-        variable: string;
-        required: boolean;
-        isPublic: boolean;
-        defaultValue?: string;
-    }
->;
+};
 
 // loadConfig loads the runtime configuration from the environment based on the definitions in `appConfiguration`.
 function loadConfig(phase: string) {

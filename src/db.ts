@@ -40,9 +40,9 @@ type Purchase = {
     id: UUID;
     username: string;
     amount: string; // money, typically represented as a string
-    payment_id: UUID;
+    payment_id: UUID | null;
     po_number: number;
-    billing_information_id: UUID;
+    billing_information_id: UUID | null;
     order_date: Date; // timestampz, returned as JS Date
 };
 
@@ -144,37 +144,52 @@ export async function healthCheck() {
  * Adds the `transaction` to the database as a purchase order,
  * returning the `po_number`.
  */
-export async function addPurchaseRecord(
-    username: string,
-    customerIP: string,
-    order: OrderRequest,
-) {
+export async function addPurchaseRecord(username: string, order: OrderRequest) {
     let poNumber;
     let purchaseId;
     let orderDate;
+    let paymentId;
+    let billingInfoId;
 
     try {
         await db.query("BEGIN");
 
-        const paymentId = await getOrAddPaymentId(
-            username,
-            order.payment.creditCard,
-        );
+        const values = [username, order.amount];
+        const purchaseCols = ["username", "amount", "po_number"];
+        const purchaseValues = [
+            "$1",
+            "$2",
+            "nextval('purchase_order_numbers')",
+            "$3",
+            "$4",
+        ];
 
-        const billingInfoId = await getOrAddBillingInfoId(order.billTo);
+        if (order.payment) {
+            paymentId = await getOrAddPaymentId(
+                username,
+                order.payment.creditCard,
+            );
+
+            if (paymentId) {
+                values.push(paymentId);
+                purchaseCols.push("payment_id");
+            }
+        }
+
+        if (order.billTo) {
+            billingInfoId = await getOrAddBillingInfoId(order.billTo);
+
+            if (billingInfoId) {
+                values.push(billingInfoId);
+                purchaseCols.push("billing_information_id");
+            }
+        }
 
         const { rows } = await db.query<Purchase>(
-            `INSERT INTO purchases(
-                username,
-                amount,
-                payment_id,
-                po_number,
-                billing_information_id,
-                customer_ip
-            )
-            VALUES ($1, $2, $3, nextval('purchase_order_numbers'), $4, $5)
+            `INSERT INTO purchases( ${purchaseCols.join(",")} )
+            VALUES ( ${purchaseValues.slice(0, purchaseCols.length).join(",")} )
             RETURNING id, po_number, order_date`,
-            [username, order.amount, paymentId, billingInfoId, customerIP],
+            values,
         );
 
         if (rows && rows.length > 0) {
@@ -199,7 +214,7 @@ export async function addPurchaseRecord(
 
 async function getOrAddPaymentId(
     username: string,
-    creditCard: OrderRequest["payment"]["creditCard"],
+    creditCard: Required<OrderRequest>["payment"]["creditCard"],
 ) {
     const values = [
         creditCard.cardNumber.slice(-4),
@@ -229,7 +244,7 @@ async function getOrAddPaymentId(
     return rows ? rows[0].id : null;
 }
 
-async function getOrAddBillingInfoId(billTo: OrderRequest["billTo"]) {
+async function getOrAddBillingInfoId(billTo: Required<OrderRequest>["billTo"]) {
     const values = [
         billTo.firstName,
         billTo.lastName,
@@ -511,8 +526,8 @@ export async function getUserPurchase(username: string, poNumber: number) {
                 account_number,
                 account_type
         FROM purchases
-        JOIN payments ON payment_id = payments.id
-        JOIN billing_information ON billing_information_id = billing_information.id
+        LEFT JOIN payments ON payment_id = payments.id
+        LEFT JOIN billing_information ON billing_information_id = billing_information.id
         LEFT JOIN transaction_responses ON transaction_responses.purchase_id = purchases.id
         WHERE po_number = $1 AND username = $2`,
         [poNumber, username],
@@ -548,17 +563,19 @@ export async function getUserPurchase(username: string, poNumber: number) {
         getTransactionErrorMessages(transaction_response_id),
     ]);
 
-    return {
-        poNumber,
-        amount,
-        orderDate: order_date,
-        payment: {
+    let payment;
+    if (credit_card_number && expiration_date) {
+        payment = {
             creditCard: {
                 cardNumber: credit_card_number,
                 expirationDate: formatDate(expiration_date, "yyyy-MM"),
             },
-        },
-        billTo: {
+        };
+    }
+
+    let billTo;
+    if (last_name) {
+        billTo = {
             firstName: first_name,
             lastName: last_name,
             company,
@@ -567,7 +584,15 @@ export async function getUserPurchase(username: string, poNumber: number) {
             state,
             zip,
             country,
-        },
+        };
+    }
+
+    return {
+        poNumber,
+        amount,
+        orderDate: order_date,
+        payment,
+        billTo,
         lineItems: line_items.map(
             ({ id, item_type, item_name, quantity, unit_price }) => ({
                 id,
