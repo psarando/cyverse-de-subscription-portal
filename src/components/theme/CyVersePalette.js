@@ -7,7 +7,10 @@ const CyVersePalette = {
     black: "#000000",
     darkNavy: "#142248",
     navy: "#004471",
-    cobalt: "#0971AB", // primary
+    /**
+     * Primary color.
+     */
+    cobalt: "#0971AB",
     sky: "#99D9EA",
     yellow: "#F7D21E",
     gold: "#F8981D",

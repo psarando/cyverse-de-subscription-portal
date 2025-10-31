@@ -18,6 +18,7 @@ import {
     serviceAccountFetchAddons,
     terrainErrorResponse,
 } from "@/app/api/terrain";
+import CyVersePalette from "@/components/theme/CyVersePalette";
 import { addonProratedRate } from "@/utils/rates";
 import { OrderRequestSchema } from "@/validation";
 
@@ -298,6 +299,12 @@ export async function POST(request: NextRequest) {
                         showReceipt: true,
                         url: `${subscriptionPortalBaseUrl}/orders/${poNumber}`,
                         cancelUrl: subscriptionPortalBaseUrl,
+                    }),
+                },
+                {
+                    settingName: "hostedPaymentStyleOptions",
+                    settingValue: JSON.stringify({
+                        bgColor: CyVersePalette.cobalt,
                     }),
                 },
                 {
