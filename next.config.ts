@@ -22,6 +22,11 @@ const appConfiguration: Record<
         required: true,
         isPublic: false,
     },
+    authorizeNetSignatureKey: {
+        variable: "SP_AUTHORIZE_NET_SIGNATURE_KEY",
+        required: true,
+        isPublic: false,
+    },
     authorizeNetApiEndpoint: {
         variable: "SP_AUTHORIZE_NET_API_ENDPOINT",
         required: true,

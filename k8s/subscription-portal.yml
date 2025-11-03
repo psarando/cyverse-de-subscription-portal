@@ -60,6 +60,11 @@ spec:
                 secretKeyRef:
                   name: subscription-portal-configs
                   key: SP_AUTHORIZE_NET_TRANSACTION_KEY
+            - name: SP_AUTHORIZE_NET_SIGNATURE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: subscription-portal-configs
+                  key: SP_AUTHORIZE_NET_SIGNATURE_KEY
             - name: SP_AUTHORIZE_NET_API_ENDPOINT
               valueFrom:
                 secretKeyRef:
