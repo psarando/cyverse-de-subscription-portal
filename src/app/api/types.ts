@@ -183,9 +183,16 @@ export type GetHostedPaymentPageResponse = {
     messages: AuthzNetResponseMessages;
 };
 
+export enum TransactionResponseCodeEnum {
+    APPROVED = 1,
+    DECLINED = 2,
+    ERROR = 3,
+    HELD_FOR_REVIEW = 4,
+}
+
 export type CreateTransactionResponse = {
     transactionResponse: {
-        responseCode: string;
+        responseCode: TransactionResponseCodeEnum;
         authCode: string;
         avsResultCode?: string | null;
         cvvResultCode?: string | null;

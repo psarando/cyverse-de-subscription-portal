@@ -497,6 +497,22 @@ export async function getPurchasesByUsername(
     return rows;
 }
 
+export async function getPurchaseByPoNumber(poNumber: string) {
+    const { rows } = await db.query<
+        Pick<
+            Purchase,
+            "id" | "username" | "po_number" | "amount" | "order_date"
+        >
+    >(
+        `SELECT id, username, po_number, amount, order_date
+        FROM purchases p1
+        WHERE po_number = $1`,
+        [poNumber],
+    );
+
+    return rows && rows.length > 0 ? rows[0] : null;
+}
+
 export async function getUserPurchase(username: string, poNumber: number) {
     if (!username || !poNumber) {
         return null;
