@@ -238,7 +238,7 @@ export async function serviceAccountFetchAddons() {
 
 export async function serviceAccountUpdateAddons(
     subscriptionId: string,
-    addons: Array<{ id?: string; quantity: number }>,
+    addons: Array<{ qmsId: string; quantity: number }>,
 ) {
     let success = true;
     const addonsResults = [];
@@ -251,7 +251,7 @@ export async function serviceAccountUpdateAddons(
             const response = await serviceAccountCallTerrain(
                 method,
                 url,
-                JSON.stringify({ uuid: addon.id }),
+                JSON.stringify({ uuid: addon.qmsId }),
             );
 
             if (response.ok) {

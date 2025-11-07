@@ -279,7 +279,9 @@ export type OrderDetails = Pick<TransactionRequest, "billTo"> & {
     /**
      * unitPrice is returned as a formatted currency string from the db.
      */
-    lineItems?: Array<Omit<LineItem, "unitPrice"> & { unitPrice: string }>;
+    lineItems?: Array<
+        Omit<LineItem, "unitPrice"> & { unitPrice: string; qmsId: UUID }
+    >;
     transactionResponse: OrderDetailTransactionResponse & {
         messages?: Array<AuthzNetResponseMessage>;
     };

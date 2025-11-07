@@ -613,8 +613,9 @@ export async function getPurchaseByPoNumber(
         payment,
         billTo,
         lineItems: line_items.map(
-            ({ id, item_type, item_name, quantity, unit_price }) => ({
+            ({ id, item_id, item_type, item_name, quantity, unit_price }) => ({
                 id,
+                qmsId: item_id,
                 itemId: item_type as LineItemIDEnum,
                 name: item_name,
                 quantity,
