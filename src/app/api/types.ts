@@ -5,9 +5,15 @@ export enum OrderDir {
     DESC = "desc",
 }
 
-export type SubscriptionSummaryDetails = {
+type ResourceType = {
+    name: string;
+    unit: string;
+    consumable: boolean;
+};
+
+export type Subscription = {
     id: UUID;
-    users: {
+    user: {
         username: string;
     };
     plan: {
@@ -15,6 +21,34 @@ export type SubscriptionSummaryDetails = {
     };
     effective_start_date: string;
     effective_end_date: string;
+    quotas: Array<{
+        id: UUID;
+        quota: number;
+        resource_type: ResourceType;
+    }>;
+    usages: Array<{
+        id: UUID;
+        usage: number;
+        resource_type: ResourceType;
+    }>;
+};
+
+export type UserSubscriptionListing = {
+    result: {
+        total: number;
+        subscriptions: Array<Subscription>;
+    };
+    error: string;
+    status: string;
+};
+
+export type SubscriptionSummaryDetails = Omit<
+    Subscription,
+    "user" | "quotas" | "usages"
+> & {
+    users: {
+        username: string;
+    };
     quotas: Array<{
         id: UUID;
         quota: number;
@@ -47,12 +81,6 @@ export type SubscriptionSummaryDetails = {
 
 export type ResourceUsageSummary = {
     subscription: SubscriptionSummaryDetails;
-};
-
-type ResourceType = {
-    name: string;
-    unit: string;
-    consumable: boolean;
 };
 
 export type PlanType = {
@@ -231,6 +259,8 @@ type OrderDetailTransactionResponse = Pick<
 >;
 
 export type OrderDetails = Pick<TransactionRequest, "billTo"> & {
+    id: UUID;
+    username: string;
     poNumber: number;
     /**
      * Amount is returned as a formatted currency string from the db.
@@ -265,8 +295,10 @@ export type OrderUpdateResult = {
 };
 
 export type SubscriptionUpdateResult = {
-    status: string;
-    result: Pick<
+    success: boolean;
+    status?: string;
+    error?: string | OrderUpdateError;
+    result?: Pick<
         SubscriptionSummaryDetails,
         "effective_start_date" | "effective_end_date" | "plan"
     > & {
@@ -279,6 +311,7 @@ export type SubscriptionUpdateResult = {
 };
 
 export type AddonsUpdateResult = {
+    success: boolean;
     addons?: Array<{
         error?: OrderUpdateError;
         subscription_addon?: {

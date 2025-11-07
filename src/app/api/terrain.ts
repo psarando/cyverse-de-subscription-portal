@@ -1,24 +1,17 @@
 import { auth } from "@/auth";
 import constants from "@/constants";
 import logger from "@/logging";
-import {
-    dateConstants,
-    formatCurrency,
-    formatDate,
-    formatQuota,
-} from "@/utils/formatUtils";
+import { dateConstants, formatDate, formatQuota } from "@/utils/formatUtils";
 
 import {
     AddonsUpdateResult,
     LineItemIDEnum,
-    OrderRequest,
-    OrderUpdateResult,
-    SubscriptionSummaryDetails,
+    OrderDetails,
+    Subscription,
     SubscriptionUpdateResult,
 } from "./types";
 
 import { addSeconds, toDate } from "date-fns";
-import { Session } from "next-auth";
 
 import getConfig from "next/config";
 import { NextResponse } from "next/server";
@@ -171,8 +164,19 @@ async function serviceAccountCallTerrain(
     return response;
 }
 
+export async function serviceAccountFetchSubscription(username: string) {
+    const url = `/service/qms/users/${username}/subscriptions`;
+    const response = await serviceAccountCallTerrain("GET", url);
+
+    if (!response.ok) {
+        return terrainErrorResponse(url, response);
+    }
+
+    return response;
+}
+
 export async function serviceAccountUpdateSubscription(
-    currentSubscription: SubscriptionSummaryDetails,
+    currentSubscription: Subscription,
     plan_name: string,
     periods: number,
 ) {
@@ -191,7 +195,7 @@ export async function serviceAccountUpdateSubscription(
     });
 
     const {
-        users: { username },
+        user: { username },
     } = currentSubscription;
 
     const method = "PUT";
@@ -218,7 +222,7 @@ export async function serviceAccountUpdateSubscription(
 
     const data = await response.json();
 
-    return { success: true, subscription: data };
+    return { success: true, ...data };
 }
 
 export async function serviceAccountFetchAddons() {
@@ -276,26 +280,53 @@ export async function serviceAccountUpdateAddons(
         }
     }
 
-    return { success, addons: addonsResults };
+    return { success, addons: addonsResults } as AddonsUpdateResult;
+}
+
+export async function serviceAccountFetchUserInfo(username: string) {
+    const url = `/service/users/${username}`;
+    const response = await serviceAccountCallTerrain("GET", url);
+
+    if (!response.ok) {
+        const errorJson = await parseErrorJson(response, url);
+        logger.error("serviceAccountFetchUserInfo Error: %O", errorJson);
+
+        return null;
+    }
+
+    return await response.json();
 }
 
 export async function serviceAccountEmailReceipt(
-    user: Session["user"],
-    orderRequest: OrderRequest,
-    { poNumber, orderDate, transactionResponse, error }: OrderUpdateResult,
-    success: boolean,
-    subscription: SubscriptionUpdateResult,
-    addons: AddonsUpdateResult,
+    username: string,
+    orderDetails: OrderDetails,
+    subscription?: SubscriptionUpdateResult,
 ) {
-    const { username, name, email } = user!;
-    const { amount, lineItems } = orderRequest;
-    const orderedSubscription = orderRequest.lineItems?.lineItem?.find(
+    const { poNumber, orderDate, amount, transactionResponse, lineItems } =
+        orderDetails;
+    const orderedSubscription = lineItems?.find(
         (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
     );
 
+    const userInfo = await serviceAccountFetchUserInfo(username);
+    const { common_name, first_name, last_name, email } = userInfo || {};
+
+    if (!email) {
+        logger.error(
+            "Could not lookup email address for '%s': %O",
+            username,
+            userInfo,
+        );
+        return;
+    }
+
     const values = {
-        user: name || username,
-        Amount: formatCurrency(amount),
+        user: common_name
+            ? common_name
+            : first_name || last_name
+              ? `${first_name} ${last_name}`
+              : username,
+        Amount: amount,
         PoNumber: poNumber,
         PurchaseTime: formatDate(
             new Date(orderDate as Date),
@@ -303,31 +334,31 @@ export async function serviceAccountEmailReceipt(
         ),
         TransactionId: transactionResponse?.transId,
         SubscriptionLevel:
-            subscription?.result.plan.name ?? orderedSubscription?.name,
+            subscription?.result?.plan.name ?? orderedSubscription?.name,
         SubscriptionPeriod:
             orderedSubscription?.quantity === 1 ? "1 Year" : "2 Years",
-        SubscriptionPrice: formatCurrency(orderedSubscription?.unitPrice),
-        SubscriptionStartDate: subscription
+        SubscriptionPrice: orderedSubscription?.unitPrice,
+        SubscriptionStartDate: subscription?.result?.effective_start_date
             ? formatDate(
                   new Date(subscription.result.effective_start_date),
                   dateConstants.DATE_FORMAT,
               )
             : undefined,
-        SubscriptionEndDate: subscription
+        SubscriptionEndDate: subscription?.result?.effective_end_date
             ? formatDate(
                   new Date(subscription.result.effective_end_date),
                   dateConstants.DATE_FORMAT,
               )
             : undefined,
-        SubscriptionQuotas: subscription?.result.quotas.map((item) =>
+        SubscriptionQuotas: subscription?.result?.quotas.map((item) =>
             formatQuota(item.quota, item.resource_type.unit),
         ),
-        Addons: orderRequest.lineItems?.lineItem
+        Addons: lineItems
             ?.filter((item) => item.itemId === LineItemIDEnum.ADDON)
             ?.map((addon) => ({
                 Name: addon.name,
                 Quantity: addon.quantity,
-                Price: formatCurrency(addon.unitPrice),
+                Price: addon.unitPrice,
             })),
     };
 
@@ -344,30 +375,37 @@ export async function serviceAccountEmailReceipt(
         to: email,
         bcc: [serverRuntimeConfig.supportEmail],
     });
+}
 
-    if (!success) {
-        serviceAccountSendEmail({
-            ...body,
-            to: serverRuntimeConfig.supportEmail,
-            template: "subscription_purchase_admin_required",
-            values: {
-                ...values,
-                SubscriptionDetails: JSON.stringify(
-                    {
-                        username,
-                        poNumber,
-                        transactionId: transactionResponse?.transId,
-                        lineItems,
-                        error,
-                        subscription,
-                        addons,
-                    },
-                    null,
-                    2,
-                ),
-            },
-        });
-    }
+export async function serviceAccountEmailAdmin(
+    username: string,
+    orderDetails: OrderDetails,
+    subscriptionUpdateResult?: SubscriptionUpdateResult,
+    addonsUpdateResult?: AddonsUpdateResult,
+) {
+    serviceAccountSendEmail({
+        from_addr: serverRuntimeConfig.supportEmail,
+        from_name: "CyVerse Subscription Portal",
+        to: serverRuntimeConfig.supportEmail,
+        subject: `CyVerse Subscription Order #${orderDetails.poNumber}`,
+        template: "subscription_purchase_admin_required",
+        values: {
+            PurchaseTime: formatDate(
+                new Date(orderDetails.orderDate as Date),
+                dateConstants.ISO_8601,
+            ),
+            SubscriptionDetails: JSON.stringify(
+                {
+                    username,
+                    orderDetails,
+                    subscriptionUpdateResult,
+                    addonsUpdateResult,
+                },
+                null,
+                2,
+            ),
+        },
+    });
 }
 
 async function serviceAccountSendEmail(body: object) {

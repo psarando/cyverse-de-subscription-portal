@@ -5,8 +5,18 @@ import { addTransactionResponse, getPurchaseByPoNumber } from "@/db";
 import logger from "@/logging";
 
 import {
+    serviceAccountEmailAdmin,
+    serviceAccountEmailReceipt,
+    serviceAccountFetchSubscription,
+    serviceAccountUpdateAddons,
+    serviceAccountUpdateSubscription,
+} from "@/app/api/terrain";
+import {
     CreateTransactionResponse,
+    LineItemIDEnum,
+    OrderDetails,
     TransactionResponseCodeEnum,
+    UserSubscriptionListing,
 } from "@/app/api/types";
 
 import { createHmac } from "crypto";
@@ -36,19 +46,10 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    let authorizeResponseJson:
-        | {
-              eventType?: string;
-              eventDate?: string;
-              payload?: CreateTransactionResponse["transactionResponse"] & {
-                  id: string; // Transaction ID
-                  merchantReferenceId: string; // PO Number
-              };
-          }
-        | undefined;
+    let notificationJson;
 
     try {
-        authorizeResponseJson = JSON.parse(notification);
+        notificationJson = JSON.parse(notification);
     } catch {
         logger.error("Error parsing notification JSON: %o", {
             notification,
@@ -57,54 +58,133 @@ export async function POST(request: NextRequest) {
             status: 400,
         });
     }
-    logger.debug("authorizeResponseJson: %O", authorizeResponseJson);
+
+    // Parse AuthzNet notification asynchronously so route can respond quickly.
+    parseAuthorizeNotification(notificationJson);
+
+    return new NextResponse("ok");
+}
+
+async function parseAuthorizeNotification(notificationJson?: {
+    eventType?: string;
+    eventDate?: string;
+    payload?: CreateTransactionResponse["transactionResponse"] & {
+        id: string; // Transaction ID
+        merchantReferenceId: string; // PO Number
+    };
+}) {
+    logger.debug("notificationJson: %O", notificationJson);
 
     if (
-        authorizeResponseJson?.eventType !==
+        notificationJson?.eventType !==
         "net.authorize.payment.authcapture.created"
     ) {
         logger.info(
             "Received unhandled Authorize.net notification type: %O",
-            authorizeResponseJson || notification,
+            notificationJson,
         );
-    } else {
-        const { payload } = authorizeResponseJson;
-
-        if (!payload?.merchantReferenceId) {
-            logger.error(
-                "Received Authorize.net notification without merchantReferenceId: %O",
-                authorizeResponseJson,
-            );
-        } else {
-            const purchase = await getPurchaseByPoNumber(
-                payload.merchantReferenceId,
-            );
-
-            if (purchase?.id) {
-                const { id: purchaseId, username } = purchase;
-                addTransactionResponse(purchaseId, {
-                    transactionResponse: { ...payload, transId: payload.id },
-                });
-
-                if (
-                    payload.responseCode ===
-                    TransactionResponseCodeEnum.APPROVED
-                ) {
-                    logger.debug("payment successful %O", {
-                        purchaseId,
-                        username,
-                        payload,
-                    });
-                } else {
-                    logger.debug("payment not approved %O", {
-                        purchaseId,
-                        username,
-                        payload,
-                    });
-                }
-            }
-        }
+        return;
     }
 
-    return new NextResponse("ok");
+    const { payload } = notificationJson;
+
+    if (!payload?.merchantReferenceId) {
+        logger.error(
+            "Received Authorize.net notification without merchantReferenceId: %O",
+            notificationJson,
+        );
+        return;
+    }
+
+    const purchase = await getPurchaseByPoNumber(
+        parseInt(payload.merchantReferenceId),
+    );
+
+    if (purchase?.id) {
+        const { id: purchaseId, username } = purchase;
+        const transactionResponse = { ...payload, transId: payload.id };
+        addTransactionResponse(purchaseId, {
+            transactionResponse,
+        });
+
+        if (payload.responseCode === TransactionResponseCodeEnum.APPROVED) {
+            const orderDetails = { ...purchase, transactionResponse };
+
+            // The payment was successful, so update the user's subscription and addons.
+            updateSubscription(username, orderDetails);
+        } else {
+            logger.debug("payment not approved %O", {
+                purchaseId,
+                username,
+                payload,
+            });
+        }
+    }
+}
+
+async function updateSubscription(
+    username: string,
+    orderDetails: OrderDetails,
+) {
+    const subscription = orderDetails.lineItems?.find(
+        (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
+    );
+    const addons = orderDetails.lineItems?.filter(
+        (item) => item.itemId === LineItemIDEnum.ADDON,
+    );
+
+    if (!(subscription || addons)) {
+        serviceAccountEmailAdmin(username, orderDetails);
+        return;
+    }
+
+    const currentSubscriptionResponse =
+        await serviceAccountFetchSubscription(username);
+
+    const currentSubscriptions: UserSubscriptionListing =
+        await currentSubscriptionResponse.json();
+
+    const currentSubscription =
+        currentSubscriptions?.result?.total > 0 &&
+        currentSubscriptions.result.subscriptions[0];
+
+    if (!currentSubscription) {
+        serviceAccountEmailAdmin(username, orderDetails);
+        return;
+    }
+
+    let subscriptionUpdateResult;
+    if (subscription) {
+        subscriptionUpdateResult = await serviceAccountUpdateSubscription(
+            currentSubscription,
+            subscription.name,
+            subscription.quantity,
+        );
+    }
+
+    let addonsUpdateResult;
+    if (addons) {
+        addonsUpdateResult = await serviceAccountUpdateAddons(
+            currentSubscription.id,
+            addons,
+        );
+    }
+
+    serviceAccountEmailReceipt(
+        username,
+        orderDetails,
+        subscriptionUpdateResult,
+    );
+
+    if (
+        (subscriptionUpdateResult && !subscriptionUpdateResult.success) ||
+        (addonsUpdateResult && !addonsUpdateResult.success)
+    ) {
+        serviceAccountEmailAdmin(
+            username,
+            orderDetails,
+            subscriptionUpdateResult,
+            addonsUpdateResult,
+        );
+    }
 }

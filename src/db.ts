@@ -497,25 +497,24 @@ export async function getPurchasesByUsername(
     return rows;
 }
 
-export async function getPurchaseByPoNumber(poNumber: string) {
-    const { rows } = await db.query<
-        Pick<
-            Purchase,
-            "id" | "username" | "po_number" | "amount" | "order_date"
-        >
-    >(
-        `SELECT id, username, po_number, amount, order_date
-        FROM purchases p1
-        WHERE po_number = $1`,
-        [poNumber],
-    );
-
-    return rows && rows.length > 0 ? rows[0] : null;
-}
-
 export async function getUserPurchase(username: string, poNumber: number) {
     if (!username || !poNumber) {
         return null;
+    }
+
+    return getPurchaseByPoNumber(poNumber, username);
+}
+
+export async function getPurchaseByPoNumber(
+    poNumber: number,
+    usernameQuery?: string,
+) {
+    let where = "po_number = $1";
+    const values: Array<string | number> = [poNumber];
+
+    if (usernameQuery) {
+        where += " AND username = $2";
+        values.push(usernameQuery);
     }
 
     const { rows } = await db.query<
@@ -525,6 +524,7 @@ export async function getUserPurchase(username: string, poNumber: number) {
             TransactionResponse & { transaction_response_id: UUID }
     >(
         `SELECT purchases.id,
+                username,
                 amount,
                 order_date,
                 credit_card_number,
@@ -545,8 +545,8 @@ export async function getUserPurchase(username: string, poNumber: number) {
         LEFT JOIN payments ON payment_id = payments.id
         LEFT JOIN billing_information ON billing_information_id = billing_information.id
         LEFT JOIN transaction_responses ON transaction_responses.purchase_id = purchases.id
-        WHERE po_number = $1 AND username = $2`,
-        [poNumber, username],
+        WHERE ${where}`,
+        values,
     );
 
     if (!rows || rows.length < 1) {
@@ -555,6 +555,7 @@ export async function getUserPurchase(username: string, poNumber: number) {
 
     const {
         id,
+        username,
         amount,
         order_date,
         credit_card_number,
@@ -604,6 +605,8 @@ export async function getUserPurchase(username: string, poNumber: number) {
     }
 
     return {
+        id,
+        username,
         poNumber,
         amount,
         orderDate: order_date,
