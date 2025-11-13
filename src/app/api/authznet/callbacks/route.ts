@@ -108,7 +108,13 @@ async function parseAuthorizeNotification(notificationJson?: {
         });
 
         if (payload.responseCode === TransactionResponseCodeEnum.APPROVED) {
-            const orderDetails = { ...purchase, transactionResponse };
+            const orderDetails = {
+                ...purchase,
+                transactionResponses: [
+                    transactionResponse,
+                    ...purchase.transactionResponses,
+                ],
+            };
 
             // The payment was successful, so update the user's subscription and addons.
             updateSubscription(username, orderDetails);

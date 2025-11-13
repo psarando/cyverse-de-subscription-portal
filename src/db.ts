@@ -536,15 +536,10 @@ export async function getPurchaseByPoNumber(
                 city,
                 state,
                 zip,
-                country,
-                transaction_responses.id AS transaction_response_id,
-                transaction_id,
-                account_number,
-                account_type
+                country
         FROM purchases
         LEFT JOIN payments ON payment_id = payments.id
         LEFT JOIN billing_information ON billing_information_id = billing_information.id
-        LEFT JOIN transaction_responses ON transaction_responses.purchase_id = purchases.id
         WHERE ${where}`,
         values,
     );
@@ -568,16 +563,11 @@ export async function getPurchaseByPoNumber(
         state,
         zip,
         country,
-        transaction_response_id,
-        transaction_id,
-        account_number,
-        account_type,
     } = rows[0];
 
-    const [line_items, response_messages, error_messages] = await Promise.all([
+    const [line_items, transactionResponses] = await Promise.all([
         getLineItems(id),
-        getTransactionResponseMessages(transaction_response_id),
-        getTransactionErrorMessages(transaction_response_id),
+        getTransactionResponses(id),
     ]);
 
     let payment;
@@ -622,19 +612,7 @@ export async function getPurchaseByPoNumber(
                 unitPrice: unit_price,
             }),
         ),
-        transactionResponse: {
-            transId: transaction_id,
-            accountNumber: account_number,
-            accountType: account_type,
-            messages: response_messages?.map(({ code, description }) => ({
-                code,
-                text: description,
-            })),
-            errors: error_messages?.map(({ error_code, error_text }) => ({
-                errorCode: error_code,
-                errorText: error_text,
-            })),
-        },
+        transactionResponses,
     } as OrderDetails;
 }
 
@@ -653,6 +631,49 @@ async function getLineItems(purchaseId: UUID) {
     );
 
     return rows;
+}
+
+async function getTransactionResponses(purchaseId: UUID) {
+    if (!purchaseId) {
+        return [];
+    }
+
+    const { rows } = await db.query<TransactionResponse>(
+        `SELECT id,
+                transaction_id,
+                account_number,
+                account_type
+        FROM transaction_responses
+        WHERE purchase_id = $1`,
+        [purchaseId],
+    );
+
+    if (!rows || rows.length < 1) {
+        return [];
+    }
+
+    return await Promise.all(
+        rows.map(async (transactionResponse) => {
+            const [response_messages, error_messages] = await Promise.all([
+                getTransactionResponseMessages(transactionResponse.id),
+                getTransactionErrorMessages(transactionResponse.id),
+            ]);
+
+            return {
+                transId: transactionResponse.transaction_id,
+                accountNumber: transactionResponse.account_number,
+                accountType: transactionResponse.account_type,
+                messages: response_messages?.map(({ code, description }) => ({
+                    code,
+                    text: description,
+                })),
+                errors: error_messages?.map(({ error_code, error_text }) => ({
+                    errorCode: error_code,
+                    errorText: error_text,
+                })),
+            };
+        }),
+    );
 }
 
 async function getTransactionErrorMessages(transactionResponseId: UUID) {

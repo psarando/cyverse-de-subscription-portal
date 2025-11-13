@@ -302,8 +302,9 @@ export async function serviceAccountEmailReceipt(
     orderDetails: OrderDetails,
     subscription?: SubscriptionUpdateResult,
 ) {
-    const { poNumber, orderDate, amount, transactionResponse, lineItems } =
+    const { poNumber, orderDate, amount, transactionResponses, lineItems } =
         orderDetails;
+    const transactionResponse = transactionResponses && transactionResponses[0];
     const orderedSubscription = lineItems?.find(
         (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
     );

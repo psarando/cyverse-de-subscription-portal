@@ -282,9 +282,11 @@ export type OrderDetails = Pick<TransactionRequest, "billTo"> & {
     lineItems?: Array<
         Omit<LineItem, "unitPrice"> & { unitPrice: string; qmsId: UUID }
     >;
-    transactionResponse: OrderDetailTransactionResponse & {
-        messages?: Array<AuthzNetResponseMessage>;
-    };
+    transactionResponses: Array<
+        OrderDetailTransactionResponse & {
+            messages?: Array<AuthzNetResponseMessage>;
+        }
+    >;
 };
 
 export type OrderUpdateResult = {
