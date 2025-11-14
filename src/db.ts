@@ -9,6 +9,7 @@ import {
     OrderDir,
     OrderRequest,
     PurchaseSortField,
+    TransactionResponseCodeEnum,
 } from "@/app/api/types";
 import { formatDate } from "@/utils/formatUtils";
 
@@ -420,7 +421,7 @@ export async function addTransactionResponse(
             [
                 purchaseId,
                 responseCode,
-                authCode,
+                authCode ?? "",
                 avsResultCode ?? null,
                 cvvResultCode ?? null,
                 cavvResultCode ?? null,
@@ -640,6 +641,7 @@ async function getTransactionResponses(purchaseId: UUID) {
 
     const { rows } = await db.query<TransactionResponse>(
         `SELECT id,
+                response_code,
                 transaction_id,
                 account_number,
                 account_type
@@ -660,6 +662,9 @@ async function getTransactionResponses(purchaseId: UUID) {
             ]);
 
             return {
+                responseCode: parseInt(
+                    transactionResponse.response_code,
+                ) as TransactionResponseCodeEnum,
                 transId: transactionResponse.transaction_id,
                 accountNumber: transactionResponse.account_number,
                 accountType: transactionResponse.account_type,

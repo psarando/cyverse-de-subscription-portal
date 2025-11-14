@@ -73,12 +73,9 @@ async function parseAuthorizeNotification(notificationJson?: {
         merchantReferenceId: string; // PO Number
     };
 }) {
-    logger.debug("notificationJson: %O", notificationJson);
+    logger.debug("notificationJson: %o", notificationJson);
 
-    if (
-        notificationJson?.eventType !==
-        "net.authorize.payment.authcapture.created"
-    ) {
+    if (!notificationJson?.eventType?.startsWith("net.authorize.payment.")) {
         logger.info(
             "Received unhandled Authorize.net notification type: %O",
             notificationJson,
@@ -86,7 +83,7 @@ async function parseAuthorizeNotification(notificationJson?: {
         return;
     }
 
-    const { payload } = notificationJson;
+    const { eventType, payload } = notificationJson;
 
     if (!payload?.merchantReferenceId) {
         logger.error(
@@ -102,12 +99,28 @@ async function parseAuthorizeNotification(notificationJson?: {
 
     if (purchase?.id) {
         const { id: purchaseId, username } = purchase;
-        const transactionResponse = { ...payload, transId: payload.id };
-        addTransactionResponse(purchaseId, {
-            transactionResponse,
-        });
+        const transactionResponse = {
+            transId: payload.id,
+            avsResultCode: payload.avsResponse,
+            ...payload,
+        };
+        addTransactionResponse(purchaseId, { transactionResponse });
 
         if (payload.responseCode === TransactionResponseCodeEnum.APPROVED) {
+            if (
+                ![
+                    "net.authorize.payment.authcapture.created",
+                    "net.authorize.payment.fraud.approved",
+                ].includes(eventType)
+            ) {
+                logger.warn("APPROVED payment for unexpected eventType %o", {
+                    purchaseId,
+                    username,
+                    eventType,
+                    payload,
+                });
+            }
+
             const orderDetails = {
                 ...purchase,
                 transactionResponses: [
@@ -119,7 +132,7 @@ async function parseAuthorizeNotification(notificationJson?: {
             // The payment was successful, so update the user's subscription and addons.
             updateSubscription(username, orderDetails);
         } else {
-            logger.debug("payment not approved %O", {
+            logger.info("payment not approved %o", {
                 purchaseId,
                 username,
                 payload,

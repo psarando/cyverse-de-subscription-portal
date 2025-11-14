@@ -222,6 +222,7 @@ export type CreateTransactionResponse = {
     transactionResponse: {
         responseCode: TransactionResponseCodeEnum;
         authCode: string;
+        avsResponse?: string | null;
         avsResultCode?: string | null;
         cvvResultCode?: string | null;
         cavvResultCode?: string | null;
@@ -255,7 +256,7 @@ export type OrderUpdateError = {
 
 type OrderDetailTransactionResponse = Pick<
     CreateTransactionResponse["transactionResponse"],
-    "transId" | "accountNumber" | "accountType" | "errors"
+    "responseCode" | "transId" | "accountNumber" | "accountType" | "errors"
 >;
 
 export type OrderDetails = Pick<TransactionRequest, "billTo"> & {
