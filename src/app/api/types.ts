@@ -114,7 +114,7 @@ export type OrderSummary = {
     po_number: number;
     amount: number;
     order_date: string;
-    err_count: number;
+    approved: boolean;
 };
 
 export type OrdersList = {

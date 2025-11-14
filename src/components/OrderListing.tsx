@@ -120,7 +120,7 @@ function OrderListing() {
 
 function OrderRow({ order }: { order: OrderSummary }) {
     const router = useRouter();
-    const { po_number, order_date, amount, err_count } = order;
+    const { po_number, order_date, amount, approved } = order;
 
     return (
         <DERow
@@ -142,12 +142,12 @@ function OrderRow({ order }: { order: OrderSummary }) {
             <TableCell align="right">
                 <Typography
                     sx={
-                        err_count
-                            ? {
+                        approved
+                            ? null
+                            : {
                                   color: "error.main",
                                   textDecoration: "line-through",
                               }
-                            : null
                     }
                 >
                     {amount}

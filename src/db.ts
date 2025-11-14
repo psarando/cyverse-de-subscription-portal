@@ -50,7 +50,7 @@ type Purchase = {
 type PurchaseListingItem = Pick<
     Purchase,
     "id" | "po_number" | "amount" | "order_date"
-> & { err_count: string };
+> & { approved: boolean };
 
 // Represents a row in the "payments" table.
 type Payment = {
@@ -483,16 +483,15 @@ export async function getPurchasesByUsername(
 ) {
     const { rows } = await db.query<PurchaseListingItem>(
         `SELECT id, po_number, amount, order_date,
-        (
-            SELECT COUNT(*) FROM purchases p2
+        EXISTS(
+            SELECT response_code FROM purchases p2
             LEFT JOIN transaction_responses tr ON tr.purchase_id = p2.id
-            LEFT JOIN transaction_error_messages e ON e.transaction_response_id = tr.id
-            WHERE p2.id = p1.id AND (tr.id IS NULL OR e.id IS NOT NULL)
-        ) AS err_count
+            WHERE p2.id = p1.id AND response_code = $2
+        ) AS approved
         FROM purchases p1
         WHERE username = $1
         ORDER BY ${orderField ?? PurchaseSortField.ORDER_DATE} ${orderDir ?? OrderDir.DESC}`,
-        [username],
+        [username, TransactionResponseCodeEnum.APPROVED],
     );
 
     return rows;
