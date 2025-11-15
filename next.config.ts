@@ -32,6 +32,11 @@ const appConfiguration: Record<
         required: true,
         isPublic: false,
     },
+    authorizeNetHostedEndpoint: {
+        variable: "SP_AUTHORIZE_NET_HOSTED_ENDPOINT",
+        required: true,
+        isPublic: true,
+    },
     authorizeNetTestRequests: {
         variable: "SP_AUTHORIZE_NET_TEST_REQUESTS",
         required: false,

@@ -15,40 +15,6 @@ export const CheckoutFormSchema: Yup.ObjectSchema<CheckoutFormValues> =
         termsAcknowledged: Yup.boolean()
             .required("You must agree to the Terms of Use")
             .oneOf([true], "You must agree to the Terms of Use"),
-        payment: Yup.object().shape({
-            creditCard: Yup.object().shape({
-                cardNumber: Yup.string()
-                    .required("Card number is required")
-                    .transform((value) => value?.replaceAll(" ", ""))
-                    .matches(/^\d+$/, "Card number must be digits")
-                    .min(13, "Card number must be 13 - 16 digits")
-                    .max(16, "Card number must be 13 - 16 digits"),
-                expirationDate: Yup.string()
-                    .required("Expiration date is required")
-                    .matches(
-                        /^(\d{4})-(\d{2})/,
-                        "Expiration must be in YYYY-MM format",
-                    ),
-                cardCode: Yup.string()
-                    .required("CVV is required")
-                    .matches(/^\d+$/, "CVV must be digits")
-                    .min(3, "CVV must be at least 3 digits")
-                    .max(4, "CVV must be 3 or 4 digits"),
-            }),
-        }),
-        billTo: Yup.object().shape({
-            firstName: schemaRequiredStringMaxLen("First name", 50),
-            lastName: schemaRequiredStringMaxLen("Last name", 50),
-            company: schemaStringMaxLen("Company", 60),
-            address: schemaRequiredStringMaxLen("Address", 60),
-            city: schemaRequiredStringMaxLen("City", 40),
-            state: schemaRequiredStringMaxLen("State", 40),
-            zip: schemaRequiredStringMaxLen("Zip code", 20),
-            country: Yup.string()
-                .required("Country code is required")
-                .trim()
-                .length(2, "Please use a 2 character country code"),
-        }),
     });
 
 export const OrderRequestSchema: Yup.ObjectSchema<OrderRequest> =
@@ -61,6 +27,40 @@ export const OrderRequestSchema: Yup.ObjectSchema<OrderRequest> =
                 .required("Currency code is required")
                 .trim()
                 .length(3, "Please use a 3 character currency code"),
+            payment: Yup.object().shape({
+                creditCard: Yup.object().shape({
+                    cardNumber: Yup.string()
+                        .required("Card number is required")
+                        .transform((value) => value?.replaceAll(" ", ""))
+                        .matches(/^\d+$/, "Card number must be digits")
+                        .min(13, "Card number must be 13 - 16 digits")
+                        .max(16, "Card number must be 13 - 16 digits"),
+                    expirationDate: Yup.string()
+                        .required("Expiration date is required")
+                        .matches(
+                            /^(\d{4})-(\d{2})/,
+                            "Expiration must be in YYYY-MM format",
+                        ),
+                    cardCode: Yup.string()
+                        .required("CVV is required")
+                        .matches(/^\d+$/, "CVV must be digits")
+                        .min(3, "CVV must be at least 3 digits")
+                        .max(4, "CVV must be 3 or 4 digits"),
+                }),
+            }),
+            billTo: Yup.object().shape({
+                firstName: schemaRequiredStringMaxLen("First name", 50),
+                lastName: schemaRequiredStringMaxLen("Last name", 50),
+                company: schemaStringMaxLen("Company", 60),
+                address: schemaRequiredStringMaxLen("Address", 60),
+                city: schemaRequiredStringMaxLen("City", 40),
+                state: schemaRequiredStringMaxLen("State", 40),
+                zip: schemaRequiredStringMaxLen("Zip code", 20),
+                country: Yup.string()
+                    .required("Country code is required")
+                    .trim()
+                    .length(2, "Please use a 2 character country code"),
+            }),
             lineItems: Yup.object().shape({
                 lineItem: Yup.array().of(
                     Yup.object().shape({
