@@ -134,6 +134,16 @@ function OrderDetails({ poNumber }: { poNumber: number }) {
                     )}
                 </GridLabelValue>
 
+                {transactionResponse?.transDate && (
+                    <GridLabelValue label="Transaction Date">
+                        <Typography>
+                            {formatDate(
+                                new Date(transactionResponse.transDate),
+                            )}
+                        </Typography>
+                    </GridLabelValue>
+                )}
+
                 {errorMsgs.length > 0 ? (
                     <GridLabelValue label="Errors" color="error">
                         {errorMsgs.map((error) => (

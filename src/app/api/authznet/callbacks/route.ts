@@ -83,7 +83,7 @@ async function parseAuthorizeNotification(notificationJson?: {
         return;
     }
 
-    const { eventType, payload } = notificationJson;
+    const { eventType, eventDate, payload } = notificationJson;
 
     if (!payload?.merchantReferenceId) {
         logger.error(
@@ -101,6 +101,7 @@ async function parseAuthorizeNotification(notificationJson?: {
         const { id: purchaseId, username } = purchase;
         const transactionResponse = {
             transId: payload.id,
+            transDate: eventDate,
             avsResultCode: payload.avsResponse,
             ...payload,
         };

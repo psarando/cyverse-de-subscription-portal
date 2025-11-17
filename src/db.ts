@@ -94,6 +94,7 @@ type TransactionResponse = {
     cvv_result_code?: string | null;
     cavv_result_code?: string | null;
     transaction_id?: string | null;
+    transaction_date?: Date | null; // timestampz, returned as JS Date
     ref_transaction_id?: string | null;
     test_request?: string | null;
     account_number?: string | null;
@@ -388,6 +389,7 @@ export async function addTransactionResponse(
             cvvResultCode,
             cavvResultCode,
             transId,
+            transDate,
             refTransID,
             testRequest,
             accountNumber,
@@ -407,6 +409,7 @@ export async function addTransactionResponse(
                 cvv_result_code,
                 cavv_result_code,
                 transaction_id,
+                transaction_date,
                 ref_transaction_id,
                 test_request,
                 account_number,
@@ -415,7 +418,7 @@ export async function addTransactionResponse(
                 supplemental_data_qualification_indicator,
                 network_transaction_id
             ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
             )
             RETURNING id`,
             [
@@ -426,6 +429,7 @@ export async function addTransactionResponse(
                 cvvResultCode ?? null,
                 cavvResultCode ?? null,
                 transId ?? null,
+                transDate ?? "now()",
                 refTransID ?? null,
                 testRequest ?? null,
                 accountNumber ?? null,
@@ -642,10 +646,12 @@ async function getTransactionResponses(purchaseId: UUID) {
         `SELECT id,
                 response_code,
                 transaction_id,
+                transaction_date,
                 account_number,
                 account_type
         FROM transaction_responses
-        WHERE purchase_id = $1`,
+        WHERE purchase_id = $1
+        ORDER BY transaction_date DESC`,
         [purchaseId],
     );
 
@@ -665,6 +671,7 @@ async function getTransactionResponses(purchaseId: UUID) {
                     transactionResponse.response_code,
                 ) as TransactionResponseCodeEnum,
                 transId: transactionResponse.transaction_id,
+                transDate: transactionResponse.transaction_date,
                 accountNumber: transactionResponse.account_number,
                 accountType: transactionResponse.account_type,
                 messages: response_messages?.map(({ code, description }) => ({

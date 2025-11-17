@@ -227,6 +227,10 @@ export type CreateTransactionResponse = {
         cvvResultCode?: string | null;
         cavvResultCode?: string | null;
         transId?: string | null;
+        /**
+         * Date when read from the db, or string from order endpoints.
+         */
+        transDate?: Date | string;
         refTransID?: string | null;
         testRequest?: string | null;
         accountNumber?: string | null;
@@ -256,7 +260,12 @@ export type OrderUpdateError = {
 
 type OrderDetailTransactionResponse = Pick<
     CreateTransactionResponse["transactionResponse"],
-    "responseCode" | "transId" | "accountNumber" | "accountType" | "errors"
+    | "responseCode"
+    | "transId"
+    | "transDate"
+    | "accountNumber"
+    | "accountType"
+    | "errors"
 >;
 
 export type OrderDetails = Pick<TransactionRequest, "billTo"> & {
