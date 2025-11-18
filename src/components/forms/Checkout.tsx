@@ -323,6 +323,45 @@ function Checkout({
                                         spacing={2}
                                         sx={{ my: 2 }}
                                     >
+                                        <Typography>
+                                            By agreeing to the{" "}
+                                            <ExternalLink
+                                                href={
+                                                    constants.CYVERSE_POLICY_URL
+                                                }
+                                                rel="noopener"
+                                            >
+                                                Terms of Use
+                                            </ExternalLink>{" "}
+                                            and selecting the{" "}
+                                            <Typography
+                                                variant="button"
+                                                color="info"
+                                            >
+                                                {`"Proceed to Payment"`}
+                                            </Typography>{" "}
+                                            button below, you will be forwarded
+                                            to{" "}
+                                            <ExternalLink href="https://www.authorize.net">
+                                                Authorize.net
+                                            </ExternalLink>
+                                            , where you can provide your billing
+                                            and payment information. After your
+                                            payment is approved, your
+                                            subscription will be updated and an
+                                            order confirmation will be sent to
+                                            the primary email address associated
+                                            with{" "}
+                                            <ExternalLink
+                                                href={
+                                                    constants.USER_PORTAL_ACCOUNT
+                                                }
+                                                rel="noopener"
+                                            >
+                                                your CyVerse account
+                                            </ExternalLink>
+                                            .
+                                        </Typography>
                                         <Field
                                             name="termsAcknowledged"
                                             component={FormCheckbox}

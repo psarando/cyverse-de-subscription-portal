@@ -7,6 +7,7 @@ const constants = {
     PLAN_NAME_BASIC: "Basic",
     SUBSCRIBE_URL: "https://cyverse.org/subscribe",
     USER_PORTAL_URL: "https://user.cyverse.org",
+    USER_PORTAL_ACCOUNT: "https://user.cyverse.org/account",
     USER_PORTAL_REGISTER: "https://user.cyverse.org/register",
 };
 
