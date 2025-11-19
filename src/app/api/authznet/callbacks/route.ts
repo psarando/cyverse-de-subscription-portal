@@ -1,6 +1,7 @@
 /**
  * @author psarando
  */
+import constants from "@/constants";
 import { addTransactionResponse, getPurchaseByPoNumber } from "@/db";
 import logger from "@/logging";
 
@@ -173,6 +174,8 @@ async function updateSubscription(
         return;
     }
 
+    let addonSubscriptionId = currentSubscription.id;
+
     let subscriptionUpdateResult;
     if (subscription) {
         subscriptionUpdateResult = await serviceAccountUpdateSubscription(
@@ -180,12 +183,16 @@ async function updateSubscription(
             subscription.name,
             subscription.quantity,
         );
+
+        if (currentSubscription.plan.name === constants.PLAN_NAME_BASIC) {
+            addonSubscriptionId = subscriptionUpdateResult?.result?.id;
+        }
     }
 
     let addonsUpdateResult;
-    if (addons) {
+    if (addons && addonSubscriptionId) {
         addonsUpdateResult = await serviceAccountUpdateAddons(
-            currentSubscription.id,
+            addonSubscriptionId,
             addons,
         );
     }
