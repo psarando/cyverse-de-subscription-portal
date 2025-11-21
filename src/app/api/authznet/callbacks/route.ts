@@ -20,7 +20,7 @@ import {
     UserSubscriptionListing,
 } from "@/app/api/types";
 
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -41,7 +41,14 @@ export async function POST(request: NextRequest) {
     hmac.update(notification);
 
     const signature = `sha512=${hmac.digest("hex")}`;
-    if (request.headers.get("X-Anet-Signature")?.toLowerCase() !== signature) {
+    const anetSignature = request.headers
+        .get("X-Anet-Signature")
+        ?.toLowerCase();
+    if (
+        !anetSignature ||
+        anetSignature.length !== signature.length ||
+        !timingSafeEqual(Buffer.from(anetSignature), Buffer.from(signature))
+    ) {
         return new NextResponse("Authorize.net Signature not verified.", {
             status: 401,
         });
