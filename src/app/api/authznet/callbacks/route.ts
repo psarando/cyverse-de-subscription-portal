@@ -105,49 +105,57 @@ async function parseAuthorizeNotification(notificationJson?: {
         parseInt(payload.merchantReferenceId),
     );
 
-    if (purchase?.id) {
-        const { id: purchaseId, username } = purchase;
-        const transactionResponse = {
-            transId: payload.id,
-            transDate: eventDate,
-            avsResultCode: payload.avsResponse,
-            ...payload,
-        };
-        addTransactionResponse(purchaseId, { transactionResponse });
-
-        if (payload.responseCode === TransactionResponseCodeEnum.APPROVED) {
-            if (
-                ![
-                    "net.authorize.payment.authcapture.created",
-                    "net.authorize.payment.fraud.approved",
-                ].includes(eventType)
-            ) {
-                logger.warn("APPROVED payment for unexpected eventType %o", {
-                    purchaseId,
-                    username,
-                    eventType,
-                    payload,
-                });
-            }
-
-            const orderDetails = {
-                ...purchase,
-                transactionResponses: [
-                    transactionResponse,
-                    ...purchase.transactionResponses,
-                ],
-            };
-
-            // The payment was successful, so update the user's subscription and addons.
-            updateSubscription(username, orderDetails);
-        } else {
-            logger.info("payment not approved %o", {
-                purchaseId,
-                username,
-                payload,
-            });
-        }
+    if (!purchase?.id) {
+        logger.error(
+            "Could not lookup purchase by PO Number '%s': %O",
+            payload.merchantReferenceId,
+            purchase,
+        );
+        return;
     }
+
+    const { id: purchaseId, username } = purchase;
+    const transactionResponse = {
+        transId: payload.id,
+        transDate: eventDate,
+        avsResultCode: payload.avsResponse,
+        ...payload,
+    };
+    addTransactionResponse(purchaseId, { transactionResponse });
+
+    if (payload.responseCode !== TransactionResponseCodeEnum.APPROVED) {
+        logger.info("payment not approved %o", {
+            purchaseId,
+            username,
+            payload,
+        });
+        return;
+    }
+
+    if (
+        ![
+            "net.authorize.payment.authcapture.created",
+            "net.authorize.payment.fraud.approved",
+        ].includes(eventType)
+    ) {
+        logger.warn("APPROVED payment for unexpected eventType %o", {
+            purchaseId,
+            username,
+            eventType,
+            payload,
+        });
+    }
+
+    const orderDetails = {
+        ...purchase,
+        transactionResponses: [
+            transactionResponse,
+            ...purchase.transactionResponses,
+        ],
+    };
+
+    // The payment was successful, so update the user's subscription and addons.
+    updateSubscription(username, orderDetails);
 }
 
 async function updateSubscription(
