@@ -181,10 +181,15 @@ async function updateSubscription(
         await currentSubscriptionResponse.json();
 
     const currentSubscription =
+        currentSubscriptionResponse.ok &&
         currentSubscriptions?.result?.total > 0 &&
         currentSubscriptions.result.subscriptions[0];
 
-    if (!currentSubscription) {
+    if (!currentSubscriptionResponse.ok || !currentSubscription) {
+        logger.error(
+            "Could not fetch user's current subscription: %o",
+            currentSubscriptions,
+        );
         serviceAccountEmailAdmin(username, orderDetails);
         return;
     }
