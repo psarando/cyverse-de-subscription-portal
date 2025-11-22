@@ -62,32 +62,10 @@ export function mapAddonsPropsToValues(
     };
 }
 
-export type CheckoutFormValues = Pick<
-    OrderRequest,
-    "termsAcknowledged" | "billTo" | "payment"
->;
+export type CheckoutFormValues = Pick<OrderRequest, "termsAcknowledged">;
 
 export function formatCheckoutFormValues(): CheckoutFormValues {
-    return {
-        termsAcknowledged: false,
-        billTo: {
-            firstName: "",
-            lastName: "",
-            company: "",
-            address: "",
-            city: "",
-            state: "",
-            zip: "",
-            country: "US",
-        },
-        payment: {
-            creditCard: {
-                cardNumber: "",
-                expirationDate: "",
-                cardCode: "",
-            },
-        },
-    };
+    return { termsAcknowledged: false };
 }
 
 export function formatCheckoutTransactionRequest(

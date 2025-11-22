@@ -8,27 +8,22 @@
  */
 import React from "react";
 
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
-import { FieldProps, Formik, FormikHelpers } from "formik";
+import { Field, Formik, FormikHelpers } from "formik";
 
 import {
     Box,
     Button,
-    Card,
-    CardContent,
+    Divider,
     Grid,
-    Step,
-    StepLabel,
-    Stepper,
+    Stack,
     Toolbar,
     Typography,
 } from "@mui/material";
-import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import constants from "@/constants";
 import {
     getPlanTypes,
     getResourceUsageSummary,
@@ -43,82 +38,43 @@ import {
     PlanType,
     ResourceUsageSummary,
     SubscriptionSubmission,
-    SubscriptionSummaryDetails,
 } from "@/app/api/types";
 import { CartInfo, useCartInfo } from "@/contexts/cart";
 import BackButton from "@/components/common/BackButton";
+import ExternalLink from "@/components/common/ExternalLink";
 import GridLoading from "@/components/common/GridLoading";
-import {
-    ERROR,
-    SUCCESS,
-} from "@/components/common/announcer/AnnouncerConstants";
+import { ERROR } from "@/components/common/announcer/AnnouncerConstants";
 import { announce } from "@/components/common/announcer/CyVerseAnnouncer";
 import ErrorHandler from "@/components/common/error/ErrorHandler";
 import withErrorAnnouncer, {
     WithErrorAnnouncerProps,
 } from "@/components/common/error/withErrorAnnouncer";
 import { addonProratedRate } from "@/utils/rates";
-import { formatCurrency } from "@/utils/formatUtils";
 import { CheckoutFormSchema } from "@/validation";
 
-import AddressForm from "./AddressForm";
 import Info from "./Info";
-import InfoMobile from "./InfoMobile";
-import PaymentForm from "./PaymentForm";
-import Review from "./Review";
-import getFormError from "./getFormError";
 import {
     CheckoutFormValues,
     formatCheckoutFormValues,
     formatCheckoutTransactionRequest,
 } from "./formatters";
+import FormCheckbox from "./FormCheckbox";
+import OrderErrorCard from "./OrderErrorCard";
 
-const steps = ["Billing address", "Payment details", "Review your order"];
-function getStepContent(
-    step: number,
-    checkoutCart: CartInfo,
-    subscription: SubscriptionSummaryDetails | undefined,
-    values: CheckoutFormValues,
-    setFieldValue: FieldProps["form"]["setFieldValue"],
-    orderError: OrderError | null,
-) {
-    switch (step) {
-        case 0:
-            return <AddressForm />;
-        case 1:
-            return <PaymentForm setFieldValue={setFieldValue} />;
-        case 2:
-            return (
-                <Review
-                    cartInfo={checkoutCart}
-                    subscription={subscription}
-                    values={values}
-                    orderError={orderError}
-                />
-            );
-        default:
-            throw new Error("Unknown step");
-    }
-}
-
-function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
+function Checkout({
+    authorizeNetHostedEndpoint,
+    showErrorAnnouncer,
+}: WithErrorAnnouncerProps & { authorizeNetHostedEndpoint: string }) {
     const { data: session } = useSession();
     const [cartInfo, setCartInfo] = useCartInfo();
 
-    const router = useRouter();
+    const formRef = React.useRef<HTMLFormElement | null>(null);
+    const tokenInputRef = React.useRef<HTMLInputElement | null>(null);
 
     const queryClient = useQueryClient();
     const { mutate: submitOrder } = useMutation({ mutationFn: postOrder });
 
     const [orderError, setOrderError] = React.useState<OrderError | null>(null);
-
-    const [activeStep, setActiveStep] = React.useState(0);
-    const handleNext = () => {
-        setActiveStep(activeStep + 1);
-    };
-    const handleBack = () => {
-        setActiveStep(activeStep - 1);
-    };
 
     const {
         isFetching: loadingResourceUsage,
@@ -181,7 +137,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
 
     const onSubmit = (
         values: CheckoutFormValues,
-        { setSubmitting, setFieldError }: FormikHelpers<CheckoutFormValues>,
+        { setSubmitting }: FormikHelpers<CheckoutFormValues>,
     ) => {
         setOrderError(null);
 
@@ -212,71 +168,39 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                         queryKey: [RESOURCE_USAGE_QUERY_KEY],
                     });
 
-                    if (order.success) {
-                        announce({
-                            text: "Order placed successfully!",
-                            variant: SUCCESS,
+                    if (tokenInputRef.current && order.token) {
+                        tokenInputRef.current.value = order.token;
+                        formRef.current?.submit();
+                    } else {
+                        console.log("no input or token", {
+                            token: order.token,
+                            tokenInputRef: tokenInputRef.current,
                         });
+                        showErrorAnnouncer(
+                            "There was an error placing your order. Please try again.",
+                            order,
+                        );
                     }
-
-                    router.replace("/order");
                 },
                 onError(error) {
                     setSubmitting(false);
 
-                    let errorData;
-
                     if (error instanceof HttpError) {
-                        try {
-                            errorData = JSON.parse(error.response);
-
-                            if (errorData?.transactionResponse?.errors) {
-                                setOrderError(errorData);
-
-                                const errors = (errorData as OrderError)
-                                    .transactionResponse?.errors;
-
-                                errors?.forEach((err) => {
-                                    // For all error codes, see
-                                    // https://developer.authorize.net/api/reference/dist/json/responseCodes.json
-                                    switch (err.errorCode) {
-                                        case "6":
-                                            setFieldError(
-                                                "payment.creditCard.cardNumber",
-                                                err.errorText,
-                                            );
-                                            break;
-                                        case "7":
-                                        case "8":
-                                            setFieldError(
-                                                "payment.creditCard.expirationDate",
-                                                err.errorText,
-                                            );
-                                            break;
-                                        case "27":
-                                            setFieldError(
-                                                "billTo",
-                                                err.errorText,
-                                            );
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                });
-                            } else if (error.status === 409) {
-                                setOrderError(errorData);
-
-                                // A conflict error is caused when prices
-                                // submitted from the client don't match
-                                // what the server fetched from terrain.
-                                // So refetch the current pricing for plans.
-                                queryClient.invalidateQueries({
-                                    queryKey: [PLAN_TYPES_QUERY_KEY],
+                        if (error.status === 409) {
+                            try {
+                                setOrderError(JSON.parse(error.response));
+                            } catch {
+                                console.error({
+                                    errorResponse: error.response,
                                 });
                             }
-                        } catch {
-                            console.error({
-                                errorResponse: error.response,
+
+                            // A conflict error is caused when prices
+                            // submitted from the client don't match
+                            // what the server fetched from terrain.
+                            // So refetch the current pricing for plans.
+                            queryClient.invalidateQueries({
+                                queryKey: [PLAN_TYPES_QUERY_KEY],
                             });
                         }
                     }
@@ -304,64 +228,11 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
             validationSchema={CheckoutFormSchema}
             onSubmit={onSubmit}
         >
-            {({
-                handleSubmit,
-                setFieldValue,
-                isSubmitting,
-                values,
-                errors,
-                touched,
-                dirty,
-            }) => {
-                const hasStepError = (stepIndex: number) => {
-                    let fieldNames: string[] = [];
-
-                    if (stepIndex === 0) {
-                        fieldNames = [
-                            "billTo",
-                            "billTo.firstName",
-                            "billTo.lastName",
-                            "billTo.company",
-                            "billTo.address",
-                            "billTo.city",
-                            "billTo.state",
-                            "billTo.zip",
-                            "billTo.country",
-                        ];
-                    } else if (stepIndex === 1) {
-                        fieldNames = [
-                            "payment.creditCard.cardNumber",
-                            "payment.creditCard.expirationDate",
-                            "payment.creditCard.cardCode",
-                        ];
-                    } else if (stepIndex === 2) {
-                        fieldNames = ["termsAcknowledged"];
-                    }
-
-                    return !!fieldNames.find((fieldName) => {
-                        const fieldError = getFormError(
-                            fieldName,
-                            touched,
-                            errors,
-                        );
-
-                        // Once `billTo` has a field with an error,
-                        // it becomes an object, regardless if those fields
-                        // have been touched yet, so only look for actual
-                        // error messages.
-                        return typeof fieldError === "string";
-                    });
-                };
-
+            {({ handleSubmit, isSubmitting }) => {
                 return (
                     <Grid
                         container
                         sx={{
-                            height: {
-                                sm: "100%",
-                                // The AppBar height is 64px.
-                                md: "calc(100dvh - var(--template-frame-height, 64px))",
-                            },
                             mt: {
                                 sm: 4,
                                 md: 0,
@@ -369,7 +240,7 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                         }}
                     >
                         <Toolbar sx={{ width: "100%" }}>
-                            <BackButton dirty={dirty} />
+                            <BackButton />
                         </Toolbar>
                         <Grid
                             size={{ xs: 12, sm: 5, lg: 4 }}
@@ -422,85 +293,6 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                             <Box
                                 sx={{
                                     display: "flex",
-                                    justifyContent: {
-                                        sm: "space-between",
-                                        md: "flex-end",
-                                    },
-                                    alignItems: "center",
-                                    width: "100%",
-                                    maxWidth: { sm: "100%", md: 600 },
-                                }}
-                            >
-                                <Box
-                                    sx={{
-                                        display: { xs: "none", md: "flex" },
-                                        flexDirection: "column",
-                                        justifyContent: "space-between",
-                                        alignItems: "flex-end",
-                                        flexGrow: 1,
-                                    }}
-                                >
-                                    <Stepper
-                                        id="desktop-stepper"
-                                        activeStep={activeStep}
-                                        sx={{ width: "100%", height: 40 }}
-                                    >
-                                        {steps.map((label, stepIndex) => (
-                                            <Step
-                                                sx={{
-                                                    ":first-child": { pl: 0 },
-                                                    ":last-child": { pr: 0 },
-                                                }}
-                                                key={label}
-                                            >
-                                                <StepLabel
-                                                    error={hasStepError(
-                                                        stepIndex,
-                                                    )}
-                                                >
-                                                    {label}
-                                                </StepLabel>
-                                            </Step>
-                                        ))}
-                                    </Stepper>
-                                </Box>
-                            </Box>
-                            <Card
-                                sx={{
-                                    display: { xs: "flex", md: "none" },
-                                    width: "100%",
-                                }}
-                            >
-                                <CardContent
-                                    sx={{
-                                        display: "flex",
-                                        width: "100%",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                    }}
-                                >
-                                    <div>
-                                        <Typography
-                                            variant="subtitle2"
-                                            gutterBottom
-                                        >
-                                            Selected products
-                                        </Typography>
-                                        <Typography variant="body1">
-                                            {formatCurrency(
-                                                checkoutCart.totalPrice || 0,
-                                            )}
-                                        </Typography>
-                                    </div>
-                                    <InfoMobile
-                                        cartInfo={checkoutCart}
-                                        subscription={currentSubscription}
-                                    />
-                                </CardContent>
-                            </Card>
-                            <Box
-                                sx={{
-                                    display: "flex",
                                     flexDirection: "column",
                                     flexGrow: 1,
                                     width: "100%",
@@ -509,133 +301,131 @@ function Checkout({ showErrorAnnouncer }: WithErrorAnnouncerProps) {
                                     gap: { xs: 5, md: "none" },
                                 }}
                             >
-                                <Stepper
-                                    id="mobile-stepper"
-                                    activeStep={activeStep}
-                                    alternativeLabel
-                                    sx={{ display: { sm: "flex", md: "none" } }}
-                                >
-                                    {steps.map((label, stepIndex) => (
-                                        <Step
-                                            sx={{
-                                                ":first-child": { pl: 0 },
-                                                ":last-child": { pr: 0 },
-                                                "& .MuiStepConnector-root": {
-                                                    top: { xs: 6, sm: 12 },
-                                                },
-                                            }}
-                                            key={label}
-                                        >
-                                            <StepLabel
-                                                error={hasStepError(stepIndex)}
-                                                sx={{
-                                                    ".MuiStepLabel-labelContainer":
-                                                        {
-                                                            maxWidth: "70px",
-                                                        },
-                                                }}
-                                            >
-                                                {label}
-                                            </StepLabel>
-                                        </Step>
-                                    ))}
-                                </Stepper>
-                                <React.Fragment>
-                                    {getStepContent(
-                                        activeStep,
-                                        checkoutCart,
-                                        currentSubscription,
-                                        values,
-                                        setFieldValue,
-                                        orderError,
-                                    )}
+                                <Stack spacing={2}>
                                     <Box
-                                        sx={[
-                                            {
-                                                display: "flex",
-                                                flexDirection: {
-                                                    xs: "column-reverse",
-                                                    sm: "row",
-                                                },
-                                                alignItems: "end",
-                                                flexGrow: 1,
-                                                gap: 1,
-                                                pb: { xs: 12, sm: 0 },
-                                                mt: { xs: 2, sm: 0 },
-                                                mb: "60px",
-                                            },
-                                            activeStep !== 0
-                                                ? {
-                                                      justifyContent:
-                                                          "space-between",
-                                                  }
-                                                : {
-                                                      justifyContent:
-                                                          "flex-end",
-                                                  },
-                                        ]}
+                                        sx={{
+                                            display: { xs: "flex", md: "none" },
+                                        }}
                                     >
-                                        {activeStep !== 0 && (
-                                            <Button
-                                                startIcon={
-                                                    <ChevronLeftRoundedIcon />
-                                                }
-                                                onClick={handleBack}
-                                                variant="text"
-                                                sx={{
-                                                    display: {
-                                                        xs: "none",
-                                                        sm: "flex",
-                                                    },
-                                                }}
-                                            >
-                                                Previous
-                                            </Button>
-                                        )}
-                                        {activeStep !== 0 && (
-                                            <Button
-                                                startIcon={
-                                                    <ChevronLeftRoundedIcon />
-                                                }
-                                                onClick={handleBack}
-                                                variant="outlined"
-                                                fullWidth
-                                                sx={{
-                                                    display: {
-                                                        xs: "flex",
-                                                        sm: "none",
-                                                    },
-                                                }}
-                                            >
-                                                Previous
-                                            </Button>
-                                        )}
-                                        <Button
-                                            variant="contained"
-                                            disabled={isSubmitting}
-                                            endIcon={
-                                                <ChevronRightRoundedIcon />
-                                            }
-                                            onClick={
-                                                activeStep === steps.length - 1
-                                                    ? () => handleSubmit()
-                                                    : handleNext
-                                            }
-                                            sx={{
-                                                width: {
-                                                    xs: "100%",
-                                                    sm: "fit-content",
-                                                },
-                                            }}
-                                        >
-                                            {activeStep === steps.length - 1
-                                                ? "Place order"
-                                                : "Next"}
-                                        </Button>
+                                        <Info
+                                            cartInfo={checkoutCart}
+                                            subscription={currentSubscription}
+                                        />
                                     </Box>
-                                </React.Fragment>
+                                    <Divider
+                                        sx={{
+                                            display: { xs: "flex", md: "none" },
+                                        }}
+                                    />
+                                    <Stack
+                                        direction="column"
+                                        divider={<Divider flexItem />}
+                                        spacing={2}
+                                        sx={{ my: 2 }}
+                                    >
+                                        <Typography>
+                                            By agreeing to the{" "}
+                                            <ExternalLink
+                                                href={
+                                                    constants.CYVERSE_POLICY_URL
+                                                }
+                                                rel="noopener"
+                                            >
+                                                Terms of Use
+                                            </ExternalLink>{" "}
+                                            and selecting the{" "}
+                                            <Typography
+                                                variant="button"
+                                                color="info"
+                                            >
+                                                {`"Proceed to Payment"`}
+                                            </Typography>{" "}
+                                            button below, you will be forwarded
+                                            to{" "}
+                                            <ExternalLink href="https://www.authorize.net">
+                                                Authorize.net
+                                            </ExternalLink>
+                                            , where you can provide your billing
+                                            and payment information. After your
+                                            payment is approved, your
+                                            subscription will be updated and an
+                                            order confirmation will be sent to
+                                            the primary email address associated
+                                            with{" "}
+                                            <ExternalLink
+                                                href={
+                                                    constants.USER_PORTAL_ACCOUNT
+                                                }
+                                                rel="noopener"
+                                            >
+                                                your CyVerse account
+                                            </ExternalLink>
+                                            .
+                                        </Typography>
+                                        <Field
+                                            name="termsAcknowledged"
+                                            component={FormCheckbox}
+                                            label={
+                                                <Typography>
+                                                    I agree to the{" "}
+                                                    <ExternalLink
+                                                        href={
+                                                            constants.CYVERSE_POLICY_URL
+                                                        }
+                                                        rel="noopener"
+                                                    >
+                                                        Terms of Use
+                                                    </ExternalLink>
+                                                    .
+                                                </Typography>
+                                            }
+                                        />
+                                        {orderError && (
+                                            <OrderErrorCard
+                                                orderError={orderError}
+                                            />
+                                        )}
+                                    </Stack>
+                                </Stack>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexDirection: {
+                                            xs: "column-reverse",
+                                            sm: "row",
+                                        },
+                                        alignItems: "end",
+                                        justifyContent: "space-between",
+                                        flexGrow: 1,
+                                        gap: 1,
+                                        pb: { xs: 12, sm: 0 },
+                                        mt: { xs: 2, sm: 0 },
+                                        mb: "60px",
+                                    }}
+                                >
+                                    <Button
+                                        variant="contained"
+                                        disabled={isSubmitting}
+                                        onClick={() => handleSubmit()}
+                                        sx={{
+                                            width: {
+                                                xs: "100%",
+                                                sm: "fit-content",
+                                            },
+                                        }}
+                                    >
+                                        Proceed to Payment
+                                    </Button>
+                                </Box>
                             </Box>
                         </Grid>
+                        <form
+                            ref={formRef}
+                            method="post"
+                            action={authorizeNetHostedEndpoint}
+                        >
+                            <input ref={tokenInputRef} hidden name="token" />
+                        </form>
                     </Grid>
                 );
             }}

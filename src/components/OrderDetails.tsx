@@ -9,7 +9,11 @@ import {
     getOrderDetails,
     ORDER_DETAILS_QUERY_KEY,
 } from "@/app/api/serviceFacade";
-import { LineItemIDEnum, type OrderDetails } from "@/app/api/types";
+import {
+    LineItemIDEnum,
+    TransactionResponseCodeEnum,
+    type OrderDetails,
+} from "@/app/api/types";
 
 import ErrorTypographyWithDialog from "@/components/common/error/ErrorTypographyWithDialog";
 import GridLoading from "@/components/common/GridLoading";
@@ -26,9 +30,10 @@ function OrderDetails({ poNumber }: { poNumber: number }) {
         queryFn: () => getOrderDetails(poNumber),
     });
 
-    const { amount, orderDate, billTo, payment, transactionResponse } =
+    const { amount, orderDate, billTo, payment, transactionResponses } =
         data ?? {};
 
+    const transactionResponse = transactionResponses && transactionResponses[0];
     const errorMsgs = transactionResponse?.errors || [];
 
     return error ? (
@@ -57,21 +62,23 @@ function OrderDetails({ poNumber }: { poNumber: number }) {
                     <Typography>{transactionResponse?.transId}</Typography>
                 </GridLabelValue>
 
-                <GridLabelValue label="Billing Info">
-                    <Typography>{`${billTo?.firstName} ${billTo?.lastName}`}</Typography>
-                    {billTo?.company && (
-                        <Typography>{billTo.company}</Typography>
-                    )}
-                    <Typography>
-                        {[
-                            billTo?.address,
-                            billTo?.city,
-                            billTo?.state,
-                            billTo?.zip,
-                            billTo?.country,
-                        ].join(", ")}
-                    </Typography>
-                </GridLabelValue>
+                {billTo && (
+                    <GridLabelValue label="Billing Info">
+                        <Typography>{`${billTo.firstName} ${billTo.lastName}`}</Typography>
+                        {billTo.company && (
+                            <Typography>{billTo.company}</Typography>
+                        )}
+                        <Typography>
+                            {[
+                                billTo.address,
+                                billTo.city,
+                                billTo.state,
+                                billTo.zip,
+                                billTo.country,
+                            ].join(", ")}
+                        </Typography>
+                    </GridLabelValue>
+                )}
 
                 {payment?.creditCard && (
                     <GridLabelValue label="Payment Method">
@@ -107,6 +114,36 @@ function OrderDetails({ poNumber }: { poNumber: number }) {
                     <Typography>{amount}</Typography>
                 </GridLabelValue>
 
+                <GridLabelValue label="Transaction Status">
+                    {transactionResponse?.responseCode ===
+                    TransactionResponseCodeEnum.APPROVED ? (
+                        <Typography color="success">Approved</Typography>
+                    ) : transactionResponse?.responseCode ===
+                      TransactionResponseCodeEnum.DECLINED ? (
+                        <Typography color="error">Declined</Typography>
+                    ) : transactionResponse?.responseCode ===
+                      TransactionResponseCodeEnum.ERROR ? (
+                        <Typography color="error">Error</Typography>
+                    ) : transactionResponse?.responseCode ===
+                      TransactionResponseCodeEnum.HELD_FOR_REVIEW ? (
+                        <Typography color="error">Held For Review</Typography>
+                    ) : (
+                        <Typography color="error">
+                            The transaction was not processed.
+                        </Typography>
+                    )}
+                </GridLabelValue>
+
+                {transactionResponse?.transDate && (
+                    <GridLabelValue label="Transaction Date">
+                        <Typography>
+                            {formatDate(
+                                new Date(transactionResponse.transDate),
+                            )}
+                        </Typography>
+                    </GridLabelValue>
+                )}
+
                 {errorMsgs.length > 0 ? (
                     <GridLabelValue label="Errors" color="error">
                         {errorMsgs.map((error) => (
@@ -116,14 +153,10 @@ function OrderDetails({ poNumber }: { poNumber: number }) {
                         ))}
                     </GridLabelValue>
                 ) : (
-                    <GridLabelValue label="Transaction Status">
-                        {!transactionResponse?.messages ||
-                        transactionResponse.messages.length < 1 ? (
-                            <Typography color="error">
-                                The transaction could not be processed.
-                            </Typography>
-                        ) : (
-                            transactionResponse.messages.map((msg) => (
+                    transactionResponse?.messages &&
+                    transactionResponse.messages.length > 0 && (
+                        <GridLabelValue label="Transaction Messages">
+                            {transactionResponse.messages.map((msg) => (
                                 <Typography
                                     key={msg.text}
                                     color={
@@ -134,9 +167,9 @@ function OrderDetails({ poNumber }: { poNumber: number }) {
                                 >
                                     {msg.text}
                                 </Typography>
-                            ))
-                        )}
-                    </GridLabelValue>
+                            ))}
+                        </GridLabelValue>
+                    )
                 )}
             </Grid>
         )

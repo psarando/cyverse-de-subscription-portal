@@ -9,6 +9,7 @@ import {
     OrderDir,
     OrderRequest,
     PurchaseSortField,
+    TransactionResponseCodeEnum,
 } from "@/app/api/types";
 import { formatDate } from "@/utils/formatUtils";
 
@@ -40,16 +41,16 @@ type Purchase = {
     id: UUID;
     username: string;
     amount: string; // money, typically represented as a string
-    payment_id: UUID;
+    payment_id: UUID | null;
     po_number: number;
-    billing_information_id: UUID;
+    billing_information_id: UUID | null;
     order_date: Date; // timestampz, returned as JS Date
 };
 
 type PurchaseListingItem = Pick<
     Purchase,
     "id" | "po_number" | "amount" | "order_date"
-> & { err_count: string };
+> & { approved: boolean };
 
 // Represents a row in the "payments" table.
 type Payment = {
@@ -93,6 +94,7 @@ type TransactionResponse = {
     cvv_result_code?: string | null;
     cavv_result_code?: string | null;
     transaction_id?: string | null;
+    transaction_date?: Date | null; // timestampz, returned as JS Date
     ref_transaction_id?: string | null;
     test_request?: string | null;
     account_number?: string | null;
@@ -144,37 +146,52 @@ export async function healthCheck() {
  * Adds the `transaction` to the database as a purchase order,
  * returning the `po_number`.
  */
-export async function addPurchaseRecord(
-    username: string,
-    customerIP: string,
-    order: OrderRequest,
-) {
+export async function addPurchaseRecord(username: string, order: OrderRequest) {
     let poNumber;
     let purchaseId;
     let orderDate;
+    let paymentId;
+    let billingInfoId;
 
     try {
         await db.query("BEGIN");
 
-        const paymentId = await getOrAddPaymentId(
-            username,
-            order.payment.creditCard,
-        );
+        const values = [username, order.amount];
+        const purchaseCols = ["username", "amount", "po_number"];
+        const purchaseValues = [
+            "$1",
+            "$2",
+            "nextval('purchase_order_numbers')",
+            "$3",
+            "$4",
+        ];
 
-        const billingInfoId = await getOrAddBillingInfoId(order.billTo);
+        if (order.payment) {
+            paymentId = await getOrAddPaymentId(
+                username,
+                order.payment.creditCard,
+            );
+
+            if (paymentId) {
+                values.push(paymentId);
+                purchaseCols.push("payment_id");
+            }
+        }
+
+        if (order.billTo) {
+            billingInfoId = await getOrAddBillingInfoId(order.billTo);
+
+            if (billingInfoId) {
+                values.push(billingInfoId);
+                purchaseCols.push("billing_information_id");
+            }
+        }
 
         const { rows } = await db.query<Purchase>(
-            `INSERT INTO purchases(
-                username,
-                amount,
-                payment_id,
-                po_number,
-                billing_information_id,
-                customer_ip
-            )
-            VALUES ($1, $2, $3, nextval('purchase_order_numbers'), $4, $5)
+            `INSERT INTO purchases( ${purchaseCols.join(",")} )
+            VALUES ( ${purchaseValues.slice(0, purchaseCols.length).join(",")} )
             RETURNING id, po_number, order_date`,
-            [username, order.amount, paymentId, billingInfoId, customerIP],
+            values,
         );
 
         if (rows && rows.length > 0) {
@@ -199,7 +216,7 @@ export async function addPurchaseRecord(
 
 async function getOrAddPaymentId(
     username: string,
-    creditCard: OrderRequest["payment"]["creditCard"],
+    creditCard: Required<OrderRequest>["payment"]["creditCard"],
 ) {
     const values = [
         creditCard.cardNumber.slice(-4),
@@ -229,7 +246,7 @@ async function getOrAddPaymentId(
     return rows ? rows[0].id : null;
 }
 
-async function getOrAddBillingInfoId(billTo: OrderRequest["billTo"]) {
+async function getOrAddBillingInfoId(billTo: Required<OrderRequest>["billTo"]) {
     const values = [
         billTo.firstName,
         billTo.lastName,
@@ -372,6 +389,7 @@ export async function addTransactionResponse(
             cvvResultCode,
             cavvResultCode,
             transId,
+            transDate,
             refTransID,
             testRequest,
             accountNumber,
@@ -391,6 +409,7 @@ export async function addTransactionResponse(
                 cvv_result_code,
                 cavv_result_code,
                 transaction_id,
+                transaction_date,
                 ref_transaction_id,
                 test_request,
                 account_number,
@@ -399,17 +418,18 @@ export async function addTransactionResponse(
                 supplemental_data_qualification_indicator,
                 network_transaction_id
             ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
             )
             RETURNING id`,
             [
                 purchaseId,
                 responseCode,
-                authCode,
+                authCode ?? "",
                 avsResultCode ?? null,
                 cvvResultCode ?? null,
                 cavvResultCode ?? null,
                 transId ?? null,
+                transDate ?? "now()",
                 refTransID ?? null,
                 testRequest ?? null,
                 accountNumber ?? null,
@@ -467,16 +487,15 @@ export async function getPurchasesByUsername(
 ) {
     const { rows } = await db.query<PurchaseListingItem>(
         `SELECT id, po_number, amount, order_date,
-        (
-            SELECT COUNT(*) FROM purchases p2
+        EXISTS(
+            SELECT response_code FROM purchases p2
             LEFT JOIN transaction_responses tr ON tr.purchase_id = p2.id
-            LEFT JOIN transaction_error_messages e ON e.transaction_response_id = tr.id
-            WHERE p2.id = p1.id AND (tr.id IS NULL OR e.id IS NOT NULL)
-        ) AS err_count
+            WHERE p2.id = p1.id AND response_code = $2
+        ) AS approved
         FROM purchases p1
         WHERE username = $1
         ORDER BY ${orderField ?? PurchaseSortField.ORDER_DATE} ${orderDir ?? OrderDir.DESC}`,
-        [username],
+        [username, TransactionResponseCodeEnum.APPROVED],
     );
 
     return rows;
@@ -487,6 +506,21 @@ export async function getUserPurchase(username: string, poNumber: number) {
         return null;
     }
 
+    return getPurchaseByPoNumber(poNumber, username);
+}
+
+export async function getPurchaseByPoNumber(
+    poNumber: number,
+    usernameQuery?: string,
+) {
+    let where = "po_number = $1";
+    const values: Array<string | number> = [poNumber];
+
+    if (usernameQuery) {
+        where += " AND username = $2";
+        values.push(usernameQuery);
+    }
+
     const { rows } = await db.query<
         Purchase &
             Payment &
@@ -494,6 +528,7 @@ export async function getUserPurchase(username: string, poNumber: number) {
             TransactionResponse & { transaction_response_id: UUID }
     >(
         `SELECT purchases.id,
+                username,
                 amount,
                 order_date,
                 credit_card_number,
@@ -505,17 +540,12 @@ export async function getUserPurchase(username: string, poNumber: number) {
                 city,
                 state,
                 zip,
-                country,
-                transaction_responses.id AS transaction_response_id,
-                transaction_id,
-                account_number,
-                account_type
+                country
         FROM purchases
-        JOIN payments ON payment_id = payments.id
-        JOIN billing_information ON billing_information_id = billing_information.id
-        LEFT JOIN transaction_responses ON transaction_responses.purchase_id = purchases.id
-        WHERE po_number = $1 AND username = $2`,
-        [poNumber, username],
+        LEFT JOIN payments ON payment_id = payments.id
+        LEFT JOIN billing_information ON billing_information_id = billing_information.id
+        WHERE ${where}`,
+        values,
     );
 
     if (!rows || rows.length < 1) {
@@ -524,6 +554,7 @@ export async function getUserPurchase(username: string, poNumber: number) {
 
     const {
         id,
+        username,
         amount,
         order_date,
         credit_card_number,
@@ -536,29 +567,26 @@ export async function getUserPurchase(username: string, poNumber: number) {
         state,
         zip,
         country,
-        transaction_response_id,
-        transaction_id,
-        account_number,
-        account_type,
     } = rows[0];
 
-    const [line_items, response_messages, error_messages] = await Promise.all([
+    const [line_items, transactionResponses] = await Promise.all([
         getLineItems(id),
-        getTransactionResponseMessages(transaction_response_id),
-        getTransactionErrorMessages(transaction_response_id),
+        getTransactionResponses(id),
     ]);
 
-    return {
-        poNumber,
-        amount,
-        orderDate: order_date,
-        payment: {
+    let payment;
+    if (credit_card_number && expiration_date) {
+        payment = {
             creditCard: {
                 cardNumber: credit_card_number,
                 expirationDate: formatDate(expiration_date, "yyyy-MM"),
             },
-        },
-        billTo: {
+        };
+    }
+
+    let billTo;
+    if (last_name) {
+        billTo = {
             firstName: first_name,
             lastName: last_name,
             company,
@@ -567,29 +595,28 @@ export async function getUserPurchase(username: string, poNumber: number) {
             state,
             zip,
             country,
-        },
+        };
+    }
+
+    return {
+        id,
+        username,
+        poNumber,
+        amount,
+        orderDate: order_date,
+        payment,
+        billTo,
         lineItems: line_items.map(
-            ({ id, item_type, item_name, quantity, unit_price }) => ({
+            ({ id, item_id, item_type, item_name, quantity, unit_price }) => ({
                 id,
+                qmsId: item_id,
                 itemId: item_type as LineItemIDEnum,
                 name: item_name,
                 quantity,
                 unitPrice: unit_price,
             }),
         ),
-        transactionResponse: {
-            transId: transaction_id,
-            accountNumber: account_number,
-            accountType: account_type,
-            messages: response_messages?.map(({ code, description }) => ({
-                code,
-                text: description,
-            })),
-            errors: error_messages?.map(({ error_code, error_text }) => ({
-                errorCode: error_code,
-                errorText: error_text,
-            })),
-        },
+        transactionResponses,
     } as OrderDetails;
 }
 
@@ -608,6 +635,56 @@ async function getLineItems(purchaseId: UUID) {
     );
 
     return rows;
+}
+
+async function getTransactionResponses(purchaseId: UUID) {
+    if (!purchaseId) {
+        return [];
+    }
+
+    const { rows } = await db.query<TransactionResponse>(
+        `SELECT id,
+                response_code,
+                transaction_id,
+                transaction_date,
+                account_number,
+                account_type
+        FROM transaction_responses
+        WHERE purchase_id = $1
+        ORDER BY transaction_date DESC`,
+        [purchaseId],
+    );
+
+    if (!rows || rows.length < 1) {
+        return [];
+    }
+
+    return await Promise.all(
+        rows.map(async (transactionResponse) => {
+            const [response_messages, error_messages] = await Promise.all([
+                getTransactionResponseMessages(transactionResponse.id),
+                getTransactionErrorMessages(transactionResponse.id),
+            ]);
+
+            return {
+                responseCode: parseInt(
+                    transactionResponse.response_code,
+                ) as TransactionResponseCodeEnum,
+                transId: transactionResponse.transaction_id,
+                transDate: transactionResponse.transaction_date,
+                accountNumber: transactionResponse.account_number,
+                accountType: transactionResponse.account_type,
+                messages: response_messages?.map(({ code, description }) => ({
+                    code,
+                    text: description,
+                })),
+                errors: error_messages?.map(({ error_code, error_text }) => ({
+                    errorCode: error_code,
+                    errorText: error_text,
+                })),
+            };
+        }),
+    );
 }
 
 async function getTransactionErrorMessages(transactionResponseId: UUID) {
