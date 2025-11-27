@@ -267,10 +267,7 @@ function Checkout({
                                 {loadingResourceUsage || loadingPlanTypes ? (
                                     <GridLoading />
                                 ) : (
-                                    <Info
-                                        cartInfo={checkoutCart}
-                                        subscription={currentSubscription}
-                                    />
+                                    <Info subscription={currentSubscription} />
                                 )}
                             </Box>
                         </Grid>
@@ -308,7 +305,6 @@ function Checkout({
                                         }}
                                     >
                                         <Info
-                                            cartInfo={checkoutCart}
                                             subscription={currentSubscription}
                                         />
                                     </Box>
