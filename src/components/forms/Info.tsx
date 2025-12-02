@@ -10,17 +10,11 @@ import React from "react";
 
 import { SubscriptionSummaryDetails } from "@/app/api/types";
 import { useCartInfo } from "@/contexts/cart";
+import DeleteButton from "@/components/common/DeleteButton";
 import { formatCurrency } from "@/utils/formatUtils";
 import { addonProratedRate } from "@/utils/rates";
 
-import {
-    IconButton,
-    List,
-    ListItem,
-    ListItemText,
-    Typography,
-} from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { List, ListItem, ListItemText, Typography } from "@mui/material";
 
 export default function Info({
     subscription,
@@ -118,9 +112,12 @@ function CartInfoListItem({
 }) {
     return (
         <ListItem sx={{ py: 1, px: 0 }}>
-            <IconButton edge="start" onClick={onDelete}>
-                <DeleteIcon />
-            </IconButton>
+            <DeleteButton
+                component="IconButton"
+                edge="start"
+                sx={{ "&:hover": { color: "error.main" } }}
+                onClick={onDelete}
+            />
             <ListItemText sx={{ mr: 2 }} primary={name} secondary={desc} />
             <Typography variant="body1" sx={{ fontWeight: "medium" }}>
                 {formatCurrency(price)}
