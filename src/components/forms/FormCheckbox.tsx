@@ -42,8 +42,7 @@ const onCheckboxChange =
 const FormCheckbox = ({
     label,
     helperText,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    field: { value, onChange, ...field },
+    field: { value, ...field },
     form: { touched, errors, setFieldValue },
     ...custom
 }: FieldProps & CheckboxProps & { label: string; helperText: string }) => {
@@ -55,12 +54,12 @@ const FormCheckbox = ({
                 control={
                     <Checkbox
                         checked={!!value}
+                        {...field}
                         onChange={onCheckboxChange(
                             setFieldValue,
                             field.name,
                             custom.readOnly,
                         )}
-                        {...field}
                         {...custom}
                     />
                 }
