@@ -16,6 +16,17 @@ const eslintConfig = [
         "next/typescript",
         "prettier",
     ),
+    {
+        rules: {
+            "@typescript-eslint/no-unused-vars": [
+                "error",
+                {
+                    argsIgnorePattern: "^_",
+                    varsIgnorePattern: "^_",
+                },
+            ],
+        },
+    },
 ];
 
 export default eslintConfig;

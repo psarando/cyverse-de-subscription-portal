@@ -9,19 +9,20 @@
 import React from "react";
 
 import { SubscriptionSummaryDetails } from "@/app/api/types";
-import { CartInfo } from "@/contexts/cart";
+import { useCartInfo } from "@/contexts/cart";
+import DeleteButton from "@/components/common/DeleteButton";
 import { formatCurrency } from "@/utils/formatUtils";
 import { addonProratedRate } from "@/utils/rates";
 
 import { List, ListItem, ListItemText, Typography } from "@mui/material";
 
 export default function Info({
-    cartInfo,
     subscription,
 }: {
-    cartInfo: CartInfo;
     subscription?: SubscriptionSummaryDetails;
 }) {
+    const [cartInfo, setCartInfo] = useCartInfo();
+
     return (
         <React.Fragment>
             <List disablePadding>
@@ -53,6 +54,11 @@ export default function Info({
                             (cartInfo.subscription.plan_rate || 0) *
                             cartInfo.subscription.periods
                         }
+                        onDelete={() => {
+                            const { subscription: _, ...newCartInfo } =
+                                cartInfo;
+                            setCartInfo(newCartInfo);
+                        }}
                     />
                 )}
                 {cartInfo.addons &&
@@ -78,6 +84,14 @@ export default function Info({
                                     addon,
                                 ) * addon.quantity
                             }
+                            onDelete={() => {
+                                setCartInfo({
+                                    ...cartInfo,
+                                    addons: cartInfo.addons?.filter(
+                                        (a) => a.uuid !== addon.uuid,
+                                    ),
+                                });
+                            }}
                         />
                     ))}
             </List>
@@ -89,13 +103,21 @@ function CartInfoListItem({
     name,
     desc,
     price,
+    onDelete,
 }: {
     name: string;
     desc: string;
     price: number;
+    onDelete: React.MouseEventHandler<HTMLButtonElement>;
 }) {
     return (
         <ListItem sx={{ py: 1, px: 0 }}>
+            <DeleteButton
+                component="IconButton"
+                edge="start"
+                sx={{ "&:hover": { color: "error.main" } }}
+                onClick={onDelete}
+            />
             <ListItemText sx={{ mr: 2 }} primary={name} secondary={desc} />
             <Typography variant="body1" sx={{ fontWeight: "medium" }}>
                 {formatCurrency(price)}
