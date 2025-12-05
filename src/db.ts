@@ -143,6 +143,24 @@ export async function healthCheck() {
 }
 
 /**
+ * Resolves to false if the maintenance flag in the db is set to `false`,
+ * otherwise resolves to true (even if the db cannot be queried).
+ *
+ * @returns A Promise that resolves to true or false.
+ */
+export async function maintenanceEnabled() {
+    try {
+        const { rows } = await db.query<{ enabled: boolean }>(
+            "SELECT enabled FROM maintenance",
+        );
+
+        return rows ? (rows[0]?.enabled ?? true) : true;
+    } catch {
+        return true;
+    }
+}
+
+/**
  * Adds the `transaction` to the database as a purchase order,
  * returning the `po_number`.
  */
