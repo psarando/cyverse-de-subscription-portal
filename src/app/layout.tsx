@@ -18,6 +18,7 @@ import "./globals.css";
 
 import { auth } from "@/auth";
 import constants from "@/constants";
+import { maintenanceEnabled } from "@/db";
 import AccountAvatar from "@/components/AccountAvatar";
 import Cart from "@/components/Cart";
 import SignInCard from "@/components/SignInCard";
@@ -43,6 +44,7 @@ export default async function RootLayout({
     children: React.ReactNode;
 }>) {
     const session = await auth();
+    const maintenance = await maintenanceEnabled();
 
     return (
         <html lang="en" className={roboto.variable}>
@@ -55,6 +57,8 @@ export default async function RootLayout({
                                     position="static"
                                     variant="outlined"
                                     elevation={0}
+                                    color={maintenance ? "warning" : undefined}
+                                    enableColorOnDark={maintenance}
                                 >
                                     <Toolbar sx={{ mt: 1 }}>
                                         <Tooltip title="CyVerse Subscription Portal">
@@ -72,6 +76,8 @@ export default async function RootLayout({
                                                     }}
                                                 >
                                                     Subscription Portal
+                                                    {maintenance &&
+                                                        " Maintenance Mode"}
                                                 </Typography>
                                             </Link>
                                         </Tooltip>
