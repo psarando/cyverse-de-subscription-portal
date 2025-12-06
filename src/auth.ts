@@ -16,6 +16,7 @@ declare module "next-auth" {
         accessTokenExp?: number | null;
         user?: {
             username?: string | null;
+            admin?: boolean | null;
         } & DefaultUser;
     }
 
@@ -23,6 +24,7 @@ declare module "next-auth" {
     interface Profile {
         exp?: number | null;
         preferred_username?: string | null;
+        entitlement?: Array<string> | null;
     }
 }
 
@@ -32,10 +34,14 @@ declare module "next-auth/jwt" {
         accessToken?: string | null;
         accessTokenExp?: number | null;
         username?: string | null;
+        admin?: boolean | null;
     }
 }
 
 const { serverRuntimeConfig } = getConfig();
+const adminGroups: string[] = serverRuntimeConfig?.adminGroups
+    ?.split(",")
+    ?.map((group: string) => group.trim());
 
 // The `NextAuth` config, for use in `app/api/auth/[...nextauth]/route.ts`
 export const config = {
@@ -57,6 +63,9 @@ export const config = {
                 token.accessToken = account?.access_token;
                 token.accessTokenExp = profile.exp;
                 token.username = profile.preferred_username;
+                token.admin = !!profile.entitlement?.find((role) =>
+                    adminGroups.includes(role),
+                );
             }
 
             return token;
@@ -67,6 +76,7 @@ export const config = {
             session.accessTokenExp = token.accessTokenExp;
             if (session.user) {
                 session.user.username = token.username;
+                session.user.admin = token.admin;
             }
 
             return session;

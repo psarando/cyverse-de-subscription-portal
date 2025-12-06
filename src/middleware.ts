@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addBasePath } from "next/dist/client/add-base-path";
 
+import { auth } from "@/auth";
 import { maintenanceEnabled } from "@/db";
 
 export const config = {
@@ -29,7 +30,10 @@ export async function middleware(request: NextRequest) {
         const host = request.nextUrl.host;
         const path = addBasePath("/maintenance.html");
 
-        return NextResponse.rewrite(`${protocol}${host}${path}`);
+        const session = await auth();
+        if (!session?.user?.admin) {
+            return NextResponse.rewrite(`${protocol}${host}${path}`);
+        }
     }
 
     return NextResponse.next();

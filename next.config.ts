@@ -75,6 +75,12 @@ const appConfiguration: Record<
         isPublic: false,
         defaultValue: "support@cyverse.org",
     },
+    adminGroups: {
+        variable: "SP_ADMIN_GROUPS",
+        required: false,
+        isPublic: false,
+        defaultValue: "dev",
+    },
     dbDatabase: {
         variable: "DB_DATABASE",
         required: true,
