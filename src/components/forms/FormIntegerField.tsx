@@ -32,8 +32,9 @@ SSRInitialFilled.muiName = "Input";
 const FormIntegerField = ({
     id: idProp,
     label,
-    size = "medium",
     helperText,
+    fullWidth = true,
+    size = "small",
     field,
     form,
     ...other
@@ -61,6 +62,8 @@ const FormIntegerField = ({
                     required={state.required}
                     error={!!errorMsg}
                     variant="outlined"
+                    fullWidth={fullWidth}
+                    sx={{ my: 1 }}
                 >
                     {props.children}
                 </FormControl>
@@ -136,7 +139,7 @@ const FormIntegerField = ({
                     />
                 )}
             />
-            <FormHelperText sx={{ ml: 0, "&:empty": { mt: 0 } }}>
+            <FormHelperText sx={{ "&:empty": { mt: 0 } }}>
                 {errorMsg || helperText}
             </FormHelperText>
         </BaseNumberField.Root>
