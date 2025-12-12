@@ -13,6 +13,7 @@
         "check": "npm run lint && npm run check-format && npm run check-typescript"
     },
     "dependencies": {
+        "@base-ui-components/react": "^1.0.0-beta.6",
         "@emotion/cache": "^11.14.0",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
