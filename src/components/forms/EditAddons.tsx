@@ -46,8 +46,8 @@ function EditAddons({
     const validationSchema = Yup.object().shape({
         addons: Yup.array().of(
             Yup.object().shape({
-                amount: Yup.number()
-                    .integer("Please enter a valid number.")
+                quantity: Yup.number()
+                    .integer("Please enter a valid quantity.")
                     .min(0, "Must be 0 or greater."),
             }),
         ),
@@ -146,9 +146,9 @@ function EditAddons({
                                         )}
                                     </FieldArray>
                                     <Typography variant="caption">
-                                        * Charge amount will be proportional to
-                                        the current subscription expiration
-                                        date.
+                                        <sup>*</sup> Charge amount will be
+                                        proportional to the current subscription
+                                        expiration date.
                                     </Typography>
                                     <Typography
                                         variant="subtitle1"
@@ -180,6 +180,7 @@ function AddonFormField({ addon, name }: { addon: AddonsType; name: string }) {
         <Field
             name={name}
             component={FormIntegerField}
+            min={0}
             label={label}
             helperText={helperText}
         />
