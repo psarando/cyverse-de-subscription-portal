@@ -5,6 +5,9 @@
  */
 import React from "react";
 
+import getFormError from "./getFormError";
+
+import { FieldProps } from "formik";
 import { NumberField as BaseNumberField } from "@base-ui-components/react/number-field";
 import {
     IconButton,
@@ -13,6 +16,7 @@ import {
     OutlinedInput,
     InputAdornment,
     InputLabel,
+    TextFieldProps,
 } from "@mui/material";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -28,30 +32,34 @@ SSRInitialFilled.muiName = "Input";
 const FormIntegerField = ({
     id: idProp,
     label,
-    error,
     size = "medium",
     helperText,
+    field,
+    form,
     ...other
-}: BaseNumberField.Root.Props & {
-    label?: React.ReactNode;
-    size?: "small" | "medium";
-    error?: boolean;
-    helperText?: string;
-}) => {
+}: BaseNumberField.Root.Props & FieldProps & TextFieldProps) => {
     let id = React.useId();
     if (idProp) {
         id = idProp;
     }
+
+    const errorMsg = getFormError(field.name, form.touched, form.errors);
+
     return (
         <BaseNumberField.Root
             {...other}
+            name={field.name}
+            value={field.value}
+            onValueChange={(value) => {
+                form.setFieldValue(field.name, Math.round(value ?? 0));
+            }}
             render={(props, state) => (
                 <FormControl
                     size={size}
                     ref={props.ref}
                     disabled={state.disabled}
                     required={state.required}
-                    error={error}
+                    error={!!errorMsg}
                     variant="outlined"
                 >
                     {props.children}
@@ -67,7 +75,10 @@ const FormIntegerField = ({
                         label={label}
                         inputRef={props.ref}
                         value={state.inputValue}
-                        onBlur={props.onBlur}
+                        onBlur={(e) => {
+                            form.setFieldTouched(field.name, true);
+                            if (props.onBlur) props.onBlur(e);
+                        }}
                         onChange={props.onChange}
                         onKeyUp={props.onKeyUp}
                         onKeyDown={props.onKeyDown}
@@ -126,7 +137,7 @@ const FormIntegerField = ({
                 )}
             />
             <FormHelperText sx={{ ml: 0, "&:empty": { mt: 0 } }}>
-                {helperText}
+                {errorMsg || helperText}
             </FormHelperText>
         </BaseNumberField.Root>
     );
