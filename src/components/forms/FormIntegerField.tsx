@@ -8,7 +8,7 @@ import React from "react";
 import getFormError from "./getFormError";
 
 import { FieldProps } from "formik";
-import { NumberField as BaseNumberField } from "@base-ui-components/react/number-field";
+import { NumberField as BaseNumberField } from "@base-ui/react/number-field";
 import {
     IconButton,
     FormControl,
