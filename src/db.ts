@@ -154,8 +154,18 @@ export async function maintenanceEnabled() {
             "SELECT enabled FROM maintenance",
         );
 
-        return rows ? (rows[0]?.enabled ?? true) : true;
-    } catch {
+        if (rows && rows[0]) {
+            return rows[0].enabled;
+        }
+
+        logger.error(
+            "Could not fetch `enabled` flag from `maintenance` table: %O",
+            rows,
+        );
+
+        return true;
+    } catch (e) {
+        logger.error("Could not query `maintenance` table: %O", e);
         return true;
     }
 }
