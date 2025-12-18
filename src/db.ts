@@ -143,6 +143,34 @@ export async function healthCheck() {
 }
 
 /**
+ * Resolves to false if the maintenance flag in the db is set to `false`,
+ * otherwise resolves to true (even if the db cannot be queried).
+ *
+ * @returns A Promise that resolves to true or false.
+ */
+export async function maintenanceEnabled() {
+    try {
+        const { rows } = await db.query<{ enabled: boolean }>(
+            "SELECT enabled FROM maintenance",
+        );
+
+        if (rows && rows[0]) {
+            return rows[0].enabled;
+        }
+
+        logger.error(
+            "Could not fetch `enabled` flag from `maintenance` table: %O",
+            rows,
+        );
+
+        return true;
+    } catch (e) {
+        logger.error("Could not query `maintenance` table: %O", e);
+        return true;
+    }
+}
+
+/**
  * Adds the `transaction` to the database as a purchase order,
  * returning the `po_number`.
  */
