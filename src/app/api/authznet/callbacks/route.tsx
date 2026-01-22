@@ -228,9 +228,21 @@ async function updateSubscription(
         );
     }
 
-    const receiptPDF = await renderToBuffer(
-        <OrderDetailsPdf imagesBaseURL={imagesBaseURL} order={orderDetails} />,
-    );
+    let receiptPDF;
+    try {
+        receiptPDF = await renderToBuffer(
+            <OrderDetailsPdf
+                imagesBaseURL={imagesBaseURL}
+                order={orderDetails}
+            />,
+        );
+    } catch (e) {
+        logger.error(
+            "Could not generate PDF receipt for order %O\n%O",
+            orderDetails,
+            e,
+        );
+    }
 
     serviceAccountEmailReceipt(
         username,
