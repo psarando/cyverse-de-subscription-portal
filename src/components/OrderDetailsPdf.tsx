@@ -12,11 +12,7 @@ import {
     View,
 } from "@react-pdf/renderer";
 
-import {
-    LineItemIDEnum,
-    OrderDetails,
-    TransactionResponseCodeEnum,
-} from "@/app/api/types";
+import { OrderDetails } from "@/app/api/types";
 import CyVersePalette from "@/components/theme/CyVersePalette";
 import { formatDate } from "@/utils/formatUtils";
 
@@ -37,6 +33,46 @@ const pdfStyles = StyleSheet.create({
     },
     textSuccess: { color: CyVersePalette.grass },
     textError: { color: CyVersePalette.alertRed },
+    itemsTable: {
+        margin: 10,
+        borderWidth: 1,
+        borderColor: CyVersePalette.lightSilver,
+        borderRadius: 4,
+    },
+    itemsHeaderRow: {
+        flexDirection: "row",
+        backgroundColor: CyVersePalette.bgGray,
+        borderBottomWidth: 1,
+        borderColor: CyVersePalette.lightSilver,
+        padding: 6,
+    },
+    itemsHeaderName: {
+        flex: 2,
+        fontWeight: "bold",
+    },
+    itemsHeaderDetail: {
+        flex: 1,
+        textAlign: "center",
+        fontWeight: "bold",
+    },
+    itemsCellRow: {
+        flexDirection: "row",
+        borderColor: CyVersePalette.lightSilver,
+        padding: 6,
+    },
+    itemsCellRowBorder: {
+        borderBottomWidth: 1,
+    },
+    itemsCellName: {
+        flex: 2,
+    },
+    itemsCellDetail: {
+        flex: 1,
+        textAlign: "center",
+    },
+    orderTotalRow: {
+        backgroundColor: CyVersePalette.bgGray,
+    },
 });
 
 // Create Document Component
@@ -74,20 +110,12 @@ const OrderDetailsPdf = ({
                         <Text>FAX: (520) 621-1364</Text>
                     </View>
                 </View>
+
                 <View style={pdfStyles.grid}>
                     <View style={pdfStyles.section}>
                         <Text>PO Number</Text>
                         <Text>Order Date</Text>
                         <Text>Transaction ID</Text>
-                        {lineItems &&
-                            lineItems.length > 0 &&
-                            lineItems.map((item, index) => (
-                                <Text key={item.id}>
-                                    {index === 0 ? "Ordered Items" : " "}
-                                </Text>
-                            ))}
-                        <Text>Order Total</Text>
-                        <Text>Transaction Status</Text>
                         {transactionResponse?.transDate && (
                             <Text>Transaction Date</Text>
                         )}
@@ -117,44 +145,11 @@ const OrderDetailsPdf = ({
                                   </Text>
                               ))}
                     </View>
+
                     <View style={pdfStyles.section}>
                         <Text>{poNumber}</Text>
                         <Text>{formatDate(new Date(orderDate))}</Text>
                         <Text>{transactionResponse?.transId ?? " "}</Text>
-                        {lineItems &&
-                            lineItems.length > 0 &&
-                            lineItems.map((item) => (
-                                <Text key={item.id}>
-                                    {`${item.quantity} ${
-                                        item.itemId ===
-                                        LineItemIDEnum.SUBSCRIPTION
-                                            ? item.quantity > 1
-                                                ? "Years"
-                                                : "Year"
-                                            : "x"
-                                    } ${item.name} ${item.itemId} @ ${item.unitPrice} each.`}
-                                </Text>
-                            ))}
-                        <Text>{amount}</Text>
-                        {transactionResponse?.responseCode ===
-                        TransactionResponseCodeEnum.APPROVED ? (
-                            <Text style={pdfStyles.textSuccess}>Approved</Text>
-                        ) : transactionResponse?.responseCode ===
-                          TransactionResponseCodeEnum.DECLINED ? (
-                            <Text style={pdfStyles.textError}>Declined</Text>
-                        ) : transactionResponse?.responseCode ===
-                          TransactionResponseCodeEnum.ERROR ? (
-                            <Text style={pdfStyles.textError}>Error</Text>
-                        ) : transactionResponse?.responseCode ===
-                          TransactionResponseCodeEnum.HELD_FOR_REVIEW ? (
-                            <Text style={pdfStyles.textError}>
-                                Held For Review
-                            </Text>
-                        ) : (
-                            <Text style={pdfStyles.textError}>
-                                The transaction was not processed.
-                            </Text>
-                        )}
                         {transactionResponse?.transDate && (
                             <Text>
                                 {formatDate(
@@ -185,6 +180,57 @@ const OrderDetailsPdf = ({
                                       {msg.text}
                                   </Text>
                               ))}
+                    </View>
+                </View>
+
+                <View style={pdfStyles.itemsTable}>
+                    <View style={pdfStyles.itemsHeaderRow}>
+                        <Text style={pdfStyles.itemsHeaderName}>
+                            Ordered Items
+                        </Text>
+                        <Text style={pdfStyles.itemsHeaderDetail}>
+                            Quantity
+                        </Text>
+                        <Text style={pdfStyles.itemsHeaderDetail}>
+                            Unit Price
+                        </Text>
+                    </View>
+                    {lineItems &&
+                        lineItems.length > 0 &&
+                        lineItems.map((item) => {
+                            return (
+                                <View
+                                    key={item.id}
+                                    style={[
+                                        pdfStyles.itemsCellRow,
+                                        pdfStyles.itemsCellRowBorder,
+                                    ]}
+                                >
+                                    <Text style={pdfStyles.itemsCellName}>
+                                        {item.name} {item.itemId}
+                                    </Text>
+                                    <Text style={pdfStyles.itemsCellDetail}>
+                                        {item.quantity}
+                                    </Text>
+                                    <Text style={pdfStyles.itemsCellDetail}>
+                                        {item.unitPrice}
+                                    </Text>
+                                </View>
+                            );
+                        })}
+                    <View
+                        style={[
+                            pdfStyles.itemsCellRow,
+                            pdfStyles.orderTotalRow,
+                        ]}
+                    >
+                        <Text style={pdfStyles.itemsHeaderName}>
+                            Order Total
+                        </Text>
+                        <Text style={pdfStyles.itemsCellDetail}></Text>
+                        <Text style={pdfStyles.itemsHeaderDetail}>
+                            {amount}
+                        </Text>
                     </View>
                 </View>
             </Page>
