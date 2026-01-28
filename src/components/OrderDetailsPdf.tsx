@@ -27,14 +27,24 @@ const pdfStyles = StyleSheet.create({
     grid: {
         flexDirection: "row",
     },
+    gridRow: {
+        margin: 8,
+        flexDirection: "row",
+    },
+    gridLabel: {
+        flex: 1,
+        fontWeight: "bold",
+    },
+    gridValue: {
+        flex: 2,
+    },
     section: {
-        margin: 10,
-        flexGrow: 1,
+        margin: 8,
     },
     textSuccess: { color: CyVersePalette.grass },
     textError: { color: CyVersePalette.alertRed },
     itemsTable: {
-        margin: 10,
+        margin: 8,
         borderWidth: 1,
         borderColor: CyVersePalette.lightSilver,
         borderRadius: 4,
@@ -44,7 +54,7 @@ const pdfStyles = StyleSheet.create({
         backgroundColor: CyVersePalette.bgGray,
         borderBottomWidth: 1,
         borderColor: CyVersePalette.lightSilver,
-        padding: 6,
+        padding: 8,
     },
     itemsHeaderName: {
         flex: 2,
@@ -58,7 +68,7 @@ const pdfStyles = StyleSheet.create({
     itemsCellRow: {
         flexDirection: "row",
         borderColor: CyVersePalette.lightSilver,
-        padding: 6,
+        padding: 8,
     },
     itemsCellRowBorder: {
         borderBottomWidth: 1,
@@ -111,76 +121,80 @@ const OrderDetailsPdf = ({
                     </View>
                 </View>
 
-                <View style={pdfStyles.grid}>
-                    <View style={pdfStyles.section}>
-                        <Text>PO Number</Text>
-                        <Text>Order Date</Text>
-                        <Text>Transaction ID</Text>
-                        {transactionResponse?.transDate && (
-                            <Text>Transaction Date</Text>
-                        )}
-                        {errorMsgs.length > 0
-                            ? errorMsgs.map((error, index) => (
-                                  <Text
-                                      key={error.errorText}
-                                      style={pdfStyles.textError}
-                                  >
-                                      {index === 0 ? "Errors" : " "}
-                                  </Text>
-                              ))
-                            : transactionResponse?.messages &&
-                              transactionResponse.messages.length > 0 &&
-                              transactionResponse.messages.map((msg, index) => (
-                                  <Text
-                                      key={msg.text}
-                                      style={
-                                          msg.code.startsWith("E")
-                                              ? pdfStyles.textError
-                                              : pdfStyles.textSuccess
-                                      }
-                                  >
-                                      {index === 0
-                                          ? "Transaction Messages"
-                                          : " "}
-                                  </Text>
-                              ))}
+                <View style={pdfStyles.section}>
+                    <View style={pdfStyles.gridRow}>
+                        <Text style={pdfStyles.gridLabel}>PO Number</Text>
+                        <Text style={pdfStyles.gridValue}>{poNumber}</Text>
                     </View>
-
-                    <View style={pdfStyles.section}>
-                        <Text>{poNumber}</Text>
-                        <Text>{formatDate(new Date(orderDate))}</Text>
-                        <Text>{transactionResponse?.transId ?? " "}</Text>
-                        {transactionResponse?.transDate && (
-                            <Text>
+                    <View style={pdfStyles.gridRow}>
+                        <Text style={pdfStyles.gridLabel}>Order Date</Text>
+                        <Text style={pdfStyles.gridValue}>
+                            {formatDate(new Date(orderDate))}
+                        </Text>
+                    </View>
+                    <View style={pdfStyles.gridRow}>
+                        <Text style={pdfStyles.gridLabel}>Transaction ID</Text>
+                        <Text style={pdfStyles.gridValue}>
+                            {transactionResponse?.transId ?? " "}
+                        </Text>
+                    </View>
+                    {transactionResponse?.transDate && (
+                        <View style={pdfStyles.gridRow}>
+                            <Text style={pdfStyles.gridLabel}>
+                                Transaction Date
+                            </Text>
+                            <Text style={pdfStyles.gridValue}>
                                 {formatDate(
                                     new Date(transactionResponse.transDate),
                                 )}
                             </Text>
-                        )}
-                        {errorMsgs.length > 0
-                            ? errorMsgs.map((error) => (
+                        </View>
+                    )}
+                    {errorMsgs.length > 0
+                        ? errorMsgs.map((error, index) => (
+                              <View
+                                  key={error.errorText}
+                                  style={pdfStyles.gridRow}
+                              >
                                   <Text
-                                      key={error.errorText}
-                                      style={pdfStyles.textError}
+                                      style={[
+                                          pdfStyles.gridLabel,
+                                          pdfStyles.textError,
+                                      ]}
+                                  >
+                                      {index === 0 ? "Errors" : " "}
+                                  </Text>
+                                  <Text
+                                      style={[
+                                          pdfStyles.gridValue,
+                                          pdfStyles.textError,
+                                      ]}
                                   >
                                       {error.errorText}
                                   </Text>
-                              ))
-                            : transactionResponse?.messages &&
-                              transactionResponse.messages.length > 0 &&
-                              transactionResponse.messages.map((msg) => (
+                              </View>
+                          ))
+                        : transactionResponse?.messages &&
+                          transactionResponse.messages.length > 0 &&
+                          transactionResponse.messages.map((msg, index) => (
+                              <View key={msg.text} style={pdfStyles.gridRow}>
+                                  <Text style={pdfStyles.gridLabel}>
+                                      {index === 0
+                                          ? "Transaction Messages"
+                                          : " "}
+                                  </Text>
                                   <Text
-                                      key={msg.text}
-                                      style={
+                                      style={[
+                                          pdfStyles.gridValue,
                                           msg.code.startsWith("E")
                                               ? pdfStyles.textError
-                                              : pdfStyles.textSuccess
-                                      }
+                                              : pdfStyles.textSuccess,
+                                      ]}
                                   >
                                       {msg.text}
                                   </Text>
-                              ))}
-                    </View>
+                              </View>
+                          ))}
                 </View>
 
                 <View style={pdfStyles.itemsTable}>
