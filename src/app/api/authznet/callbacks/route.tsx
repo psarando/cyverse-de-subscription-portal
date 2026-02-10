@@ -19,10 +19,13 @@ import {
     TransactionResponseCodeEnum,
     UserSubscriptionListing,
 } from "@/app/api/types";
+import OrderDetailsPdf from "@/components/OrderDetailsPdf";
 
 import { createHmac, timingSafeEqual } from "crypto";
 import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
+
+import { renderToBuffer } from "@react-pdf/renderer";
 
 const { serverRuntimeConfig } = getConfig();
 
@@ -68,19 +71,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse AuthzNet notification asynchronously so route can respond quickly.
-    parseAuthorizeNotification(notificationJson);
+    const protocol = request.nextUrl.href.startsWith("https")
+        ? "https://"
+        : "http://";
+    const host = request.nextUrl.host;
+    parseAuthorizeNotification(`${protocol}${host}`, notificationJson);
 
     return new NextResponse("ok");
 }
 
-async function parseAuthorizeNotification(notificationJson?: {
-    eventType?: string;
-    eventDate?: string;
-    payload?: CreateTransactionResponse["transactionResponse"] & {
-        id: string; // Transaction ID
-        merchantReferenceId: string; // PO Number
-    };
-}) {
+async function parseAuthorizeNotification(
+    imagesBaseURL: string,
+    notificationJson?: {
+        eventType?: string;
+        eventDate?: string;
+        payload?: CreateTransactionResponse["transactionResponse"] & {
+            id: string; // Transaction ID
+            merchantReferenceId: string; // PO Number
+        };
+    },
+) {
     logger.debug("notificationJson: %o", notificationJson);
 
     if (!notificationJson?.eventType?.startsWith("net.authorize.payment.")) {
@@ -155,12 +165,13 @@ async function parseAuthorizeNotification(notificationJson?: {
     };
 
     // The payment was successful, so update the user's subscription and addons.
-    updateSubscription(username, orderDetails);
+    updateSubscription(username, orderDetails, imagesBaseURL);
 }
 
 async function updateSubscription(
     username: string,
     orderDetails: OrderDetails,
+    imagesBaseURL: string,
 ) {
     const subscription = orderDetails.lineItems?.find(
         (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
@@ -217,10 +228,27 @@ async function updateSubscription(
         );
     }
 
+    let receiptPDF;
+    try {
+        receiptPDF = await renderToBuffer(
+            <OrderDetailsPdf
+                imagesBaseURL={imagesBaseURL}
+                order={orderDetails}
+            />,
+        );
+    } catch (e) {
+        logger.error(
+            "Could not generate PDF receipt for order %O\n%O",
+            orderDetails,
+            e,
+        );
+    }
+
     serviceAccountEmailReceipt(
         username,
         orderDetails,
         subscriptionUpdateResult,
+        receiptPDF?.toString("base64"),
     );
 
     if (

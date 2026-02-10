@@ -301,6 +301,7 @@ export async function serviceAccountEmailReceipt(
     username: string,
     orderDetails: OrderDetails,
     subscription?: SubscriptionUpdateResult,
+    receiptPDF?: string,
 ) {
     const { poNumber, orderDate, amount, transactionResponses, lineItems } =
         orderDetails;
@@ -363,11 +364,15 @@ export async function serviceAccountEmailReceipt(
             })),
     };
 
+    const subject = `CyVerse Subscription Order #${poNumber}`;
     const body = {
         from_addr: serverRuntimeConfig.supportEmail,
         from_name: "CyVerse Subscription Portal",
-        subject: `CyVerse Subscription Order #${poNumber}`,
+        subject,
         template: "subscription_purchase_complete",
+        attachments: receiptPDF
+            ? [{ filename: `${subject}.pdf`, data: receiptPDF }]
+            : undefined,
         values,
     };
 
