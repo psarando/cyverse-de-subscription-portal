@@ -3,6 +3,7 @@
  *
  * @author psarando
  */
+import getConfig from "next/config";
 import {
     Document,
     Image as PdfImage,
@@ -86,29 +87,26 @@ const pdfStyles = StyleSheet.create({
 });
 
 // Create Document Component
-const OrderDetailsPdf = ({
-    imagesBaseURL,
-    order,
-}: {
-    imagesBaseURL: string;
-    order: OrderDetails;
-}) => {
+const OrderDetailsPdf = ({ order }: { order: OrderDetails }) => {
     const { poNumber, orderDate, amount, transactionResponses, lineItems } =
         order;
     const transactionResponse = transactionResponses && transactionResponses[0];
     const errorMsgs = transactionResponse?.errors || [];
+
+    const { publicRuntimeConfig } = getConfig();
+    const { subscriptionPortalBaseUrl } = publicRuntimeConfig;
 
     return (
         <Document>
             <Page size="A4" style={pdfStyles.page}>
                 <View style={pdfStyles.grid}>
                     <PdfImage
-                        src={`${imagesBaseURL}/UA_Research-and-Partnerships.png`}
+                        src={`${subscriptionPortalBaseUrl}/UA_Research-and-Partnerships.png`}
                         style={pdfStyles.orpLogo}
                     />
                     <View style={{ flexGrow: 1, alignItems: "center" }}>
                         <PdfImage
-                            src={`${imagesBaseURL}/cyverse_logo_2.png`}
+                            src={`${subscriptionPortalBaseUrl}/cyverse_logo_2.png`}
                             style={pdfStyles.logo}
                         />
                     </View>

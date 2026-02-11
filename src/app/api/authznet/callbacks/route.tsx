@@ -71,26 +71,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse AuthzNet notification asynchronously so route can respond quickly.
-    const protocol = request.nextUrl.href.startsWith("https")
-        ? "https://"
-        : "http://";
-    const host = request.nextUrl.host;
-    parseAuthorizeNotification(`${protocol}${host}`, notificationJson);
+    parseAuthorizeNotification(notificationJson);
 
     return new NextResponse("ok");
 }
 
-async function parseAuthorizeNotification(
-    imagesBaseURL: string,
-    notificationJson?: {
-        eventType?: string;
-        eventDate?: string;
-        payload?: CreateTransactionResponse["transactionResponse"] & {
-            id: string; // Transaction ID
-            merchantReferenceId: string; // PO Number
-        };
-    },
-) {
+async function parseAuthorizeNotification(notificationJson?: {
+    eventType?: string;
+    eventDate?: string;
+    payload?: CreateTransactionResponse["transactionResponse"] & {
+        id: string; // Transaction ID
+        merchantReferenceId: string; // PO Number
+    };
+}) {
     logger.debug("notificationJson: %o", notificationJson);
 
     if (!notificationJson?.eventType?.startsWith("net.authorize.payment.")) {
@@ -165,13 +158,12 @@ async function parseAuthorizeNotification(
     };
 
     // The payment was successful, so update the user's subscription and addons.
-    updateSubscription(username, orderDetails, imagesBaseURL);
+    updateSubscription(username, orderDetails);
 }
 
 async function updateSubscription(
     username: string,
     orderDetails: OrderDetails,
-    imagesBaseURL: string,
 ) {
     const subscription = orderDetails.lineItems?.find(
         (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
@@ -231,10 +223,7 @@ async function updateSubscription(
     let receiptPDF;
     try {
         receiptPDF = await renderToBuffer(
-            <OrderDetailsPdf
-                imagesBaseURL={imagesBaseURL}
-                order={orderDetails}
-            />,
+            <OrderDetailsPdf order={orderDetails} />,
         );
     } catch (e) {
         logger.error(
