@@ -71,6 +71,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse AuthzNet notification asynchronously so route can respond quickly.
+    logger.debug({
+        "nextUrl.href": request.nextUrl.href,
+        "nextUrl.host": request.nextUrl.host,
+    });
     parseAuthorizeNotification(notificationJson);
 
     return new NextResponse("ok");
