@@ -3,7 +3,6 @@
  *
  * @author psarando
  */
-import getConfig from "next/config";
 import {
     Document,
     Image as PdfImage,
@@ -93,8 +92,7 @@ const OrderDetailsPdf = ({ order }: { order: OrderDetails }) => {
     const transactionResponse = transactionResponses && transactionResponses[0];
     const errorMsgs = transactionResponse?.errors || [];
 
-    const { publicRuntimeConfig } = getConfig();
-    const { subscriptionPortalBaseUrl } = publicRuntimeConfig;
+    const subscriptionPortalBaseUrl = process.env.SP_BASE_URL;
 
     return (
         <Document>

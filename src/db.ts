@@ -14,22 +14,23 @@ import {
 import { formatDate } from "@/utils/formatUtils";
 
 import { UUID } from "crypto";
-import getConfig from "next/config";
 import { Client, QueryResult } from "pg";
 
-const { serverRuntimeConfig } = getConfig();
+const dbTimeout = process.env.DB_TIMEOUT
+    ? parseInt(process.env.DB_TIMEOUT, 10)
+    : 20000; // 20 seconds, in milliseconds
 
 const db = new Client({
-    user: serverRuntimeConfig.dbUser,
-    password: serverRuntimeConfig.dbPassword,
-    host: serverRuntimeConfig.dbHost,
-    port: serverRuntimeConfig.dbPort,
-    database: serverRuntimeConfig.dbDatabase,
-    connectionTimeoutMillis: serverRuntimeConfig.dbTimeout,
-    statement_timeout: serverRuntimeConfig.dbTimeout,
-    query_timeout: serverRuntimeConfig.dbTimeout,
-    lock_timeout: serverRuntimeConfig.dbTimeout,
-    idle_in_transaction_session_timeout: serverRuntimeConfig.dbTimeout,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT || "0", 10),
+    database: process.env.DB_DATABASE,
+    connectionTimeoutMillis: dbTimeout,
+    statement_timeout: dbTimeout,
+    query_timeout: dbTimeout,
+    lock_timeout: dbTimeout,
+    idle_in_transaction_session_timeout: dbTimeout,
 });
 
 await db.connect().catch((e) => {

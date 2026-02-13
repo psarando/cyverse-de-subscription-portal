@@ -22,15 +22,12 @@ import {
 import OrderDetailsPdf from "@/components/OrderDetailsPdf";
 
 import { createHmac, timingSafeEqual } from "crypto";
-import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
 
 import { renderToBuffer } from "@react-pdf/renderer";
 
-const { serverRuntimeConfig } = getConfig();
-
 export async function POST(request: NextRequest) {
-    const { authorizeNetSignatureKey } = serverRuntimeConfig;
+    const authorizeNetSignatureKey = process.env.SP_AUTHORIZE_NET_SIGNATURE_KEY;
 
     if (!authorizeNetSignatureKey) {
         return new NextResponse("Authorize.net Signature Key not configured.", {

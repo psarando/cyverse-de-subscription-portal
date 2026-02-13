@@ -3,7 +3,6 @@ import type {
     NextApiRequest,
     NextApiResponse,
 } from "next";
-import getConfig from "next/config";
 
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession, DefaultUser } from "next-auth";
@@ -38,10 +37,12 @@ declare module "next-auth/jwt" {
     }
 }
 
-const { serverRuntimeConfig } = getConfig();
-const adminGroups: string[] = serverRuntimeConfig?.adminGroups
-    ?.split(",")
-    ?.map((group: string) => group.trim());
+const keycloakClientId = process.env.SP_KEYCLOAK_CLIENT_ID || "";
+const keycloakClientSecret = process.env.SP_KEYCLOAK_CLIENT_SECRET || "";
+const keycloakIssuer = process.env.SP_KEYCLOAK_ISSUER;
+const adminGroups = process.env.SP_ADMIN_GROUPS?.split(",")?.map(
+    (group: string) => group.trim(),
+);
 
 // The `NextAuth` config, for use in `app/api/auth/[...nextauth]/route.ts`
 export const config = {
@@ -51,9 +52,9 @@ export const config = {
     },
     providers: [
         KeycloakProvider({
-            clientId: serverRuntimeConfig.keycloakClientId || "",
-            clientSecret: serverRuntimeConfig.keycloakClientSecret || "",
-            issuer: serverRuntimeConfig.keycloakIssuer,
+            clientId: keycloakClientId,
+            clientSecret: keycloakClientSecret,
+            issuer: keycloakIssuer,
         }),
     ],
     callbacks: {
@@ -64,7 +65,7 @@ export const config = {
                 token.accessTokenExp = profile.exp;
                 token.username = profile.preferred_username;
                 token.admin = !!profile.entitlement?.find((role) =>
-                    adminGroups.includes(role),
+                    adminGroups?.includes(role),
                 );
             }
 

@@ -23,11 +23,8 @@ import { addonProratedRate } from "@/utils/rates";
 import { OrderRequestSchema } from "@/validation";
 
 import { differenceInCalendarDays } from "date-fns";
-import getConfig from "next/config";
 import { NextRequest, NextResponse } from "next/server";
 import { ValidationError } from "yup";
-
-const { publicRuntimeConfig, serverRuntimeConfig } = getConfig();
 
 type HostedPaymentPageRequest = {
     merchantAuthentication: {
@@ -40,12 +37,13 @@ type HostedPaymentPageRequest = {
 };
 
 export async function POST(request: NextRequest) {
-    const {
-        authorizeNetLoginId,
-        authorizeNetTransactionKey,
-        authorizeNetApiEndpoint,
-    } = serverRuntimeConfig;
-    const { subscriptionPortalBaseUrl, terrainBaseUrl } = publicRuntimeConfig;
+    const authorizeNetLoginId = process.env.SP_AUTHORIZE_NET_LOGIN_ID || "";
+    const authorizeNetTransactionKey =
+        process.env.SP_AUTHORIZE_NET_TRANSACTION_KEY || "";
+    const authorizeNetApiEndpoint = process.env.SP_AUTHORIZE_NET_API_ENDPOINT;
+    const authorizeNetTestRequests = process.env.SP_AUTHORIZE_NET_TEST_REQUESTS;
+    const subscriptionPortalBaseUrl = process.env.SP_BASE_URL;
+    const terrainBaseUrl = process.env.SP_TERRAIN_BASE_URL;
 
     if (!authorizeNetApiEndpoint) {
         return NextResponse.json(
@@ -271,8 +269,7 @@ export async function POST(request: NextRequest) {
                     {
                         settingName: "testRequest",
                         settingValue:
-                            serverRuntimeConfig.authorizeNetTestRequests !==
-                            "false",
+                            authorizeNetTestRequests?.toLowerCase() === "true",
                     },
                     {
                         settingName: "emailCustomer",
