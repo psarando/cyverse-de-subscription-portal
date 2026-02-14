@@ -83,11 +83,6 @@ const CyVerseAnnouncer = () => {
     }, []);
 
     useEffect(() => {
-        //display first message right away
-        dequeue();
-    }, [dequeue]);
-
-    useEffect(() => {
         clearInterval(intervalRef.current as NodeJS.Timeout);
         intervalRef.current = timeout ? setInterval(dequeue, timeout) : null;
 
