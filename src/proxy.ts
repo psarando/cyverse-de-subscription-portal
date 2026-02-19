@@ -5,8 +5,6 @@ import { auth } from "@/auth";
 import { maintenanceEnabled } from "@/db";
 
 export const config = {
-    // nodejs runtime is required for `@/db` functions, which use the `logger`.
-    runtime: "nodejs",
     matcher: [
         /*
          * Match all request paths except for the ones starting with:
@@ -20,7 +18,7 @@ export const config = {
     ],
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const maintenance = await maintenanceEnabled();
 
     if (maintenance) {

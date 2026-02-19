@@ -1,3 +1,5 @@
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
 import pluginQuery from "@tanstack/eslint-plugin-query";
@@ -10,12 +12,10 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
     ...pluginQuery.configs["flat/recommended"],
-    ...compat.extends(
-        "eslint:recommended",
-        "next/core-web-vitals",
-        "next/typescript",
-        "prettier",
-    ),
+    ...compat.extends("eslint:recommended"),
+    ...nextCoreWebVitals,
+    ...nextTypescript,
+    ...compat.extends("prettier"),
     {
         rules: {
             "@typescript-eslint/no-unused-vars": [
@@ -26,6 +26,15 @@ const eslintConfig = [
                 },
             ],
         },
+    },
+    {
+        ignores: [
+            "node_modules/**",
+            ".next/**",
+            "out/**",
+            "build/**",
+            "next-env.d.ts",
+        ],
     },
 ];
 

@@ -1,10 +1,8 @@
-import getConfig from "next/config";
-
 import Checkout from "@/components/forms/Checkout";
 
-const { publicRuntimeConfig } = getConfig();
-
 export default async function CheckoutPage() {
-    const { authorizeNetHostedEndpoint } = publicRuntimeConfig;
+    const authorizeNetHostedEndpoint =
+        process.env.SP_AUTHORIZE_NET_HOSTED_ENDPOINT || "";
+
     return <Checkout authorizeNetHostedEndpoint={authorizeNetHostedEndpoint} />;
 }

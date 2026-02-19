@@ -13,7 +13,6 @@ import {
 
 import { addSeconds, toDate } from "date-fns";
 
-import getConfig from "next/config";
 import { NextResponse } from "next/server";
 
 type KeyCloakToken = {
@@ -21,8 +20,6 @@ type KeyCloakToken = {
     expires_in: number;
     accessTokenExp?: Date;
 };
-
-const { publicRuntimeConfig, serverRuntimeConfig } = getConfig();
 
 // FIXME: store this in the DB.
 let serviceAccountToken: KeyCloakToken | null = null;
@@ -57,7 +54,7 @@ export async function callTerrain(
     url: string,
     body?: BodyInit,
 ) {
-    const { terrainBaseUrl } = publicRuntimeConfig;
+    const terrainBaseUrl = process.env.SP_TERRAIN_BASE_URL;
     if (!terrainBaseUrl) {
         return NextResponse.json(
             { message: "Terrain Base URL not configured." },
@@ -92,12 +89,13 @@ async function getServiceAccountToken() {
     ) {
         serviceAccountToken = null;
 
-        const tokenUrl = `${serverRuntimeConfig.keycloakIssuer}/protocol/openid-connect/token`;
+        const keycloakIssuer = process.env.SP_KEYCLOAK_ISSUER;
+        const keycloakClientId = process.env.SP_KEYCLOAK_CLIENT_ID;
+        const keycloakClientSecret = process.env.SP_KEYCLOAK_CLIENT_SECRET;
+
+        const tokenUrl = `${keycloakIssuer}/protocol/openid-connect/token`;
         const credBuffer = Buffer.from(
-            [
-                serverRuntimeConfig.keycloakClientId,
-                serverRuntimeConfig.keycloakClientSecret,
-            ].join(":"),
+            [keycloakClientId, keycloakClientSecret].join(":"),
         );
 
         const tokenResponse = await fetch(tokenUrl, {
@@ -136,7 +134,7 @@ async function serviceAccountCallTerrain(
     url: string,
     body?: BodyInit,
 ) {
-    const { terrainBaseUrl } = publicRuntimeConfig;
+    const terrainBaseUrl = process.env.SP_TERRAIN_BASE_URL;
 
     const token = await getServiceAccountToken();
     if (!token) {
@@ -310,6 +308,8 @@ export async function serviceAccountEmailReceipt(
         (item) => item.itemId === LineItemIDEnum.SUBSCRIPTION,
     );
 
+    const supportEmail = process.env.SP_CYVERSE_SUPPORT_EMAIL;
+
     const userInfo = await serviceAccountFetchUserInfo(username);
     const { common_name, first_name, last_name, email } = userInfo || {};
 
@@ -366,7 +366,7 @@ export async function serviceAccountEmailReceipt(
 
     const subject = `CyVerse Subscription Order #${poNumber}`;
     const body = {
-        from_addr: serverRuntimeConfig.supportEmail,
+        from_addr: supportEmail,
         from_name: "CyVerse Subscription Portal",
         subject,
         template: "subscription_purchase_complete",
@@ -379,7 +379,7 @@ export async function serviceAccountEmailReceipt(
     serviceAccountSendEmail({
         ...body,
         to: email,
-        bcc: [serverRuntimeConfig.supportEmail],
+        bcc: [supportEmail],
     });
 }
 
@@ -389,10 +389,12 @@ export async function serviceAccountEmailAdmin(
     subscriptionUpdateResult?: SubscriptionUpdateResult,
     addonsUpdateResult?: AddonsUpdateResult,
 ) {
+    const supportEmail = process.env.SP_CYVERSE_SUPPORT_EMAIL;
+
     serviceAccountSendEmail({
-        from_addr: serverRuntimeConfig.supportEmail,
+        from_addr: supportEmail,
         from_name: "CyVerse Subscription Portal",
-        to: serverRuntimeConfig.supportEmail,
+        to: supportEmail,
         subject: `CyVerse Subscription Order #${orderDetails.poNumber}`,
         template: "subscription_purchase_admin_required",
         values: {
