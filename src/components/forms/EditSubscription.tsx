@@ -19,6 +19,7 @@ import { SUCCESS } from "@/components/common/announcer/AnnouncerConstants";
 import FormTextField from "@/components/forms/FormTextField";
 
 import { formatQuota } from "@/utils/formatUtils";
+import { getCartTotalPrice } from "@/utils/rates";
 
 import { mapSubscriptionPropsToValues, formatSubscription } from "./formatters";
 
@@ -60,6 +61,9 @@ function EditSubscription({
         planTypes = [...planTypesQueryData.result];
     }
 
+    const findPlanTypeByName = (planName: string) =>
+        planTypes.find((type) => type.name === planName);
+
     const dialogTitle =
         subscription && subscription.plan.name !== constants.PLAN_NAME_BASIC
             ? "Renew Subscription"
@@ -86,13 +90,22 @@ function EditSubscription({
             initialValues={mapSubscriptionPropsToValues(subscription, cartInfo)}
             validationSchema={validationSchema}
             onSubmit={(values) => {
-                setCartInfo({
+                const newCartInfo = {
                     ...cartInfo,
                     subscription: formatSubscription(
                         values,
                         subscription as SubscriptionSummaryDetails,
+                        findPlanTypeByName(values.plan_name)?.plan_rates[0]
+                            .rate,
                     ),
-                });
+                };
+
+                newCartInfo.totalPrice = getCartTotalPrice(
+                    newCartInfo,
+                    subscription,
+                );
+
+                setCartInfo(newCartInfo);
 
                 // Pass a dummy event to onClose.
                 onClose({} as React.MouseEvent);
@@ -104,9 +117,7 @@ function EditSubscription({
             enableReinitialize={true}
         >
             {({ handleSubmit, values }) => {
-                const selectedPlanType = planTypes.find(
-                    (type) => type.name === values.plan_name,
-                );
+                const selectedPlanType = findPlanTypeByName(values.plan_name);
 
                 return (
                     <Form>

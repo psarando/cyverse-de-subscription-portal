@@ -25,7 +25,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import constants from "@/constants";
 import {
-    getPlanTypes,
     getResourceUsageSummary,
     HttpError,
     PLAN_TYPES_QUERY_KEY,
@@ -35,11 +34,9 @@ import {
 import {
     OrderError,
     OrderUpdateResult,
-    PlanType,
     ResourceUsageSummary,
-    SubscriptionSubmission,
 } from "@/app/api/types";
-import { CartInfo, useCartInfo } from "@/contexts/cart";
+import { useCartInfo } from "@/contexts/cart";
 import BackButton from "@/components/common/BackButton";
 import ExternalLink from "@/components/common/ExternalLink";
 import GridLoading from "@/components/common/GridLoading";
@@ -49,7 +46,6 @@ import ErrorHandler from "@/components/common/error/ErrorHandler";
 import withErrorAnnouncer, {
     WithErrorAnnouncerProps,
 } from "@/components/common/error/withErrorAnnouncer";
-import { addonProratedRate } from "@/utils/rates";
 import { CheckoutFormSchema } from "@/validation";
 
 import Info from "./Info";
@@ -87,54 +83,6 @@ function Checkout({
 
     const currentSubscription = resourceUsageSummary?.subscription;
 
-    const {
-        data: planTypesQueryData,
-        isFetching: loadingPlanTypes,
-        error: planTypesQueryError,
-    } = useQuery<{ result: PlanType[] }>({
-        queryKey: [PLAN_TYPES_QUERY_KEY],
-        queryFn: getPlanTypes,
-        staleTime: Infinity,
-    });
-
-    let planTypes: PlanType[] = [];
-    if (planTypesQueryData?.result) {
-        planTypes = [...planTypesQueryData.result];
-    }
-
-    const cartSubscription = cartInfo.subscription;
-    const planRate = planTypes.find(
-        (plan) => plan.name === cartSubscription?.plan_name,
-    )?.plan_rates[0].rate;
-
-    const addons = cartInfo.addons;
-
-    const checkoutCart: CartInfo = {};
-    checkoutCart.totalPrice = 0;
-
-    if (cartSubscription) {
-        checkoutCart.totalPrice += (planRate || 0) * cartSubscription.periods;
-        checkoutCart.subscription = {
-            ...(cartSubscription as SubscriptionSubmission),
-            plan_rate: planRate,
-        };
-    }
-
-    if (addons && addons.length > 0) {
-        let addonsTotal = 0;
-        addons.forEach((addon) => {
-            addonsTotal +=
-                addonProratedRate(
-                    currentSubscription,
-                    cartInfo.subscription?.periods,
-                    addon,
-                ) * addon.quantity;
-        });
-
-        checkoutCart.totalPrice += addonsTotal;
-        checkoutCart.addons = addons;
-    }
-
     const onSubmit = (
         values: CheckoutFormValues,
         { setSubmitting }: FormikHelpers<CheckoutFormValues>,
@@ -155,7 +103,7 @@ function Checkout({
             formatCheckoutTransactionRequest(
                 session?.user?.username as string,
                 currentSubscription,
-                checkoutCart,
+                cartInfo,
                 // The schema's `cast` function will also trim string values.
                 CheckoutFormSchema.cast(values),
             ),
@@ -214,12 +162,10 @@ function Checkout({
         );
     };
 
-    return resourceUsageError || planTypesQueryError ? (
+    return resourceUsageError ? (
         <Box maxWidth="sm">
             <BackButton />
-            <ErrorHandler
-                errorObject={resourceUsageError || planTypesQueryError}
-            />
+            <ErrorHandler errorObject={resourceUsageError} />
         </Box>
     ) : (
         <Formik
@@ -264,7 +210,7 @@ function Checkout({
                                     maxWidth: 500,
                                 }}
                             >
-                                {loadingResourceUsage || loadingPlanTypes ? (
+                                {loadingResourceUsage ? (
                                     <GridLoading />
                                 ) : (
                                     <Info subscription={currentSubscription} />

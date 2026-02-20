@@ -28,6 +28,7 @@ export function mapSubscriptionPropsToValues(
 export function formatSubscription(
     values: SubscriptionFormValues,
     subscription: SubscriptionSummaryDetails,
+    plan_rate?: number,
 ) {
     const { periods, plan_name } = values;
 
@@ -39,6 +40,7 @@ export function formatSubscription(
         username,
         plan_name,
         periods,
+        plan_rate,
     };
 
     return submission;
