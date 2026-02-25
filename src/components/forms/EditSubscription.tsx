@@ -60,6 +60,9 @@ function EditSubscription({
         planTypes = [...planTypesQueryData.result];
     }
 
+    const findPlanTypeByName = (planName: string) =>
+        planTypes.find((type) => type.name === planName);
+
     const dialogTitle =
         subscription && subscription.plan.name !== constants.PLAN_NAME_BASIC
             ? "Renew Subscription"
@@ -91,6 +94,8 @@ function EditSubscription({
                     subscription: formatSubscription(
                         values,
                         subscription as SubscriptionSummaryDetails,
+                        findPlanTypeByName(values.plan_name)?.plan_rates[0]
+                            .rate,
                     ),
                 });
 
@@ -104,9 +109,7 @@ function EditSubscription({
             enableReinitialize={true}
         >
             {({ handleSubmit, values }) => {
-                const selectedPlanType = planTypes.find(
-                    (type) => type.name === values.plan_name,
-                );
+                const selectedPlanType = findPlanTypeByName(values.plan_name);
 
                 return (
                     <Form>

@@ -5,8 +5,19 @@
  */
 import React from "react";
 
-import { OrderUpdateResult, SubscriptionSubmission } from "@/app/api/types";
+import {
+    getResourceUsageSummary,
+    RESOURCE_USAGE_QUERY_KEY,
+} from "@/app/api/serviceFacade";
+import {
+    OrderUpdateResult,
+    ResourceUsageSummary,
+    SubscriptionSubmission,
+} from "@/app/api/types";
 import { AddonsFormValues } from "@/components/forms/formatters";
+import { getCartTotalPrice } from "@/utils/rates";
+
+import { useQuery } from "@tanstack/react-query";
 
 export type CartInfo = {
     subscription?: SubscriptionSubmission;
@@ -15,8 +26,11 @@ export type CartInfo = {
     order?: OrderUpdateResult;
 };
 
+// `setCartInfo` type (`totalPrice` is calculated by the Provider).
+type NewCartInfo = Omit<CartInfo, "totalPrice">;
+
 const CartInfoContext = React.createContext<
-    [CartInfo, React.Dispatch<React.SetStateAction<CartInfo>>] | null
+    [CartInfo, React.Dispatch<NewCartInfo>] | null
 >(null);
 
 export function useCartInfo() {
@@ -30,7 +44,22 @@ export function useCartInfo() {
 }
 
 export function CartInfoProvider(props: object) {
-    const value = React.useState<CartInfo>({});
+    const { data: resourceUsageSummary } = useQuery<ResourceUsageSummary>({
+        queryKey: [RESOURCE_USAGE_QUERY_KEY],
+        queryFn: getResourceUsageSummary,
+    });
+
+    const currentSubscription = resourceUsageSummary?.subscription;
+
+    const reducer = React.useCallback(
+        (_prev: CartInfo, newCartInfo: NewCartInfo): CartInfo => ({
+            ...newCartInfo,
+            totalPrice: getCartTotalPrice(newCartInfo, currentSubscription),
+        }),
+        [currentSubscription],
+    );
+
+    const value = React.useReducer(reducer, {});
 
     return <CartInfoContext.Provider value={value} {...props} />;
 }

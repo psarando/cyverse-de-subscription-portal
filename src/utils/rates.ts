@@ -2,6 +2,7 @@
  * @author psarando
  */
 import constants from "@/constants";
+import { CartInfo } from "@/contexts/cart";
 import {
     AddonsType,
     SubscriptionSubmission,
@@ -46,4 +47,37 @@ export const addonProratedRate = (
     }
 
     return 0;
+};
+
+/**
+ * Calculates the total price of the subscription and addons in the cart.
+ * Addons are prorated based on the current subscription.
+ */
+export const getCartTotalPrice = (
+    cartInfo: CartInfo,
+    currentSubscription?: SubscriptionSummaryDetails,
+) => {
+    const { subscription, addons } = cartInfo;
+
+    let totalPrice = 0;
+
+    if (subscription) {
+        totalPrice += (subscription.plan_rate || 0) * subscription.periods;
+    }
+
+    if (addons && addons.length > 0) {
+        let addonsTotal = 0;
+        addons.forEach((addon) => {
+            addonsTotal +=
+                addonProratedRate(
+                    currentSubscription,
+                    cartInfo.subscription?.periods,
+                    addon,
+                ) * addon.quantity;
+        });
+
+        totalPrice += addonsTotal;
+    }
+
+    return totalPrice;
 };
