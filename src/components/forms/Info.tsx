@@ -12,7 +12,7 @@ import { SubscriptionSummaryDetails } from "@/app/api/types";
 import { useCartInfo } from "@/contexts/cart";
 import DeleteButton from "@/components/common/DeleteButton";
 import { formatCurrency } from "@/utils/formatUtils";
-import { addonProratedRate, getCartTotalPrice } from "@/utils/rates";
+import { addonProratedRate } from "@/utils/rates";
 
 import { List, ListItem, ListItemText, Typography } from "@mui/material";
 
@@ -57,12 +57,6 @@ export default function Info({
                         onDelete={() => {
                             const { subscription: _, ...newCartInfo } =
                                 cartInfo;
-
-                            newCartInfo.totalPrice = getCartTotalPrice(
-                                newCartInfo,
-                                subscription,
-                            );
-
                             setCartInfo(newCartInfo);
                         }}
                     />
@@ -91,19 +85,12 @@ export default function Info({
                                 ) * addon.quantity
                             }
                             onDelete={() => {
-                                const newCartInfo = {
+                                setCartInfo({
                                     ...cartInfo,
                                     addons: cartInfo.addons?.filter(
                                         (a) => a.uuid !== addon.uuid,
                                     ),
-                                };
-
-                                newCartInfo.totalPrice = getCartTotalPrice(
-                                    newCartInfo,
-                                    subscription,
-                                );
-
-                                setCartInfo(newCartInfo);
+                                });
                             }}
                         />
                     ))}

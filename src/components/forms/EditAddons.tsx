@@ -17,7 +17,7 @@ import { announce } from "@/components/common/announcer/CyVerseAnnouncer";
 import { SUCCESS } from "@/components/common/announcer/AnnouncerConstants";
 import { useCartInfo } from "@/contexts/cart";
 import { formatCurrency } from "@/utils/formatUtils";
-import { addonProratedRate, getCartTotalPrice } from "@/utils/rates";
+import { addonProratedRate } from "@/utils/rates";
 
 import { Field, FieldArray, Form, Formik } from "formik";
 import * as Yup from "yup";
@@ -66,16 +66,8 @@ function EditAddons({
                 );
 
                 if (addons) {
-                    const newCartInfo = { ...cartInfo, addons };
-                    newCartInfo.totalPrice = getCartTotalPrice(
-                        newCartInfo,
-                        subscription,
-                    );
-
-                    setCartInfo(newCartInfo);
-
+                    setCartInfo({ ...cartInfo, addons });
                     onClose({} as React.MouseEvent);
-
                     announce({
                         text: addons.length
                             ? `Added ${addons.length} Add-on(s) to cart.`

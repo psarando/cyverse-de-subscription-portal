@@ -19,7 +19,6 @@ import { SUCCESS } from "@/components/common/announcer/AnnouncerConstants";
 import FormTextField from "@/components/forms/FormTextField";
 
 import { formatQuota } from "@/utils/formatUtils";
-import { getCartTotalPrice } from "@/utils/rates";
 
 import { mapSubscriptionPropsToValues, formatSubscription } from "./formatters";
 
@@ -90,7 +89,7 @@ function EditSubscription({
             initialValues={mapSubscriptionPropsToValues(subscription, cartInfo)}
             validationSchema={validationSchema}
             onSubmit={(values) => {
-                const newCartInfo = {
+                setCartInfo({
                     ...cartInfo,
                     subscription: formatSubscription(
                         values,
@@ -98,14 +97,7 @@ function EditSubscription({
                         findPlanTypeByName(values.plan_name)?.plan_rates[0]
                             .rate,
                     ),
-                };
-
-                newCartInfo.totalPrice = getCartTotalPrice(
-                    newCartInfo,
-                    subscription,
-                );
-
-                setCartInfo(newCartInfo);
+                });
 
                 // Pass a dummy event to onClose.
                 onClose({} as React.MouseEvent);
